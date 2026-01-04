@@ -49,7 +49,7 @@ export function WorkoutPage() {
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [openKebabMenu, setOpenKebabMenu] = useState<string | null>(null);
   const [replacingWorkoutExerciseId, setReplacingWorkoutExerciseId] = useState<string | null>(null);
-  const [updateTemplateOnReplace, setUpdateTemplateOnReplace] = useState(false);
+  const [updateTemplateOnReplace, setUpdateTemplateOnReplace] = useState(true);
 
   // Merge default exercises with user exercises, user exercises override defaults
   const allExercises = DEFAULT_EXERCISES.map((defaultEx) => {
