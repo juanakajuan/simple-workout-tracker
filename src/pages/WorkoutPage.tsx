@@ -702,7 +702,7 @@ export function WorkoutPage() {
           onClose={() => {
             setShowExerciseSelector(false);
             setReplacingWorkoutExerciseId(null);
-            setUpdateTemplateOnReplace(false);
+            setUpdateTemplateOnReplace(true);
           }}
           onCreateExercise={handleCreateExercise}
           hideFilter={!!replacingWorkoutExerciseId}
