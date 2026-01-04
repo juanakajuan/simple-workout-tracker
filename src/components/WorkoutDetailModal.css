@@ -119,7 +119,3 @@
   color: var(--accent);
   border-color: var(--accent-dim);
 }
-
-.delete-workout-btn:hover {
-  background: var(--accent-dim);
-}

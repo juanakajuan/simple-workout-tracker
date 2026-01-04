@@ -81,10 +81,6 @@
   color: var(--text-primary);
 }
 
-.templates-day-tab:not(.active):hover {
-  color: var(--text-primary);
-}
-
 .templates-day-tab-delete {
   display: flex;
   align-items: center;
@@ -95,20 +91,11 @@
   transition: all var(--transition);
 }
 
-.templates-day-tab-delete:hover {
-  background: var(--accent-dim);
-  color: var(--accent);
-}
-
 .templates-add-day-tab {
   flex: 0;
   min-width: auto;
   padding: 0.75rem;
   color: var(--text-muted);
-}
-
-.templates-add-day-tab:hover {
-  color: var(--text-primary);
 }
 
 /* Day Content */
@@ -168,10 +155,6 @@
   cursor: not-allowed;
 }
 
-.templates-muscle-group-reorder .btn-sm:not(:disabled):hover {
-  color: var(--text-primary);
-}
-
 .templates-muscle-group-content {
   flex: 1;
   min-width: 0;
@@ -219,20 +202,11 @@
   text-align: left;
 }
 
-.templates-exercise-btn:hover {
-  border-color: var(--text-muted);
-  color: var(--text-secondary);
-}
-
 .templates-exercise-btn.has-exercise {
   color: var(--text-primary);
   background: transparent;
   border-color: transparent;
   padding: 0;
-}
-
-.templates-exercise-btn.has-exercise:hover {
-  color: var(--text-secondary);
 }
 
 .templates-set-count-control {
@@ -268,10 +242,6 @@
   padding: 0.25rem;
 }
 
-.templates-muscle-group-delete:hover {
-  color: var(--accent);
-}
-
 /* Error */
 .templates-error {
   color: var(--accent);
@@ -305,10 +275,6 @@
   cursor: pointer;
 }
 
-.templates-fab:hover {
-  background: var(--bg-input);
-}
-
 .templates-save-btn {
   flex: 1;
   padding: 1rem;
@@ -321,10 +287,6 @@
   background: var(--accent);
   color: white;
   border-radius: var(--radius-md);
-}
-
-.btn-accent:hover {
-  background: var(--accent-hover);
 }
 
 /* Desktop Adjustments */

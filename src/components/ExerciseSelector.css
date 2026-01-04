@@ -99,10 +99,6 @@
   transition: background-color var(--transition);
 }
 
-.selector-item:hover {
-  background: var(--bg-card);
-}
-
 .selector-item:active {
   background: var(--bg-input);
 }

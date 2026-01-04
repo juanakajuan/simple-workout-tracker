@@ -38,11 +38,6 @@
   transition: all var(--transition);
 }
 
-.set-menu-btn:hover {
-  background: var(--bg-input);
-  color: var(--text-secondary);
-}
-
 .set-menu-dropdown {
   position: absolute;
   top: 100%;
@@ -69,10 +64,6 @@
   text-align: left;
   border-radius: var(--radius-sm);
   transition: background var(--transition);
-}
-
-.set-menu-item:hover:not(:disabled) {
-  background: var(--bg-input);
 }
 
 .set-menu-item:disabled {

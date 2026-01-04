@@ -33,11 +33,6 @@
   margin-bottom: 0;
 }
 
-.day-selector-item:hover {
-  background: var(--bg-input);
-  border-color: var(--border-focus);
-}
-
 .day-selector-item:active {
   transform: scale(0.99);
 }

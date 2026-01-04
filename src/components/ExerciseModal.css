@@ -19,17 +19,6 @@
   user-select: none;
 }
 
-.checkbox-label input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-  accent-color: var(--accent);
-}
-
-.checkbox-label:hover {
-  color: var(--text-primary);
-}
-
 .disabled-field {
   opacity: 0.5;
   cursor: not-allowed;

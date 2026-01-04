@@ -106,10 +106,6 @@
   transition: opacity var(--transition);
 }
 
-.workout-name:hover svg {
-  opacity: 1;
-}
-
 .workout-name-input {
   font-size: 1.5rem;
   font-weight: 700;
@@ -189,16 +185,8 @@
   transition: background var(--transition);
 }
 
-.kebab-menu-item:hover {
-  background: var(--bg-input);
-}
-
 .kebab-menu-item-danger {
   color: var(--danger);
-}
-
-.kebab-menu-item-danger:hover {
-  background: rgba(239, 68, 68, 0.1);
 }
 
 .exercise-name-row {
@@ -262,11 +250,6 @@
   transition: all var(--transition);
 }
 
-.add-set-btn:hover {
-  background: var(--bg-input);
-  color: var(--text-primary);
-}
-
 /* Bottom actions */
 .workout-actions {
   display: flex;
@@ -285,10 +268,6 @@
 
 .finish-btn {
   background: var(--success);
-}
-
-.finish-btn:hover {
-  background: #1eb854;
 }
 
 /* Exercise note section - styled like reference image */
@@ -321,18 +300,10 @@
   min-height: 38px;
 }
 
-.workout-exercise-note:hover {
-  background: rgba(139, 92, 43, 0.25);
-}
-
 .workout-exercise-note .note-edit-icon {
   flex-shrink: 0;
   opacity: 0.5;
   margin-top: 1px;
-}
-
-.workout-exercise-note:hover .note-edit-icon {
-  opacity: 1;
 }
 
 .workout-exercise-note-input {

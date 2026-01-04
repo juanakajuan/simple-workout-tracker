@@ -58,10 +58,6 @@
   transition: background-color var(--transition);
 }
 
-.muscle-group-option:hover {
-  background: var(--bg-card);
-}
-
 .muscle-group-indicator {
   width: 14px;
   height: 14px;

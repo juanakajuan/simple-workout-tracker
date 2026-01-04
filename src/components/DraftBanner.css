@@ -14,11 +14,6 @@
     border-color var(--transition);
 }
 
-.draft-banner:hover {
-  background: rgba(255, 23, 68, 0.18);
-  border-color: rgba(255, 23, 68, 0.4);
-}
-
 .draft-banner-icon {
   flex-shrink: 0;
   color: var(--accent);
@@ -60,9 +55,4 @@
   transition:
     background var(--transition),
     color var(--transition);
-}
-
-.draft-banner-dismiss:hover {
-  background: rgba(255, 23, 68, 0.2);
-  color: var(--accent);
 }

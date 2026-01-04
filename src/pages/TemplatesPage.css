@@ -73,10 +73,6 @@
   color: var(--text-muted);
 }
 
-.template-kebab-menu .btn-icon:hover {
-  color: var(--text-primary);
-}
-
 .template-kebab-dropdown {
   position: absolute;
   top: calc(100% + 0.25rem);
@@ -105,16 +101,8 @@
   text-align: left;
 }
 
-.template-kebab-item:hover {
-  background: var(--bg-input);
-}
-
 .template-kebab-item-delete {
   color: var(--accent);
-}
-
-.template-kebab-item-delete:hover {
-  background: var(--accent-dim);
 }
 
 .template-card-actions {
