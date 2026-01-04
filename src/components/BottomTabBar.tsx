@@ -8,11 +8,11 @@ export function BottomTabBar() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Track last visited sub-route for each section
+  // Track last visited sub-route for each section (using refs to avoid re-renders)
   const lastTemplatesPath = useRef("/templates");
   const lastMorePath = useRef("/more");
 
-  // Update refs when location changes (doesn't trigger re-renders)
+  // Update refs when location changes
   useEffect(() => {
     if (location.pathname.startsWith("/templates")) {
       lastTemplatesPath.current = location.pathname;
@@ -27,7 +27,7 @@ export function BottomTabBar() {
   const handleTabClick = (
     e: React.MouseEvent,
     basePath: string,
-    lastPath: string,
+    lastPathRef: React.RefObject<string>,
     isActive: boolean
   ) => {
     e.preventDefault();
@@ -40,7 +40,7 @@ export function BottomTabBar() {
       }
     } else {
       // Navigate to last visited sub-route
-      navigate(lastPath);
+      navigate(lastPathRef.current || basePath);
     }
   };
 
@@ -63,11 +63,9 @@ export function BottomTabBar() {
       </NavLink>
 
       <NavLink
-        to={lastTemplatesPath.current}
+        to="/templates"
         className={`tab ${isTemplatesActive ? "active" : ""}`}
-        onClick={(e) =>
-          handleTabClick(e, "/templates", lastTemplatesPath.current, isTemplatesActive)
-        }
+        onClick={(e) => handleTabClick(e, "/templates", lastTemplatesPath, isTemplatesActive)}
       >
         <LayoutTemplate size={24} />
         <span>Templates</span>
@@ -92,9 +90,9 @@ export function BottomTabBar() {
       </NavLink>
 
       <NavLink
-        to={lastMorePath.current}
+        to="/more"
         className={`tab ${isMoreActive ? "active" : ""}`}
-        onClick={(e) => handleTabClick(e, "/more", lastMorePath.current, isMoreActive)}
+        onClick={(e) => handleTabClick(e, "/more", lastMorePath, isMoreActive)}
       >
         <CircleEllipsis size={24} />
         <span>More</span>
