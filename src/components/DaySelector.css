@@ -18,36 +18,35 @@
 }
 
 .day-selector-item {
-  display: flex;
-  align-items: center;
   width: 100%;
   padding: 1rem 1.25rem;
   text-align: left;
-  background: transparent;
-  border: none;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  transition: background-color var(--transition);
-  gap: 1rem;
+  transition: all var(--transition);
+  margin-bottom: 0.75rem;
+}
+
+.day-selector-item:last-child {
+  margin-bottom: 0;
 }
 
 .day-selector-item:hover {
-  background: var(--bg-card);
+  background: var(--bg-input);
+  border-color: var(--border-focus);
 }
 
 .day-selector-item:active {
-  background: var(--bg-input);
-}
-
-.day-selector-item-content {
-  flex: 1;
-  min-width: 0;
+  transform: scale(0.99);
 }
 
 .day-selector-item-header {
   display: flex;
   align-items: baseline;
   gap: 0.75rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
 }
 
 .day-selector-item-name {
@@ -64,7 +63,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  margin-bottom: 0.5rem;
 }
 
 .day-selector-muscle-tag {
@@ -82,39 +80,4 @@
   width: 8px;
   height: 8px;
   border-radius: 2px;
-}
-
-.day-selector-exercises-preview {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-}
-
-.day-selector-exercise-name {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-.day-selector-exercise-name::after {
-  content: ",";
-}
-
-.day-selector-exercise-name:last-of-type::after {
-  content: "";
-}
-
-.day-selector-more {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-.day-selector-item-action {
-  flex-shrink: 0;
-  color: var(--accent);
-  opacity: 0;
-  transition: opacity var(--transition);
-}
-
-.day-selector-item:hover .day-selector-item-action {
-  opacity: 1;
 }

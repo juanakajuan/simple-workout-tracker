@@ -2,10 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Play, Pencil, Trash2, MoreVertical } from "lucide-react";
 
-import type { Exercise, Workout, WorkoutTemplate, TemplateDay, WorkoutExercise } from "../types";
+import type { Workout, WorkoutTemplate, TemplateDay, WorkoutExercise } from "../types";
 
 import { useLocalStorage } from "../hooks/useLocalStorage";
-import { STORAGE_KEYS, generateId, DEFAULT_EXERCISES } from "../utils/storage";
+import { STORAGE_KEYS, generateId } from "../utils/storage";
 
 import { DaySelector } from "../components/DaySelector";
 import { DraftBanner } from "../components/DraftBanner";
@@ -14,7 +14,6 @@ import "./TemplatesPage.css";
 
 export function TemplatesPage() {
   const navigate = useNavigate();
-  const [exercises] = useLocalStorage<Exercise[]>(STORAGE_KEYS.EXERCISES, []);
   const [templates, setTemplates] = useLocalStorage<WorkoutTemplate[]>(STORAGE_KEYS.TEMPLATES, []);
   const [, setActiveWorkout] = useLocalStorage<Workout | null>(STORAGE_KEYS.ACTIVE_WORKOUT, null);
 
@@ -23,12 +22,6 @@ export function TemplatesPage() {
 
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [hasDraft, setHasDraft] = useState(false);
-
-  // Merge default exercises with user exercises, user exercises override defaults
-  const allExercises = DEFAULT_EXERCISES.map((defaultEx) => {
-    const userOverride = exercises.find((e) => e.id === defaultEx.id);
-    return userOverride || defaultEx;
-  }).concat(exercises.filter((e) => !e.id.startsWith("default-")));
 
   // Check for draft template on mount
   useEffect(() => {
@@ -257,7 +250,6 @@ export function TemplatesPage() {
       {showDaySelector && selectedTemplate && (
         <DaySelector
           template={selectedTemplate}
-          exercises={allExercises}
           onSelect={(day) => startFromTemplateDay(selectedTemplate, day)}
           onClose={() => {
             setShowDaySelector(false);

@@ -1,30 +1,24 @@
 import { useEffect } from "react";
-import { X, Play } from "lucide-react";
+import { X } from "lucide-react";
 
-import type { WorkoutTemplate, TemplateDay, Exercise } from "../types";
+import type { WorkoutTemplate, TemplateDay } from "../types";
 import { muscleGroupLabels, muscleGroupColors } from "../types";
 
 import "./DaySelector.css";
 
 interface DaySelectorProps {
   template: WorkoutTemplate;
-  exercises: Exercise[];
   onSelect: (day: TemplateDay) => void;
   onClose: () => void;
 }
 
-export function DaySelector({ template, exercises, onSelect, onClose }: DaySelectorProps) {
+export function DaySelector({ template, onSelect, onClose }: DaySelectorProps) {
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = "";
     };
   }, []);
-
-  const getExerciseById = (id: string | null) => {
-    if (!id) return null;
-    return exercises.find((e) => e.id === id) ?? null;
-  };
 
   const getDayStats = (day: TemplateDay) => {
     let exerciseCount = 0;
@@ -67,49 +61,24 @@ export function DaySelector({ template, exercises, onSelect, onClose }: DaySelec
 
             return (
               <button key={day.id} className="day-selector-item" onClick={() => onSelect(day)}>
-                <div className="day-selector-item-content">
-                  <div className="day-selector-item-header">
-                    <span className="day-selector-item-name">{day.name}</span>
-                    <span className="day-selector-item-stats">
-                      {stats.exerciseCount} exercise{stats.exerciseCount !== 1 ? "s" : ""} ·{" "}
-                      {stats.setCount} set{stats.setCount !== 1 ? "s" : ""}
-                    </span>
-                  </div>
-
-                  <div className="day-selector-muscle-groups">
-                    {muscleGroups.map((group) => (
-                      <span key={group} className="day-selector-muscle-tag">
-                        <span
-                          className="day-selector-muscle-indicator"
-                          style={{ backgroundColor: muscleGroupColors[group] }}
-                        />
-                        {muscleGroupLabels[group]}
-                      </span>
-                    ))}
-                  </div>
-
-                  <div className="day-selector-exercises-preview">
-                    {day.muscleGroups.slice(0, 3).map((mg) =>
-                      mg.exercises
-                        .filter((ex) => ex.exerciseId)
-                        .slice(0, 1)
-                        .map((ex) => {
-                          const exercise = getExerciseById(ex.exerciseId);
-                          return exercise ? (
-                            <span key={ex.id} className="day-selector-exercise-name">
-                              {exercise.name}
-                            </span>
-                          ) : null;
-                        })
-                    )}
-                    {day.muscleGroups.length > 3 && (
-                      <span className="day-selector-more">+{day.muscleGroups.length - 3} more</span>
-                    )}
-                  </div>
+                <div className="day-selector-item-header">
+                  <span className="day-selector-item-name">{day.name}</span>
+                  <span className="day-selector-item-stats">
+                    {stats.exerciseCount} exercise{stats.exerciseCount !== 1 ? "s" : ""} ·{" "}
+                    {stats.setCount} set{stats.setCount !== 1 ? "s" : ""}
+                  </span>
                 </div>
 
-                <div className="day-selector-item-action">
-                  <Play size={20} />
+                <div className="day-selector-muscle-groups">
+                  {muscleGroups.map((group) => (
+                    <span key={group} className="day-selector-muscle-tag">
+                      <span
+                        className="day-selector-muscle-indicator"
+                        style={{ backgroundColor: muscleGroupColors[group] }}
+                      />
+                      {muscleGroupLabels[group]}
+                    </span>
+                  ))}
                 </div>
               </button>
             );
