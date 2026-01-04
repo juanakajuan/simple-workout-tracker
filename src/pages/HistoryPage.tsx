@@ -16,7 +16,6 @@ export function HistoryPage() {
   const [userExercises] = useLocalStorage<Exercise[]>(STORAGE_KEYS.EXERCISES, []);
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
 
-  // Merge default exercises with user exercises
   // Merge default exercises with user exercises, user exercises override defaults
   const allExercises = DEFAULT_EXERCISES.map((defaultEx) => {
     const userOverride = userExercises.find((e) => e.id === defaultEx.id);
@@ -130,9 +129,7 @@ export function HistoryPage() {
                       <div className="history-card-meta">
                         <span>{workout.exercises.length} exercises</span>
                         <span className="dot">•</span>
-                        <span>
-                          {stats.completedSets}/{stats.totalSets} sets
-                        </span>
+                        <span>{stats.completedSets} sets</span>
                         {workout.duration && (
                           <>
                             <span className="dot">•</span>
