@@ -227,3 +227,5 @@ const allExercises = [...DEFAULT_EXERCISES, ...exercises];
           b) option 2
           c) option 3
   ```
+
+- Try to avoid using abbreviations

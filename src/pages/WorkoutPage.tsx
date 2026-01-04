@@ -106,22 +106,81 @@ export function WorkoutPage() {
     if (!activeWorkout) return;
     setActiveWorkout({
       ...activeWorkout,
-      exercises: activeWorkout.exercises.filter((e) => e.id !== workoutExerciseId),
+      exercises: activeWorkout.exercises.filter((exercise) => exercise.id !== workoutExerciseId),
     });
+  };
+
+  const updateTemplateSetCount = (
+    templateId: string,
+    templateDayId: string,
+    exercisePositionInWorkout: number,
+    newSetCount: number
+  ) => {
+    const template = templates.find((template) => template.id === templateId);
+    if (!template) return;
+
+    const day = template.days.find((day) => day.id === templateDayId);
+    if (!day) return;
+
+    let currentPosition = 0;
+    let targetMuscleGroupId: string | null = null;
+    let targetExerciseId: string | null = null;
+
+    for (const muscleGroup of day.muscleGroups) {
+      for (const exercise of muscleGroup.exercises) {
+        if (currentPosition === exercisePositionInWorkout) {
+          targetMuscleGroupId = muscleGroup.id;
+          targetExerciseId = exercise.id;
+          break;
+        }
+        currentPosition++;
+      }
+      if (targetMuscleGroupId) break;
+    }
+
+    if (!targetMuscleGroupId || !targetExerciseId) return;
+
+    const updatedTemplates = templates.map((template) => {
+      if (template.id !== templateId) return template;
+
+      return {
+        ...template,
+        days: template.days.map((day) => {
+          if (day.id !== templateDayId) return day;
+
+          return {
+            ...day,
+            muscleGroups: day.muscleGroups.map((muscleGroup) => {
+              if (muscleGroup.id !== targetMuscleGroupId) return muscleGroup;
+
+              return {
+                ...muscleGroup,
+                exercises: muscleGroup.exercises.map((exercise) => {
+                  if (exercise.id !== targetExerciseId) return exercise;
+                  return { ...exercise, setCount: newSetCount };
+                }),
+              };
+            }),
+          };
+        }),
+      };
+    });
+
+    setTemplates(updatedTemplates);
   };
 
   const addSet = (workoutExerciseId: string) => {
     if (!activeWorkout) return;
 
-    setActiveWorkout({
+    const updatedWorkout = {
       ...activeWorkout,
-      exercises: activeWorkout.exercises.map((e) => {
-        if (e.id !== workoutExerciseId) return e;
-        const lastSet = e.sets[e.sets.length - 1];
+      exercises: activeWorkout.exercises.map((exercise) => {
+        if (exercise.id !== workoutExerciseId) return exercise;
+        const lastSet = exercise.sets[exercise.sets.length - 1];
         return {
-          ...e,
+          ...exercise,
           sets: [
-            ...e.sets,
+            ...exercise.sets,
             {
               id: generateId(),
               weight: lastSet?.weight ?? 0,
@@ -131,7 +190,25 @@ export function WorkoutPage() {
           ],
         };
       }),
-    });
+    };
+
+    setActiveWorkout(updatedWorkout);
+
+    // Update template if this workout is from a template
+    if (activeWorkout.templateId && activeWorkout.templateDayId) {
+      const workoutExerciseIndex = activeWorkout.exercises.findIndex(
+        (exercise) => exercise.id === workoutExerciseId
+      );
+      if (workoutExerciseIndex !== -1) {
+        const updatedExercise = updatedWorkout.exercises[workoutExerciseIndex];
+        updateTemplateSetCount(
+          activeWorkout.templateId,
+          activeWorkout.templateDayId,
+          workoutExerciseIndex,
+          updatedExercise.sets.length
+        );
+      }
+    }
   };
 
   const updateSet = (workoutExerciseId: string, setId: string, updates: Partial<WorkoutSet>) => {
@@ -139,23 +216,25 @@ export function WorkoutPage() {
 
     setActiveWorkout({
       ...activeWorkout,
-      exercises: activeWorkout.exercises.map((e) => {
-        if (e.id !== workoutExerciseId) return e;
+      exercises: activeWorkout.exercises.map((exercise) => {
+        if (exercise.id !== workoutExerciseId) return exercise;
 
         // Apply auto-match weight if enabled and weight is being updated
         if (settings.autoMatchWeight && updates.weight !== undefined) {
           return {
-            ...e,
-            sets: e.sets.map((s) =>
-              s.id === setId ? { ...s, ...updates } : { ...s, weight: updates.weight as number }
+            ...exercise,
+            sets: exercise.sets.map((set) =>
+              set.id === setId
+                ? { ...set, ...updates }
+                : { ...set, weight: updates.weight as number }
             ),
           };
         }
 
         // Normal behavior: only update the specific set
         return {
-          ...e,
-          sets: e.sets.map((s) => (s.id === setId ? { ...s, ...updates } : s)),
+          ...exercise,
+          sets: exercise.sets.map((set) => (set.id === setId ? { ...set, ...updates } : set)),
         };
       }),
     });
@@ -164,13 +243,31 @@ export function WorkoutPage() {
   const removeSet = (workoutExerciseId: string, setId: string) => {
     if (!activeWorkout) return;
 
-    setActiveWorkout({
+    const updatedWorkout = {
       ...activeWorkout,
-      exercises: activeWorkout.exercises.map((e) => {
-        if (e.id !== workoutExerciseId) return e;
-        return { ...e, sets: e.sets.filter((s) => s.id !== setId) };
+      exercises: activeWorkout.exercises.map((exercise) => {
+        if (exercise.id !== workoutExerciseId) return exercise;
+        return { ...exercise, sets: exercise.sets.filter((set) => set.id !== setId) };
       }),
-    });
+    };
+
+    setActiveWorkout(updatedWorkout);
+
+    // Update template if this workout is from a template
+    if (activeWorkout.templateId && activeWorkout.templateDayId) {
+      const workoutExerciseIndex = activeWorkout.exercises.findIndex(
+        (exercise) => exercise.id === workoutExerciseId
+      );
+      if (workoutExerciseIndex !== -1) {
+        const updatedExercise = updatedWorkout.exercises[workoutExerciseIndex];
+        updateTemplateSetCount(
+          activeWorkout.templateId,
+          activeWorkout.templateDayId,
+          workoutExerciseIndex,
+          updatedExercise.sets.length
+        );
+      }
+    }
   };
 
   const finishWorkout = () => {
@@ -205,7 +302,7 @@ export function WorkoutPage() {
     if (!replacingWorkoutExerciseId || !activeWorkout) return undefined;
 
     const workoutExercise = activeWorkout.exercises.find(
-      (e) => e.id === replacingWorkoutExerciseId
+      (exercise) => exercise.id === replacingWorkoutExerciseId
     );
     if (!workoutExercise) return undefined;
 
@@ -217,22 +314,22 @@ export function WorkoutPage() {
     const muscleGroup = getReplacementMuscleGroup();
     if (!muscleGroup) return allExercises;
 
-    return allExercises.filter((e) => e.muscleGroup === muscleGroup);
+    return allExercises.filter((exercise) => exercise.muscleGroup === muscleGroup);
   };
 
   const updateExerciseNote = (exerciseId: string, noteText: string) => {
     // Update in user exercises (will create override for default exercises)
-    const existingExercise = exercises.find((e) => e.id === exerciseId);
+    const existingExercise = exercises.find((exercise) => exercise.id === exerciseId);
 
     if (existingExercise) {
       // Update existing user exercise
-      const updatedExercises = exercises.map((e) =>
-        e.id === exerciseId ? { ...e, notes: noteText } : e
+      const updatedExercises = exercises.map((exercise) =>
+        exercise.id === exerciseId ? { ...exercise, notes: noteText } : exercise
       );
       setExercises(updatedExercises);
     } else {
       // Create override for default exercise
-      const defaultExercise = DEFAULT_EXERCISES.find((e) => e.id === exerciseId);
+      const defaultExercise = DEFAULT_EXERCISES.find((exercise) => exercise.id === exerciseId);
       if (defaultExercise) {
         setExercises([...exercises, { ...defaultExercise, notes: noteText }]);
       }
@@ -248,7 +345,7 @@ export function WorkoutPage() {
     if (!activeWorkout || !replacingWorkoutExerciseId) return;
 
     const workoutExerciseIndex = activeWorkout.exercises.findIndex(
-      (e) => e.id === replacingWorkoutExerciseId
+      (exercise) => exercise.id === replacingWorkoutExerciseId
     );
 
     if (workoutExerciseIndex === -1) return;
@@ -264,8 +361,10 @@ export function WorkoutPage() {
 
     const updatedWorkout = {
       ...activeWorkout,
-      exercises: activeWorkout.exercises.map((e) =>
-        e.id === replacingWorkoutExerciseId ? { ...e, exerciseId: newExerciseId, sets: newSets } : e
+      exercises: activeWorkout.exercises.map((exercise) =>
+        exercise.id === replacingWorkoutExerciseId
+          ? { ...exercise, exerciseId: newExerciseId, sets: newSets }
+          : exercise
       ),
     };
 
@@ -290,21 +389,21 @@ export function WorkoutPage() {
     exercisePositionInWorkout: number,
     newExerciseId: string
   ) => {
-    const template = templates.find((t) => t.id === templateId);
+    const template = templates.find((template) => template.id === templateId);
     if (!template) return;
 
-    const day = template.days.find((d) => d.id === templateDayId);
+    const day = template.days.find((day) => day.id === templateDayId);
     if (!day) return;
 
     let currentPosition = 0;
     let targetMuscleGroupId: string | null = null;
     let targetExerciseId: string | null = null;
 
-    for (const mg of day.muscleGroups) {
-      for (const ex of mg.exercises) {
+    for (const muscleGroup of day.muscleGroups) {
+      for (const exercise of muscleGroup.exercises) {
         if (currentPosition === exercisePositionInWorkout) {
-          targetMuscleGroupId = mg.id;
-          targetExerciseId = ex.id;
+          targetMuscleGroupId = muscleGroup.id;
+          targetExerciseId = exercise.id;
           break;
         }
         currentPosition++;
@@ -314,24 +413,24 @@ export function WorkoutPage() {
 
     if (!targetMuscleGroupId || !targetExerciseId) return;
 
-    const updatedTemplates = templates.map((t) => {
-      if (t.id !== templateId) return t;
+    const updatedTemplates = templates.map((template) => {
+      if (template.id !== templateId) return template;
 
       return {
-        ...t,
-        days: t.days.map((d) => {
-          if (d.id !== templateDayId) return d;
+        ...template,
+        days: template.days.map((day) => {
+          if (day.id !== templateDayId) return day;
 
           return {
-            ...d,
-            muscleGroups: d.muscleGroups.map((mg) => {
-              if (mg.id !== targetMuscleGroupId) return mg;
+            ...day,
+            muscleGroups: day.muscleGroups.map((muscleGroup) => {
+              if (muscleGroup.id !== targetMuscleGroupId) return muscleGroup;
 
               return {
-                ...mg,
-                exercises: mg.exercises.map((ex) => {
-                  if (ex.id !== targetExerciseId) return ex;
-                  return { ...ex, exerciseId: newExerciseId };
+                ...muscleGroup,
+                exercises: muscleGroup.exercises.map((exercise) => {
+                  if (exercise.id !== targetExerciseId) return exercise;
+                  return { ...exercise, exerciseId: newExerciseId };
                 }),
               };
             }),
@@ -345,11 +444,11 @@ export function WorkoutPage() {
 
   const deleteNoteFromExercise = (exerciseId: string) => {
     // Update exercise notes to empty
-    const existingExercise = exercises.find((e) => e.id === exerciseId);
+    const existingExercise = exercises.find((exercise) => exercise.id === exerciseId);
 
     if (existingExercise) {
-      const updatedExercises = exercises.map((e) =>
-        e.id === exerciseId ? { ...e, notes: "" } : e
+      const updatedExercises = exercises.map((exercise) =>
+        exercise.id === exerciseId ? { ...exercise, notes: "" } : exercise
       );
       setExercises(updatedExercises);
     }
