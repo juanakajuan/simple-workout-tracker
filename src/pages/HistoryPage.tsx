@@ -4,7 +4,8 @@ import { History } from "lucide-react";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { STORAGE_KEYS, DEFAULT_EXERCISES } from "../utils/storage";
 
-import type { Exercise, Workout } from "../types";
+import type { Exercise, Workout, MuscleGroup } from "../types";
+import { muscleGroupLabels, getMuscleGroupClassName } from "../types";
 
 import { WorkoutDetailModal } from "../components/WorkoutDetailModal";
 
@@ -140,19 +141,23 @@ export function HistoryPage() {
                         )}
                       </div>
                       <div className="history-card-exercises">
-                        {workout.exercises.slice(0, 3).map((we) => {
-                          const exercise = getExerciseById(we.exerciseId);
-                          return exercise ? (
-                            <span key={we.id} className="tag tag-muted">
-                              {exercise.name}
+                        {(() => {
+                          const muscleGroups = Array.from(
+                            new Set(
+                              workout.exercises
+                                .map((we) => getExerciseById(we.exerciseId)?.muscleGroup)
+                                .filter((mg): mg is MuscleGroup => mg !== undefined)
+                            )
+                          );
+                          return muscleGroups.map((muscleGroup) => (
+                            <span
+                              key={muscleGroup}
+                              className={`tag ${getMuscleGroupClassName(muscleGroup)}`}
+                            >
+                              {muscleGroupLabels[muscleGroup]}
                             </span>
-                          ) : null;
-                        })}
-                        {workout.exercises.length > 3 && (
-                          <span className="more-exercises">
-                            +{workout.exercises.length - 3} more
-                          </span>
-                        )}
+                          ));
+                        })()}
                       </div>
                     </button>
                   );
