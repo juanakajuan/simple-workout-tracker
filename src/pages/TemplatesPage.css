@@ -1,6 +1,6 @@
 /* Templates Page - List View */
 .templates-page {
-  padding-bottom: calc(90px + env(safe-area-inset-bottom));
+  padding-bottom: calc(60px + env(safe-area-inset-bottom));
 }
 
 .templates-page .page-header {
