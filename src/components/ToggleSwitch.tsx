@@ -8,15 +8,23 @@ interface ToggleSwitchProps {
 }
 
 export function ToggleSwitch({ checked, onChange, label, disabled = false }: ToggleSwitchProps) {
+  /**
+   * Handles toggling the switch state. Does nothing if the switch is disabled.
+   */
   const handleToggle = () => {
     if (!disabled) {
       onChange(!checked);
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
+  /**
+   * Handles keyboard interactions for the toggle switch. Toggles on Enter or Space key.
+   *
+   * @param event - The keyboard event
+   */
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
       handleToggle();
     }
   };

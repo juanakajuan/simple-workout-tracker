@@ -20,15 +20,21 @@ export function DaySelector({ template, onSelect, onClose }: DaySelectorProps) {
     };
   }, []);
 
+  /**
+   * Calculates statistics for a template day including total exercises and total sets.
+   *
+   * @param day - The template day to calculate statistics for
+   * @returns Object containing exerciseCount and setCount
+   */
   const getDayStats = (day: TemplateDay) => {
     let exerciseCount = 0;
     let setCount = 0;
 
-    day.muscleGroups.forEach((mg) => {
-      mg.exercises.forEach((ex) => {
-        if (ex.exerciseId) {
+    day.muscleGroups.forEach((muscleGroup) => {
+      muscleGroup.exercises.forEach((exercise) => {
+        if (exercise.exerciseId) {
           exerciseCount++;
-          setCount += ex.setCount;
+          setCount += exercise.setCount;
         }
       });
     });
@@ -36,8 +42,14 @@ export function DaySelector({ template, onSelect, onClose }: DaySelectorProps) {
     return { exerciseCount, setCount };
   };
 
+  /**
+   * Gets the unique muscle groups present in a template day.
+   *
+   * @param day - The template day
+   * @returns Array of unique muscle groups
+   */
   const getUniqueMuscleGroups = (day: TemplateDay) => {
-    const groups = new Set(day.muscleGroups.map((mg) => mg.muscleGroup));
+    const groups = new Set(day.muscleGroups.map((muscleGroup) => muscleGroup.muscleGroup));
     return Array.from(groups);
   };
 

@@ -8,7 +8,6 @@ export function BottomTabBar() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Track last visited sub-route for each section (using refs to avoid re-renders)
   const lastTemplatesPath = useRef("/templates");
   const lastMorePath = useRef("/more");
 
@@ -24,29 +23,44 @@ export function BottomTabBar() {
   const isTemplatesActive = location.pathname.startsWith("/templates");
   const isMoreActive = location.pathname.startsWith("/more");
 
+  /**
+   * Handles clicking on a tab with sub-routes. If already active, scrolls to top
+   * and navigates to the base route. If not active, navigates to the last visited
+   * sub-route for that tab.
+   *
+   * @param event - The mouse event
+   * @param basePath - The base path for the tab (e.g., "/templates")
+   * @param lastPathRef - Reference to the last visited path for this tab
+   * @param isActive - Whether the tab is currently active
+   */
   const handleTabClick = (
-    e: React.MouseEvent,
+    event: React.MouseEvent,
     basePath: string,
     lastPathRef: React.RefObject<string>,
     isActive: boolean
   ) => {
-    e.preventDefault();
+    event.preventDefault();
 
     if (isActive) {
-      // If already on this tab, scroll to top and navigate to root
       window.scrollTo({ top: 0, behavior: "instant" });
       if (location.pathname !== basePath) {
         navigate(basePath);
       }
     } else {
-      // Navigate to last visited sub-route
       navigate(lastPathRef.current || basePath);
     }
   };
 
-  const handleSimpleTabClick = (e: React.MouseEvent, isActive: boolean) => {
+  /**
+   * Handles clicking on a simple tab (without sub-routes). If already active,
+   * prevents navigation and scrolls to the top of the page.
+   *
+   * @param event - The mouse event
+   * @param isActive - Whether the tab is currently active
+   */
+  const handleSimpleTabClick = (event: React.MouseEvent, isActive: boolean) => {
     if (isActive) {
-      e.preventDefault();
+      event.preventDefault();
       window.scrollTo({ top: 0, behavior: "instant" });
     }
   };

@@ -108,10 +108,18 @@ export function TemplateEditorPage() {
     }
   }, [name, days, activeDayIndex, isEditMode, isInitialized]);
 
+  /**
+   * Navigates back to the templates list page.
+   */
   const handleBack = () => {
     navigate("/templates");
   };
 
+  /**
+   * Validates and saves the template to localStorage. Performs validation
+   * to ensure the template has a name and at least one exercise. Filters out
+   * empty muscle groups before saving. Clears any draft if creating a new template.
+   */
   const saveTemplate = () => {
     const trimmedName = name.trim();
     if (!trimmedName) {
@@ -168,6 +176,10 @@ export function TemplateEditorPage() {
 
   // ========== Day Management ==========
 
+  /**
+   * Adds a new day to the template and switches to it. The day is given a
+   * default name like "Day 2", "Day 3", etc.
+   */
   const addDay = () => {
     const newDay: TemplateDay = {
       id: generateId(),
@@ -178,6 +190,12 @@ export function TemplateEditorPage() {
     setActiveDayIndex(days.length); // Switch to new day
   };
 
+  /**
+   * Removes a day from the template. Does not allow removing the last day.
+   * Adjusts the active day index if necessary.
+   *
+   * @param dayIndex - The zero-based index of the day to remove
+   */
   const removeDay = (dayIndex: number) => {
     if (days.length <= 1) return;
     const newDays = days.filter((_, i) => i !== dayIndex);
@@ -192,6 +210,12 @@ export function TemplateEditorPage() {
 
   // ========== Muscle Group Management ==========
 
+  /**
+   * Adds a new muscle group to the active day with one placeholder exercise slot
+   * (3 sets by default). Closes the muscle group selector modal.
+   *
+   * @param muscleGroup - The muscle group to add
+   */
   const addMuscleGroupToActiveDay = (muscleGroup: MuscleGroup) => {
     const newMuscleGroup: TemplateMuscleGroup = {
       id: generateId(),
@@ -218,6 +242,11 @@ export function TemplateEditorPage() {
     setShowMuscleGroupSelector(false);
   };
 
+  /**
+   * Removes a muscle group from the active day.
+   *
+   * @param muscleGroupId - The unique identifier of the muscle group to remove
+   */
   const removeMuscleGroup = (muscleGroupId: string) => {
     setDays(
       days.map((day, i) => {
@@ -230,6 +259,12 @@ export function TemplateEditorPage() {
     );
   };
 
+  /**
+   * Moves a muscle group up or down in the active day's list.
+   *
+   * @param muscleGroupId - The unique identifier of the muscle group to move
+   * @param direction - The direction to move: "up" or "down"
+   */
   const moveMuscleGroup = (muscleGroupId: string, direction: "up" | "down") => {
     setDays(
       days.map((day, i) => {
@@ -262,6 +297,13 @@ export function TemplateEditorPage() {
 
   // ========== Exercise Management ==========
 
+  /**
+   * Opens the exercise selector modal for a specific exercise slot in a muscle group.
+   *
+   * @param muscleGroupId - The unique identifier of the muscle group
+   * @param exerciseId - The unique identifier of the template exercise
+   * @param muscleGroup - The muscle group type for filtering exercises
+   */
   const openExerciseSelector = (
     muscleGroupId: string,
     exerciseId: string,
@@ -271,6 +313,12 @@ export function TemplateEditorPage() {
     setShowExerciseSelector(true);
   };
 
+  /**
+   * Assigns a selected exercise to a template exercise slot. Closes the
+   * exercise selector and clears any validation errors.
+   *
+   * @param selectedExerciseId - The unique identifier of the selected exercise
+   */
   const selectExercise = (selectedExerciseId: string) => {
     if (!exerciseSelectorTarget) return;
 
@@ -300,6 +348,13 @@ export function TemplateEditorPage() {
     setError("");
   };
 
+  /**
+   * Creates a new exercise and persists it to localStorage. Automatically
+   * assigns the new exercise to the current template exercise slot.
+   *
+   * @param exerciseData - Exercise data without the id field
+   * @returns The unique identifier of the newly created exercise
+   */
   const handleCreateExercise = (exerciseData: Omit<Exercise, "id">): string => {
     const newExercise: Exercise = {
       ...exerciseData,
@@ -314,11 +369,26 @@ export function TemplateEditorPage() {
     return newExercise.id;
   };
 
+  /**
+   * Retrieves an exercise by its unique identifier from the merged list of
+   * default and user exercises.
+   *
+   * @param id - The unique identifier of the exercise, or null
+   * @returns The exercise if found, null otherwise
+   */
   const getExerciseById = (id: string | null) => {
     if (!id) return null;
     return allExercises.find((exercise) => exercise.id === id) ?? null;
   };
 
+  /**
+   * Updates the set count for a template exercise by adding or subtracting a delta.
+   * Constrains the set count between 1 and 20.
+   *
+   * @param muscleGroupId - The unique identifier of the muscle group
+   * @param exerciseId - The unique identifier of the template exercise
+   * @param delta - The amount to add to the set count (can be negative)
+   */
   const updateSetCount = (muscleGroupId: string, exerciseId: string, delta: number) => {
     setDays(
       days.map((day, i) => {
@@ -341,6 +411,12 @@ export function TemplateEditorPage() {
     );
   };
 
+  /**
+   * Gets the filtered and sorted list of exercises for the exercise selector.
+   * Filters to the target muscle group if an exercise slot is being filled.
+   *
+   * @returns Sorted array of exercises, optionally filtered by muscle group
+   */
   const getFilteredExercises = () => {
     if (!exerciseSelectorTarget) {
       return [...allExercises].sort((a, b) => a.name.localeCompare(b.name));

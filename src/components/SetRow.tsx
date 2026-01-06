@@ -31,6 +31,10 @@ export function SetRow({ set, onUpdate, onRemove, canRemove, exerciseType }: Set
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [menuOpen]);
 
+  /**
+   * Handles deleting the set. Only proceeds if canRemove is true.
+   * Closes the menu after deletion.
+   */
   const handleDelete = () => {
     if (canRemove) {
       onRemove();

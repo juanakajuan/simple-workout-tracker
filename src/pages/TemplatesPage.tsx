@@ -31,6 +31,10 @@ export function TemplatesPage() {
 
   // ========== Template CRUD ==========
 
+  /**
+   * Navigates to the template creation page. If a draft template exists,
+   * prompts the user to confirm discarding it before proceeding.
+   */
   const handleCreateTemplate = () => {
     // Check if draft exists
     if (localStorage.getItem(STORAGE_KEYS.DRAFT_TEMPLATE)) {
@@ -50,22 +54,38 @@ export function TemplatesPage() {
     }
   };
 
+  /**
+   * Navigates to the template editor page for a specific template.
+   *
+   * @param templateId - The unique identifier of the template to edit
+   */
   const handleEditTemplate = (templateId: string) => {
     navigate(`/templates/edit/${templateId}`);
   };
 
+  /**
+   * Deletes a template from localStorage after user confirmation.
+   *
+   * @param templateId - The unique identifier of the template to delete
+   */
   const deleteTemplate = (templateId: string) => {
     if (confirm("Are you sure you want to delete this template?")) {
-      setTemplates(templates.filter((t) => t.id !== templateId));
+      setTemplates(templates.filter((template) => template.id !== templateId));
     }
   };
 
   // ========== Draft Management ==========
 
+  /**
+   * Navigates to the template editor to continue editing a draft template.
+   */
   const handleContinueDraft = () => {
     navigate("/templates/new");
   };
 
+  /**
+   * Discards a draft template after user confirmation.
+   */
   const handleDismissDraft = () => {
     if (confirm("Are you sure you want to discard this draft template?")) {
       localStorage.removeItem(STORAGE_KEYS.DRAFT_TEMPLATE);
@@ -75,6 +95,12 @@ export function TemplatesPage() {
 
   // ========== Workout Start ==========
 
+  /**
+   * Handles clicking the start button on a template. For single-day templates,
+   * starts the workout immediately. For multi-day templates, shows the day selector.
+   *
+   * @param template - The workout template to start
+   */
   const handleTemplateClick = (template: WorkoutTemplate) => {
     // If template has only one day, start directly
     if (template.days.length === 1) {
@@ -86,6 +112,14 @@ export function TemplatesPage() {
     }
   };
 
+  /**
+   * Creates and starts a new workout from a template day. Generates workout
+   * exercises with the specified number of sets for each exercise. Navigates
+   * to the workout page after starting.
+   *
+   * @param template - The workout template
+   * @param day - The specific day within the template to start
+   */
   const startFromTemplateDay = (template: WorkoutTemplate, day: TemplateDay) => {
     const today = new Date();
 
@@ -132,16 +166,23 @@ export function TemplatesPage() {
 
   // ========== Template Stats ==========
 
+  /**
+   * Calculates statistics for a template including total exercises, total sets,
+   * and number of days.
+   *
+   * @param template - The workout template
+   * @returns Object containing exerciseCount, setCount, and dayCount
+   */
   const getTemplateStats = (template: WorkoutTemplate) => {
     let exerciseCount = 0;
     let setCount = 0;
 
     template.days.forEach((day) => {
-      day.muscleGroups.forEach((mg) => {
-        mg.exercises.forEach((ex) => {
-          if (ex.exerciseId) {
+      day.muscleGroups.forEach((muscleGroup) => {
+        muscleGroup.exercises.forEach((exercise) => {
+          if (exercise.exerciseId) {
             exerciseCount++;
-            setCount += ex.setCount;
+            setCount += exercise.setCount;
           }
         });
       });
@@ -150,12 +191,23 @@ export function TemplatesPage() {
     return { exerciseCount, setCount, dayCount: template.days.length };
   };
 
+  /**
+   * Toggles the kebab menu for a template. If the menu is already open,
+   * closes it. Otherwise, opens it and closes any other open menu.
+   *
+   * @param templateId - The unique identifier of the template
+   */
   const toggleMenu = (templateId: string) => {
     setOpenMenuId(openMenuId === templateId ? null : templateId);
   };
 
-  const handleClickOutside = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest(".template-kebab-menu")) return;
+  /**
+   * Closes any open kebab menu when clicking outside of the menu area.
+   *
+   * @param event - The mouse event
+   */
+  const handleClickOutside = (event: React.MouseEvent) => {
+    if ((event.target as HTMLElement).closest(".template-kebab-menu")) return;
     setOpenMenuId(null);
   };
 

@@ -80,6 +80,12 @@ export function ExerciseSelector({
     groupedExercises[group as MuscleGroup].sort((a, b) => a.name.localeCompare(b.name));
   });
 
+  /**
+   * Handles creating a new exercise. In replacement mode, automatically
+   * selects the newly created exercise.
+   *
+   * @param exerciseData - Exercise data without the id field
+   */
   const handleCreateExercise = (exerciseData: Omit<Exercise, "id">) => {
     if (onCreateExercise) {
       const newExerciseId = onCreateExercise(exerciseData);
@@ -92,6 +98,12 @@ export function ExerciseSelector({
     }
   };
 
+  /**
+   * Handles clicking an exercise. In replacement mode, toggles selection.
+   * In normal mode, immediately selects the exercise.
+   *
+   * @param exerciseId - The unique identifier of the clicked exercise
+   */
   const handleExerciseClick = (exerciseId: string) => {
     if (isReplacement) {
       setSelectedExerciseId((previous) => (previous === exerciseId ? null : exerciseId));
@@ -100,6 +112,10 @@ export function ExerciseSelector({
     }
   };
 
+  /**
+   * Confirms the exercise selection in replacement mode.
+   * Calls the onSelect callback with the selected exercise ID.
+   */
   const handleConfirmSelection = () => {
     if (selectedExerciseId) {
       onSelect(selectedExerciseId);

@@ -53,6 +53,11 @@ export function ExercisesPage() {
     groupedExercises[group as MuscleGroup].sort((a, b) => a.name.localeCompare(b.name));
   });
 
+  /**
+   * Saves an exercise to localStorage.
+   *
+   * @param data - Exercise data without the id field
+   */
   const handleSave = (data: Omit<Exercise, "id">) => {
     if (editingExercise) {
       // Check if this is an override for a default exercise
@@ -76,17 +81,30 @@ export function ExercisesPage() {
     handleCloseModal();
   };
 
+  /**
+   * Deletes an exercise from localStorage. For user-created exercises, this removes
+   * them entirely. For default exercise overrides, this removes the override and
+   * reverts to the default exercise.
+   *
+   * @param id - The unique identifier of the exercise to delete
+   */
   const handleDelete = (id: string) => {
-    // Only delete if it's a user exercise (not a default exercise override)
-    // If it's a default exercise override, just remove the override
-    setExercises(exercises.filter((e) => e.id !== id));
+    setExercises(exercises.filter((exercise) => exercise.id !== id));
   };
 
+  /**
+   * Opens the exercise modal in edit mode for the specified exercise.
+   *
+   * @param exercise - The exercise to edit
+   */
   const handleEdit = (exercise: Exercise) => {
     setEditingExercise(exercise);
     setIsModalOpen(true);
   };
 
+  /**
+   * Closes the exercise modal and resets the editing state.
+   */
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingExercise(null);
