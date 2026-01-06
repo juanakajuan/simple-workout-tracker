@@ -74,7 +74,7 @@ export function ExerciseSelector({
 
   const handleExerciseClick = (exerciseId: string) => {
     if (isReplacement) {
-      setSelectedExerciseId(exerciseId);
+      setSelectedExerciseId((previous) => (previous === exerciseId ? null : exerciseId));
     } else {
       onSelect(exerciseId);
     }
