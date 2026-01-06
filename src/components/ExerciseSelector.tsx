@@ -66,14 +66,19 @@ export function ExerciseSelector({
   });
 
   const groupedExercises = filteredExercises.reduce(
-    (acc, exercise) => {
+    (accumulator, exercise) => {
       const group = exercise.muscleGroup;
-      if (!acc[group]) acc[group] = [];
-      acc[group].push(exercise);
-      return acc;
+      if (!accumulator[group]) accumulator[group] = [];
+      accumulator[group].push(exercise);
+      return accumulator;
     },
     {} as Record<MuscleGroup, Exercise[]>
   );
+
+  // Sort exercises alphabetically within each group
+  Object.keys(groupedExercises).forEach((group) => {
+    groupedExercises[group as MuscleGroup].sort((a, b) => a.name.localeCompare(b.name));
+  });
 
   const handleCreateExercise = (exerciseData: Omit<Exercise, "id">) => {
     if (onCreateExercise) {

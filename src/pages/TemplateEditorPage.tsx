@@ -55,17 +55,17 @@ export function TemplateEditorPage() {
   } | null>(null);
 
   // Merge default exercises with user exercises
-  const allExercises = DEFAULT_EXERCISES.map((defaultEx) => {
-    const userOverride = exercises.find((e) => e.id === defaultEx.id);
-    return userOverride || defaultEx;
-  }).concat(exercises.filter((e) => !e.id.startsWith("default-")));
+  const allExercises = DEFAULT_EXERCISES.map((defaultExercise) => {
+    const userOverride = exercises.find((exercise) => exercise.id === defaultExercise.id);
+    return userOverride || defaultExercise;
+  }).concat(exercises.filter((exercise) => !exercise.id.startsWith("default-")));
 
   const activeDay = days[activeDayIndex];
 
   // Load template data if editing, or draft if creating new (runs once on mount)
   useEffect(() => {
     if (isEditMode) {
-      const template = templates.find((t) => t.id === id);
+      const template = templates.find((template) => template.id === id);
       if (template) {
         setName(template.name);
         setDays(template.days);
@@ -120,7 +120,9 @@ export function TemplateEditorPage() {
     }
 
     const hasExercises = days.some((day) =>
-      day.muscleGroups.some((mg) => mg.exercises.some((ex) => ex.exerciseId !== null))
+      day.muscleGroups.some((muscleGroup) =>
+        muscleGroup.exercises.some((exercise) => exercise.exerciseId !== null)
+      )
     );
 
     if (!hasExercises) {
@@ -132,11 +134,11 @@ export function TemplateEditorPage() {
     const cleanedDays = days.map((day) => ({
       ...day,
       muscleGroups: day.muscleGroups
-        .map((mg) => ({
-          ...mg,
-          exercises: mg.exercises.filter((ex) => ex.exerciseId !== null),
+        .map((muscleGroup) => ({
+          ...muscleGroup,
+          exercises: muscleGroup.exercises.filter((exercise) => exercise.exerciseId !== null),
         }))
-        .filter((mg) => mg.exercises.length > 0),
+        .filter((muscleGroup) => muscleGroup.exercises.length > 0),
     }));
 
     const savedTemplate: WorkoutTemplate = {
@@ -145,7 +147,7 @@ export function TemplateEditorPage() {
       days: cleanedDays,
     };
 
-    const existingIndex = templates.findIndex((t) => t.id === savedTemplate.id);
+    const existingIndex = templates.findIndex((template) => template.id === savedTemplate.id);
     if (existingIndex >= 0) {
       // Update existing template
       const updated = [...templates];
@@ -222,7 +224,7 @@ export function TemplateEditorPage() {
         if (i !== activeDayIndex) return day;
         return {
           ...day,
-          muscleGroups: day.muscleGroups.filter((mg) => mg.id !== muscleGroupId),
+          muscleGroups: day.muscleGroups.filter((muscleGroup) => muscleGroup.id !== muscleGroupId),
         };
       })
     );
@@ -233,7 +235,9 @@ export function TemplateEditorPage() {
       days.map((day, i) => {
         if (i !== activeDayIndex) return day;
 
-        const currentIndex = day.muscleGroups.findIndex((mg) => mg.id === muscleGroupId);
+        const currentIndex = day.muscleGroups.findIndex(
+          (muscleGroup) => muscleGroup.id === muscleGroupId
+        );
         if (currentIndex === -1) return day;
 
         const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
@@ -277,13 +281,13 @@ export function TemplateEditorPage() {
         if (i !== activeDayIndex) return day;
         return {
           ...day,
-          muscleGroups: day.muscleGroups.map((mg) => {
-            if (mg.id !== muscleGroupId) return mg;
+          muscleGroups: day.muscleGroups.map((muscleGroup) => {
+            if (muscleGroup.id !== muscleGroupId) return muscleGroup;
             return {
-              ...mg,
-              exercises: mg.exercises.map((ex) => {
-                if (ex.id !== exerciseId) return ex;
-                return { ...ex, exerciseId: selectedExerciseId };
+              ...muscleGroup,
+              exercises: muscleGroup.exercises.map((exercise) => {
+                if (exercise.id !== exerciseId) return exercise;
+                return { ...exercise, exerciseId: selectedExerciseId };
               }),
             };
           }),
@@ -312,7 +316,7 @@ export function TemplateEditorPage() {
 
   const getExerciseById = (id: string | null) => {
     if (!id) return null;
-    return allExercises.find((e) => e.id === id) ?? null;
+    return allExercises.find((exercise) => exercise.id === id) ?? null;
   };
 
   const updateSetCount = (muscleGroupId: string, exerciseId: string, delta: number) => {
@@ -321,14 +325,14 @@ export function TemplateEditorPage() {
         if (i !== activeDayIndex) return day;
         return {
           ...day,
-          muscleGroups: day.muscleGroups.map((mg) => {
-            if (mg.id !== muscleGroupId) return mg;
+          muscleGroups: day.muscleGroups.map((muscleGroup) => {
+            if (muscleGroup.id !== muscleGroupId) return muscleGroup;
             return {
-              ...mg,
-              exercises: mg.exercises.map((ex) => {
-                if (ex.id !== exerciseId) return ex;
-                const newCount = Math.max(1, Math.min(20, ex.setCount + delta));
-                return { ...ex, setCount: newCount };
+              ...muscleGroup,
+              exercises: muscleGroup.exercises.map((exercise) => {
+                if (exercise.id !== exerciseId) return exercise;
+                const newCount = Math.max(1, Math.min(20, exercise.setCount + delta));
+                return { ...exercise, setCount: newCount };
               }),
             };
           }),
@@ -338,8 +342,12 @@ export function TemplateEditorPage() {
   };
 
   const getFilteredExercises = () => {
-    if (!exerciseSelectorTarget) return allExercises;
-    return allExercises.filter((e) => e.muscleGroup === exerciseSelectorTarget.muscleGroup);
+    if (!exerciseSelectorTarget) {
+      return [...allExercises].sort((a, b) => a.name.localeCompare(b.name));
+    }
+    return allExercises
+      .filter((exercise) => exercise.muscleGroup === exerciseSelectorTarget.muscleGroup)
+      .sort((a, b) => a.name.localeCompare(b.name));
   };
 
   return (
