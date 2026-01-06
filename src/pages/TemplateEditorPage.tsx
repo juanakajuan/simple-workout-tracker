@@ -1,6 +1,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Plus, ChevronLeft, Minus, ChevronUp, ChevronDown, Trash2 } from "lucide-react";
+import {
+  Plus,
+  ChevronLeft,
+  Minus,
+  ChevronUp,
+  ChevronDown,
+  Trash2,
+  MoreVertical,
+} from "lucide-react";
 
 import type {
   Exercise,
@@ -16,6 +24,7 @@ import { STORAGE_KEYS, generateId, DEFAULT_EXERCISES } from "../utils/storage";
 
 import { MuscleGroupSelector } from "../components/MuscleGroupSelector";
 import { ExerciseSelector } from "../components/ExerciseSelector";
+import { DayEditor } from "../components/DayEditor";
 
 import "./TemplateEditorPage.css";
 
@@ -54,6 +63,9 @@ export function TemplateEditorPage() {
     muscleGroup: MuscleGroup;
   } | null>(null);
 
+  const [showDayMenu, setShowDayMenu] = useState(false);
+  const [showDayEditor, setShowDayEditor] = useState(false);
+
   // Merge default exercises with user exercises
   const allExercises = DEFAULT_EXERCISES.map((defaultExercise) => {
     const userOverride = exercises.find((exercise) => exercise.id === defaultExercise.id);
@@ -68,7 +80,12 @@ export function TemplateEditorPage() {
       const template = templates.find((template) => template.id === id);
       if (template) {
         setName(template.name);
-        setDays(template.days);
+        // Capitalize day names when loading
+        const capitalizedDays = template.days.map((day) => ({
+          ...day,
+          name: day.name.toUpperCase(),
+        }));
+        setDays(capitalizedDays);
         setActiveDayIndex(0);
       } else {
         // Template not found, redirect to templates page
@@ -81,7 +98,12 @@ export function TemplateEditorPage() {
         if (draftData) {
           const draft: DraftTemplate = JSON.parse(draftData);
           setName(draft.name);
-          setDays(draft.days);
+          // Capitalize day names when loading
+          const capitalizedDays = draft.days.map((day) => ({
+            ...day,
+            name: day.name.toUpperCase(),
+          }));
+          setDays(capitalizedDays);
           setActiveDayIndex(draft.activeDayIndex);
         }
       } catch (error) {
@@ -177,35 +199,39 @@ export function TemplateEditorPage() {
   // ========== Day Management ==========
 
   /**
-   * Adds a new day to the template and switches to it. The day is given a
-   * default name like "Day 2", "Day 3", etc.
+   * Toggles the day management kebab menu dropdown.
    */
-  const addDay = () => {
-    const newDay: TemplateDay = {
-      id: generateId(),
-      name: `Day ${days.length + 1}`,
-      muscleGroups: [],
-    };
-    setDays([...days, newDay]);
-    setActiveDayIndex(days.length); // Switch to new day
+  const toggleDayMenu = () => {
+    setShowDayMenu(!showDayMenu);
   };
 
   /**
-   * Removes a day from the template. Does not allow removing the last day.
-   * Adjusts the active day index if necessary.
-   *
-   * @param dayIndex - The zero-based index of the day to remove
+   * Opens the day editor modal.
    */
-  const removeDay = (dayIndex: number) => {
-    if (days.length <= 1) return;
-    const newDays = days.filter((_, i) => i !== dayIndex);
+  const handleOpenDayEditor = () => {
+    setShowDayEditor(true);
+    setShowDayMenu(false);
+  };
+
+  /**
+   * Saves the changes from the day editor modal.
+   *
+   * @param newDays - The updated array of days
+   * @param newActiveDayIndex - The new active day index
+   */
+  const handleSaveDays = (newDays: TemplateDay[], newActiveDayIndex: number) => {
     setDays(newDays);
-    // Adjust active index if needed
-    if (activeDayIndex >= newDays.length) {
-      setActiveDayIndex(newDays.length - 1);
-    } else if (activeDayIndex > dayIndex) {
-      setActiveDayIndex(activeDayIndex - 1);
-    }
+    setActiveDayIndex(newActiveDayIndex);
+  };
+
+  /**
+   * Closes the day menu when clicking outside of it.
+   *
+   * @param event - The mouse event
+   */
+  const handleDayMenuClickOutside = (event: React.MouseEvent) => {
+    if ((event.target as HTMLElement).closest(".templates-day-menu")) return;
+    setShowDayMenu(false);
   };
 
   // ========== Muscle Group Management ==========
@@ -428,13 +454,40 @@ export function TemplateEditorPage() {
 
   return (
     <>
-      <div className="page templates-page-editor">
+      <div className="page templates-page-editor" onClick={handleDayMenuClickOutside}>
         {/* Header */}
         <div className="templates-editor-header">
           <button className="btn btn-icon btn-ghost" onClick={handleBack} aria-label="Go back">
             <ChevronLeft size={24} />
             Back
           </button>
+
+          {/* Day Management Menu */}
+          <div className="templates-day-menu">
+            <button
+              className="btn btn-ghost btn-icon"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleDayMenu();
+              }}
+              aria-label="Day options"
+              aria-expanded={showDayMenu}
+            >
+              <MoreVertical size={20} />
+            </button>
+            {showDayMenu && (
+              <div className="templates-day-menu-dropdown">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenDayEditor();
+                  }}
+                >
+                  Edit Days
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Title */}
@@ -461,22 +514,8 @@ export function TemplateEditorPage() {
                 onClick={() => setActiveDayIndex(index)}
               >
                 {day.name}
-                {days.length > 1 && index === activeDayIndex && (
-                  <span
-                    className="templates-day-tab-delete"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeDay(index);
-                    }}
-                  >
-                    <Trash2 size={14} />
-                  </span>
-                )}
               </button>
             ))}
-            <button className="templates-day-tab templates-add-day-tab" onClick={addDay}>
-              <Plus size={16} />
-            </button>
           </div>
         </div>
 
@@ -626,6 +665,15 @@ export function TemplateEditorPage() {
           hideFilter
           onCreateExercise={handleCreateExercise}
           initialMuscleGroup={exerciseSelectorTarget.muscleGroup}
+        />
+      )}
+
+      {showDayEditor && (
+        <DayEditor
+          days={days}
+          activeDayIndex={activeDayIndex}
+          onSave={handleSaveDays}
+          onClose={() => setShowDayEditor(false)}
         />
       )}
     </>
