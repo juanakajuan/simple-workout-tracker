@@ -11,9 +11,19 @@ interface SetRowProps {
   onRemove: () => void;
   canRemove: boolean;
   exerciseType: ExerciseType;
+  placeholderWeight?: number;
+  placeholderReps?: number;
 }
 
-export function SetRow({ set, onUpdate, onRemove, canRemove, exerciseType }: SetRowProps) {
+export function SetRow({
+  set,
+  onUpdate,
+  onRemove,
+  canRemove,
+  exerciseType,
+  placeholderWeight,
+  placeholderReps,
+}: SetRowProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const isBodyweight = exerciseType === "bodyweight";
@@ -75,7 +85,7 @@ export function SetRow({ set, onUpdate, onRemove, canRemove, exerciseType }: Set
               const value = parseFloat(e.target.value);
               onUpdate({ weight: value >= 0 ? value : 0 });
             }}
-            placeholder="lbs"
+            placeholder={placeholderWeight ? `${placeholderWeight}` : "lbs"}
             disabled={set.completed}
           />
         </div>
@@ -90,7 +100,7 @@ export function SetRow({ set, onUpdate, onRemove, canRemove, exerciseType }: Set
             const value = parseInt(e.target.value);
             onUpdate({ reps: value >= 0 ? value : 0 });
           }}
-          placeholder="0"
+          placeholder={placeholderReps ? `${placeholderReps}` : "0"}
           disabled={set.completed}
         />
       </div>

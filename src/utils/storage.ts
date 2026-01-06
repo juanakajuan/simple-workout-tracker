@@ -263,6 +263,53 @@ export function formatRelativeDate(dateString: string): string {
 }
 
 /**
+ * Retrieves the set data from the last time an exercise was performed.
+ * Searches through completed workouts to find the most recent workout containing
+ * the exercise and returns the sets from that workout.
+ *
+ * @param exerciseId - The ID of the exercise to find
+ * @returns Array of sets from the last workout, or null if exercise was never performed
+ *
+ * @example
+ * const lastSets = getLastPerformedSets("exercise-123");
+ * if (lastSets && lastSets.length > 0) {
+ *   console.log(`Last time: ${lastSets[0].weight} lbs x ${lastSets[0].reps} reps`);
+ * }
+ */
+export function getLastPerformedSets(
+  exerciseId: string
+): { weight: number; reps: number }[] | null {
+  const workouts = getWorkouts();
+
+  // Filter to completed workouts that contain this exercise
+  const workoutsWithExercise = workouts.filter(
+    (workout) => workout.completed && workout.exercises.some((ex) => ex.exerciseId === exerciseId)
+  );
+
+  if (workoutsWithExercise.length === 0) {
+    return null;
+  }
+
+  // Sort by date descending and get the most recent
+  const sortedWorkouts = workoutsWithExercise.sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+
+  // Find the exercise in the most recent workout
+  const mostRecentWorkout = sortedWorkouts[0];
+  const workoutExercise = mostRecentWorkout.exercises.find((ex) => ex.exerciseId === exerciseId);
+
+  if (!workoutExercise || workoutExercise.sets.length === 0) {
+    return null;
+  }
+
+  return workoutExercise.sets.map((set) => ({
+    weight: set.weight,
+    reps: set.reps,
+  }));
+}
+
+/**
  * Retrieves user settings from localStorage.
  * Returns default settings if none exist or on error.
  *

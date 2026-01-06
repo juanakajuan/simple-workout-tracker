@@ -24,7 +24,12 @@ import type {
 import { muscleGroupLabels, exerciseTypeLabels, getMuscleGroupClassName } from "../types";
 
 import { useLocalStorage } from "../hooks/useLocalStorage";
-import { STORAGE_KEYS, generateId, DEFAULT_EXERCISES } from "../utils/storage";
+import {
+  STORAGE_KEYS,
+  generateId,
+  DEFAULT_EXERCISES,
+  getLastPerformedSets,
+} from "../utils/storage";
 
 import { SetRow } from "../components/SetRow";
 import { ExerciseSelector } from "../components/ExerciseSelector";
@@ -770,16 +775,24 @@ export function WorkoutPage() {
                     <span className="set-col-reps">REPS</span>
                     <span className="set-col-done">LOG</span>
                   </div>
-                  {workoutExercise.sets.map((set) => (
-                    <SetRow
-                      key={set.id}
-                      set={set}
-                      onUpdate={(updates) => updateSet(workoutExercise.id, set.id, updates)}
-                      onRemove={() => removeSet(workoutExercise.id, set.id)}
-                      canRemove={workoutExercise.sets.length > 1}
-                      exerciseType={exercise.exerciseType}
-                    />
-                  ))}
+                  {workoutExercise.sets.map((set, setIndex) => {
+                    // Get last performed sets for placeholder values
+                    const lastSets = getLastPerformedSets(workoutExercise.exerciseId);
+                    const lastSet = lastSets && lastSets[setIndex];
+
+                    return (
+                      <SetRow
+                        key={set.id}
+                        set={set}
+                        onUpdate={(updates) => updateSet(workoutExercise.id, set.id, updates)}
+                        onRemove={() => removeSet(workoutExercise.id, set.id)}
+                        canRemove={workoutExercise.sets.length > 1}
+                        exerciseType={exercise.exerciseType}
+                        placeholderWeight={lastSet?.weight}
+                        placeholderReps={lastSet?.reps}
+                      />
+                    );
+                  })}
                 </div>
 
                 <button className="add-set-btn" onClick={() => addSet(workoutExercise.id)}>
