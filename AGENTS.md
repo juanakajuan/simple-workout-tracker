@@ -229,3 +229,4 @@ const allExercises = [...DEFAULT_EXERCISES, ...exercises];
   ```
 
 - Try to avoid using abbreviations
+- Don't worry about adding hover styling since this is a mobile-first PWA

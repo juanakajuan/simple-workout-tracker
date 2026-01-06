@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Play, Pencil, Trash2, MoreVertical } from "lucide-react";
+import { Plus, Play, Trash2, MoreVertical } from "lucide-react";
 
 import type { Workout, WorkoutTemplate, TemplateDay, WorkoutExercise } from "../types";
 
@@ -182,7 +182,12 @@ export function TemplatesPage() {
             const stats = getTemplateStats(template);
 
             return (
-              <div key={template.id} className="template-card card">
+              <div
+                key={template.id}
+                className="template-card card"
+                onClick={() => handleEditTemplate(template.id)}
+                style={{ cursor: "pointer" }}
+              >
                 <div className="template-card-header">
                   <div className="template-card-info">
                     <h3 className="template-card-name">{template.name}</h3>
@@ -207,17 +212,6 @@ export function TemplatesPage() {
                     {openMenuId === template.id && (
                       <div className="template-kebab-dropdown">
                         <button
-                          className="template-kebab-item"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setOpenMenuId(null);
-                            handleEditTemplate(template.id);
-                          }}
-                        >
-                          <Pencil size={16} />
-                          Edit
-                        </button>
-                        <button
                           className="template-kebab-item template-kebab-item-delete"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -235,7 +229,10 @@ export function TemplatesPage() {
                 <div className="template-card-actions">
                   <button
                     className="btn btn-primary btn-sm"
-                    onClick={() => handleTemplateClick(template)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleTemplateClick(template);
+                    }}
                   >
                     <Play size={16} />
                     START
