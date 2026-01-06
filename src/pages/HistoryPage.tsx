@@ -32,8 +32,8 @@ export function HistoryPage() {
   const getExerciseById = (id: string) => allExercises.find((exercise) => exercise.id === id);
 
   /**
-   * Formats a date string into a human-readable format. Returns "TODAY" or
-   * "YESTERDAY" for recent dates, otherwise returns a formatted date string
+   * Formats a date string into a human-readable format. Returns "Today" or
+   * "Yesterday" for recent dates, otherwise returns a formatted date string
    * (e.g., "Mon, Jan 6").
    *
    * @param dateString - ISO date string to format
@@ -46,10 +46,10 @@ export function HistoryPage() {
     yesterday.setDate(yesterday.getDate() - 1);
 
     if (date.toDateString() === today.toDateString()) {
-      return "TODAY";
+      return "Today";
     }
     if (date.toDateString() === yesterday.toDateString()) {
-      return "YESTERDAY";
+      return "Yesterday";
     }
 
     return date.toLocaleDateString("en-US", {

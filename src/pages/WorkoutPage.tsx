@@ -619,9 +619,9 @@ export function WorkoutPage() {
               <h2>Ready to train?</h2>
               <p>Start an empty workout</p>
             </div>
-            <button className="btn btn-primary" onClick={startEmptyWorkout}>
+            <button className="btn btn-primary text-uppercase" onClick={startEmptyWorkout}>
               <Play size={18} />
-              START
+              Start
             </button>
           </div>
         </div>
@@ -770,10 +770,10 @@ export function WorkoutPage() {
                   >
                     <span className="set-col-num"></span>
                     {exercise.exerciseType !== "bodyweight" && (
-                      <span className="set-col-weight">WEIGHT</span>
+                      <span className="set-col-weight text-uppercase">Weight</span>
                     )}
-                    <span className="set-col-reps">REPS</span>
-                    <span className="set-col-done">LOG</span>
+                    <span className="set-col-reps text-uppercase">Reps</span>
+                    <span className="set-col-done text-uppercase">Log</span>
                   </div>
                   {workoutExercise.sets.map((set, setIndex) => {
                     // Get last performed sets for placeholder values

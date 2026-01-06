@@ -80,12 +80,7 @@ export function TemplateEditorPage() {
       const template = templates.find((template) => template.id === id);
       if (template) {
         setName(template.name);
-        // Capitalize day names when loading
-        const capitalizedDays = template.days.map((day) => ({
-          ...day,
-          name: day.name.toUpperCase(),
-        }));
-        setDays(capitalizedDays);
+        setDays(template.days);
         setActiveDayIndex(0);
       } else {
         // Template not found, redirect to templates page
@@ -98,12 +93,7 @@ export function TemplateEditorPage() {
         if (draftData) {
           const draft: DraftTemplate = JSON.parse(draftData);
           setName(draft.name);
-          // Capitalize day names when loading
-          const capitalizedDays = draft.days.map((day) => ({
-            ...day,
-            name: day.name.toUpperCase(),
-          }));
-          setDays(capitalizedDays);
+          setDays(draft.days);
           setActiveDayIndex(draft.activeDayIndex);
         }
       } catch (error) {
@@ -641,8 +631,11 @@ export function TemplateEditorPage() {
             <Plus size={24} />
           </button>
 
-          <button className="btn btn-accent templates-save-btn" onClick={saveTemplate}>
-            {isEditMode ? "SAVE CHANGES" : "CREATE TEMPLATE"}
+          <button
+            className="btn btn-accent templates-save-btn text-uppercase"
+            onClick={saveTemplate}
+          >
+            {isEditMode ? "Save Changes" : "Create Template"}
           </button>
         </div>
       </div>

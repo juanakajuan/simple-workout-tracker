@@ -215,9 +215,9 @@ export function TemplatesPage() {
     <div className="page templates-page" onClick={handleClickOutside}>
       <header className="page-header">
         <h1 className="page-title">Templates</h1>
-        <button className="btn btn-secondary btn-sm" onClick={handleCreateTemplate}>
+        <button className="btn btn-secondary btn-sm text-uppercase" onClick={handleCreateTemplate}>
           <Plus size={16} />
-          NEW
+          New
         </button>
       </header>
 
@@ -280,14 +280,14 @@ export function TemplatesPage() {
                 </div>
                 <div className="template-card-actions">
                   <button
-                    className="btn btn-primary btn-sm"
+                    className="btn btn-primary btn-sm text-uppercase"
                     onClick={(event) => {
                       event.stopPropagation();
                       handleTemplateClick(template);
                     }}
                   >
                     <Play size={16} />
-                    START
+                    Start
                   </button>
                 </div>
               </div>

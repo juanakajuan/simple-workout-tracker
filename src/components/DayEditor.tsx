@@ -18,7 +18,7 @@ export function DayEditor({ days, activeDayIndex, onSave, onClose }: DayEditorPr
   // Ensure days are numbered sequentially when modal opens
   const renumberedDays = days.map((day, i) => ({
     ...day,
-    name: `DAY ${i + 1}`,
+    name: `Day ${i + 1}`,
   }));
 
   const [localDays, setLocalDays] = useState<TemplateDay[]>(renumberedDays);
@@ -32,7 +32,7 @@ export function DayEditor({ days, activeDayIndex, onSave, onClose }: DayEditorPr
 
     const newDay: TemplateDay = {
       id: generateId(),
-      name: `DAY ${localDays.length + 1}`,
+      name: `Day ${localDays.length + 1}`,
       muscleGroups: [],
     };
     setLocalDays([...localDays, newDay]);
@@ -40,7 +40,7 @@ export function DayEditor({ days, activeDayIndex, onSave, onClose }: DayEditorPr
 
   /**
    * Deletes a day from the template and renumbers all remaining days
-   * to maintain sequential order (DAY 1, DAY 2, DAY 3, etc.).
+   * to maintain sequential order (Day 1, Day 2, Day 3, etc.).
    *
    * @param index - The zero-based index of the day to delete
    */
@@ -55,7 +55,7 @@ export function DayEditor({ days, activeDayIndex, onSave, onClose }: DayEditorPr
       // Renumber all remaining days sequentially
       const renumberedDays = filteredDays.map((day, i) => ({
         ...day,
-        name: `DAY ${i + 1}`,
+        name: `Day ${i + 1}`,
       }));
 
       setLocalDays(renumberedDays);
