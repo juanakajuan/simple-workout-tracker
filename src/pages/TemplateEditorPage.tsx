@@ -296,7 +296,7 @@ export function TemplateEditorPage() {
     setError("");
   };
 
-  const handleCreateExercise = (exerciseData: Omit<Exercise, "id">) => {
+  const handleCreateExercise = (exerciseData: Omit<Exercise, "id">): string => {
     const newExercise: Exercise = {
       ...exerciseData,
       id: generateId(),
@@ -306,6 +306,8 @@ export function TemplateEditorPage() {
     setExercises([...exercises, newExercise]);
 
     selectExercise(newExercise.id);
+
+    return newExercise.id;
   };
 
   const getExerciseById = (id: string | null) => {

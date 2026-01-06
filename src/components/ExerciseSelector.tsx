@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X, Search, Plus, Clock, Check } from "lucide-react";
 
 import type { Exercise, MuscleGroup } from "../types";
@@ -14,7 +14,7 @@ interface ExerciseSelectorProps {
   onSelect: (exerciseId: string) => void;
   onClose: () => void;
   hideFilter?: boolean;
-  onCreateExercise?: (exercise: Omit<Exercise, "id">) => void;
+  onCreateExercise?: (exercise: Omit<Exercise, "id">) => string;
   initialMuscleGroup?: MuscleGroup;
   isReplacement?: boolean;
   currentExerciseId?: string;
@@ -40,6 +40,7 @@ export function ExerciseSelector({
   const [filterMuscle, setFilterMuscle] = useState<MuscleGroup | "all">("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
+  const exerciseRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -47,6 +48,15 @@ export function ExerciseSelector({
       document.body.style.overflow = "";
     };
   }, []);
+
+  useEffect(() => {
+    if (selectedExerciseId && exerciseRefs.current[selectedExerciseId]) {
+      exerciseRefs.current[selectedExerciseId]?.scrollIntoView({
+        behavior: "instant",
+        block: "center",
+      });
+    }
+  }, [selectedExerciseId]);
 
   const filteredExercises = exercises.filter((exercise) => {
     const matchesSearch = exercise.name.toLowerCase().includes(search.toLowerCase());
@@ -67,8 +77,13 @@ export function ExerciseSelector({
 
   const handleCreateExercise = (exerciseData: Omit<Exercise, "id">) => {
     if (onCreateExercise) {
-      onCreateExercise(exerciseData);
+      const newExerciseId = onCreateExercise(exerciseData);
       setShowCreateModal(false);
+
+      // Auto-select the newly created exercise in replacement mode
+      if (isReplacement) {
+        setSelectedExerciseId(newExerciseId);
+      }
     }
   };
 
@@ -160,6 +175,9 @@ export function ExerciseSelector({
                     return (
                       <button
                         key={exercise.id}
+                        ref={(element) => {
+                          exerciseRefs.current[exercise.id] = element;
+                        }}
                         className={`selector-item ${isSelected ? "selected" : ""}`}
                         onClick={() => handleExerciseClick(exercise.id)}
                       >

@@ -90,7 +90,7 @@ export function WorkoutPage() {
     setShowExerciseSelector(false);
   };
 
-  const handleCreateExercise = (exerciseData: Omit<Exercise, "id">) => {
+  const handleCreateExercise = (exerciseData: Omit<Exercise, "id">): string => {
     const newExercise: Exercise = {
       ...exerciseData,
       id: generateId(),
@@ -99,7 +99,12 @@ export function WorkoutPage() {
     // Persist via localStorage
     setExercises([...exercises, newExercise]);
 
-    addExerciseToWorkout(newExercise.id);
+    // Only auto-add to workout if not in replacement mode
+    if (!replacingWorkoutExerciseId) {
+      addExerciseToWorkout(newExercise.id);
+    }
+
+    return newExercise.id;
   };
 
   const removeExerciseFromWorkout = (workoutExerciseId: string) => {

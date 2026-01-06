@@ -34,7 +34,7 @@ export function BottomTabBar() {
 
     if (isActive) {
       // If already on this tab, scroll to top and navigate to root
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      window.scrollTo({ top: 0, behavior: "instant" });
       if (location.pathname !== basePath) {
         navigate(basePath);
       }
@@ -47,7 +47,7 @@ export function BottomTabBar() {
   const handleSimpleTabClick = (e: React.MouseEvent, isActive: boolean) => {
     if (isActive) {
       e.preventDefault();
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      window.scrollTo({ top: 0, behavior: "instant" });
     }
   };
 
