@@ -283,7 +283,8 @@ export function getLastPerformedSets(
 
   // Filter to completed workouts that contain this exercise
   const workoutsWithExercise = workouts.filter(
-    (workout) => workout.completed && workout.exercises.some((ex) => ex.exerciseId === exerciseId)
+    (workout) =>
+      workout.completed && workout.exercises.some((exercise) => exercise.exerciseId === exerciseId)
   );
 
   if (workoutsWithExercise.length === 0) {
@@ -297,7 +298,9 @@ export function getLastPerformedSets(
 
   // Find the exercise in the most recent workout
   const mostRecentWorkout = sortedWorkouts[0];
-  const workoutExercise = mostRecentWorkout.exercises.find((ex) => ex.exerciseId === exerciseId);
+  const workoutExercise = mostRecentWorkout.exercises.find(
+    (exercise) => exercise.exerciseId === exerciseId
+  );
 
   if (!workoutExercise || workoutExercise.sets.length === 0) {
     return null;

@@ -438,3 +438,9 @@ textarea {
 .checkbox.checked svg {
   opacity: 1;
 }
+
+.checkbox:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+  border-color: var(--border);
+}
