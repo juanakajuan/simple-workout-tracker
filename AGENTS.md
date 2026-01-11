@@ -224,7 +224,6 @@ const [exercises, setExercises] = useLocalStorage<Exercise[]>(STORAGE_KEYS.EXERC
 
 ## Agent-Specific Rules
 
-- **Question formatting**: When asking questions with multiple options, use lettered choices (a, b, c) instead of bullets for easy response
 - **Abbreviations**: Avoid abbreviations in code and communication
 - Give me your recommended answers to the options along with the other options
 - Avoid using fancy animations, I want things to be snappy and fast
