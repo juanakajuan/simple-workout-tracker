@@ -604,6 +604,17 @@ export function WorkoutPage() {
     );
   };
 
+  /**
+   * Closes any open kebab menu when clicking outside of the menu area.
+   *
+   * @param event - The mouse event
+   */
+  const handleClickOutside = (event: React.MouseEvent) => {
+    if ((event.target as HTMLElement).closest(".kebab-menu")) return;
+    if ((event.target as HTMLElement).closest(".workout-exercise-actions")) return;
+    setOpenKebabMenu(null);
+  };
+
   // No active workout - show start screen
   if (!activeWorkout) {
     return (
@@ -631,7 +642,7 @@ export function WorkoutPage() {
 
   // Active workout view
   return (
-    <div className="page workout-page">
+    <div className="page workout-page" onClick={handleClickOutside}>
       <header className="workout-header">
         <div className="workout-header-top">
           {isEditingName ? (
