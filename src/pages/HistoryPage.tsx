@@ -2,12 +2,14 @@ import { useState } from "react";
 import { History } from "lucide-react";
 
 import { useLocalStorage } from "../hooks/useLocalStorage";
+import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { STORAGE_KEYS, DEFAULT_EXERCISES } from "../utils/storage";
 
 import type { Exercise, Workout, MuscleGroup } from "../types";
 import { muscleGroupLabels, getMuscleGroupClassName } from "../types";
 
 import { WorkoutDetailModal } from "../components/WorkoutDetailModal";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 
 import "./HistoryPage.css";
 
@@ -15,6 +17,7 @@ export function HistoryPage() {
   const [workouts, setWorkouts] = useLocalStorage<Workout[]>(STORAGE_KEYS.WORKOUTS, []);
   const [userExercises] = useLocalStorage<Exercise[]>(STORAGE_KEYS.EXERCISES, []);
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
+  const { showConfirm, dialogProps } = useConfirmDialog();
 
   // Merge default exercises with user exercises, user exercises override defaults
   const allExercises = DEFAULT_EXERCISES.map((defaultExercise) => {
@@ -110,10 +113,17 @@ export function HistoryPage() {
    * @param id - The unique identifier of the workout to delete
    */
   const handleDeleteWorkout = (id: string) => {
-    if (confirm("Are you sure you want to delete this workout?")) {
-      setWorkouts(workouts.filter((workout) => workout.id !== id));
-      setSelectedWorkout(null);
-    }
+    showConfirm({
+      title: "Delete this workout?",
+      message: "This action cannot be undone.",
+      confirmText: "Send it to the shadow realm",
+      cancelText: "Cancel",
+      variant: "danger",
+      onConfirm: () => {
+        setWorkouts(workouts.filter((workout) => workout.id !== id));
+        setSelectedWorkout(null);
+      },
+    });
   };
 
   // Group workouts by month
@@ -213,6 +223,8 @@ export function HistoryPage() {
           onDelete={() => handleDeleteWorkout(selectedWorkout.id)}
         />
       )}
+
+      <ConfirmDialog {...dialogProps} />
     </div>
   );
 }

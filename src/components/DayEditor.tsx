@@ -4,6 +4,9 @@ import { X, Plus, Trash2 } from "lucide-react";
 import type { TemplateDay } from "../types";
 
 import { generateId } from "../utils/storage";
+import { useConfirmDialog } from "../hooks/useConfirmDialog";
+
+import { ConfirmDialog } from "./ConfirmDialog";
 
 import "./DayEditor.css";
 
@@ -23,6 +26,7 @@ export function DayEditor({ days, activeDayIndex, onSave, onClose }: DayEditorPr
 
   const [localDays, setLocalDays] = useState<TemplateDay[]>(renumberedDays);
   const [localActiveDayIndex, setLocalActiveDayIndex] = useState(activeDayIndex);
+  const { showConfirm, dialogProps } = useConfirmDialog();
 
   /**
    * Adds a new day to the template. Always numbers sequentially.
@@ -48,25 +52,32 @@ export function DayEditor({ days, activeDayIndex, onSave, onClose }: DayEditorPr
     if (localDays.length <= 1) return;
 
     const dayName = localDays[index].name;
-    if (confirm(`Are you sure you want to delete "${dayName}"?`)) {
-      // Remove the day at the specified index
-      const filteredDays = localDays.filter((_, i) => i !== index);
+    showConfirm({
+      title: `Delete "${dayName}"?`,
+      message: "This action cannot be undone.",
+      confirmText: "Send it to the shadow realm",
+      cancelText: "Cancel",
+      variant: "danger",
+      onConfirm: () => {
+        // Remove the day at the specified index
+        const filteredDays = localDays.filter((_, i) => i !== index);
 
-      // Renumber all remaining days sequentially
-      const renumberedDays = filteredDays.map((day, i) => ({
-        ...day,
-        name: `Day ${i + 1}`,
-      }));
+        // Renumber all remaining days sequentially
+        const renumberedDays = filteredDays.map((day, i) => ({
+          ...day,
+          name: `Day ${i + 1}`,
+        }));
 
-      setLocalDays(renumberedDays);
+        setLocalDays(renumberedDays);
 
-      // Adjust active index if needed
-      if (localActiveDayIndex >= renumberedDays.length) {
-        setLocalActiveDayIndex(renumberedDays.length - 1);
-      } else if (localActiveDayIndex > index) {
-        setLocalActiveDayIndex(localActiveDayIndex - 1);
-      }
-    }
+        // Adjust active index if needed
+        if (localActiveDayIndex >= renumberedDays.length) {
+          setLocalActiveDayIndex(renumberedDays.length - 1);
+        } else if (localActiveDayIndex > index) {
+          setLocalActiveDayIndex(localActiveDayIndex - 1);
+        }
+      },
+    });
   };
 
   /**
@@ -139,6 +150,8 @@ export function DayEditor({ days, activeDayIndex, onSave, onClose }: DayEditorPr
           </button>
         </div>
       </div>
+
+      <ConfirmDialog {...dialogProps} />
     </div>
   );
 }

@@ -24,6 +24,7 @@ import type {
 import { muscleGroupLabels, exerciseTypeLabels, getMuscleGroupClassName } from "../types";
 
 import { useLocalStorage } from "../hooks/useLocalStorage";
+import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import {
   STORAGE_KEYS,
   generateId,
@@ -34,6 +35,7 @@ import {
 import { SetRow } from "../components/SetRow";
 import { ExerciseSelector } from "../components/ExerciseSelector";
 import { WorkoutTimer } from "../components/WorkoutTimer";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 
 import "./WorkoutPage.css";
 
@@ -55,6 +57,7 @@ export function WorkoutPage() {
   const [openKebabMenu, setOpenKebabMenu] = useState<string | null>(null);
   const [replacingWorkoutExerciseId, setReplacingWorkoutExerciseId] = useState<string | null>(null);
   const [updateTemplateOnReplace, setUpdateTemplateOnReplace] = useState(true);
+  const { showConfirm, dialogProps } = useConfirmDialog();
 
   // Merge default exercises with user exercises, user exercises override defaults
   const allExercises = DEFAULT_EXERCISES.map((defaultExercise) => {
@@ -362,10 +365,17 @@ export function WorkoutPage() {
    * is discarded without saving to history.
    */
   const cancelWorkout = () => {
-    if (confirm("Are you sure you want to cancel this workout? All progress will be lost.")) {
-      setActiveWorkout(null);
-      setWorkoutName("");
-    }
+    showConfirm({
+      title: "Cancel this workout?",
+      message: "All progress will be lost.",
+      confirmText: "Yes Papi",
+      cancelText: "No",
+      variant: "danger",
+      onConfirm: () => {
+        setActiveWorkout(null);
+        setWorkoutName("");
+      },
+    });
   };
 
   /**
@@ -878,6 +888,8 @@ export function WorkoutPage() {
           onTemplateUpdateChange={setUpdateTemplateOnReplace}
         />
       )}
+
+      <ConfirmDialog {...dialogProps} />
     </div>
   );
 }

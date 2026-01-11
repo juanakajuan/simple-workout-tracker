@@ -5,10 +5,12 @@ import { Plus, Play, Trash2, MoreVertical } from "lucide-react";
 import type { Workout, WorkoutTemplate, TemplateDay, WorkoutExercise } from "../types";
 
 import { useLocalStorage } from "../hooks/useLocalStorage";
+import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { STORAGE_KEYS, generateId } from "../utils/storage";
 
 import { DaySelector } from "../components/DaySelector";
 import { DraftBanner } from "../components/DraftBanner";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 
 import "./TemplatesPage.css";
 
@@ -22,6 +24,7 @@ export function TemplatesPage() {
 
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [hasDraft, setHasDraft] = useState(false);
+  const { showConfirm, dialogProps } = useConfirmDialog();
 
   // Check for draft template on mount
   useEffect(() => {
@@ -38,15 +41,19 @@ export function TemplatesPage() {
   const handleCreateTemplate = () => {
     // Check if draft exists
     if (localStorage.getItem(STORAGE_KEYS.DRAFT_TEMPLATE)) {
-      if (
-        confirm(
-          "You have an unsaved template draft. Do you want to discard it and start a new template?"
-        )
-      ) {
-        localStorage.removeItem(STORAGE_KEYS.DRAFT_TEMPLATE);
-        setHasDraft(false);
-        navigate("/templates/new");
-      }
+      showConfirm({
+        title: "Discard unsaved draft?",
+        message:
+          "You have an unsaved template draft. Do you want to discard it and start a new template?",
+        confirmText: "Discard",
+        cancelText: "Cancel",
+        variant: "danger",
+        onConfirm: () => {
+          localStorage.removeItem(STORAGE_KEYS.DRAFT_TEMPLATE);
+          setHasDraft(false);
+          navigate("/templates/new");
+        },
+      });
       // If user cancels, do nothing (stay on templates page)
     } else {
       // No draft, proceed normally
@@ -69,9 +76,16 @@ export function TemplatesPage() {
    * @param templateId - The unique identifier of the template to delete
    */
   const deleteTemplate = (templateId: string) => {
-    if (confirm("Are you sure you want to delete this template?")) {
-      setTemplates(templates.filter((template) => template.id !== templateId));
-    }
+    showConfirm({
+      title: "Delete this template?",
+      message: "This action cannot be undone.",
+      confirmText: "Send it to the shadow realm",
+      cancelText: "Cancel",
+      variant: "danger",
+      onConfirm: () => {
+        setTemplates(templates.filter((template) => template.id !== templateId));
+      },
+    });
   };
 
   // ========== Draft Management ==========
@@ -87,10 +101,17 @@ export function TemplatesPage() {
    * Discards a draft template after user confirmation.
    */
   const handleDismissDraft = () => {
-    if (confirm("Are you sure you want to discard this draft template?")) {
-      localStorage.removeItem(STORAGE_KEYS.DRAFT_TEMPLATE);
-      setHasDraft(false);
-    }
+    showConfirm({
+      title: "Discard draft template?",
+      message: "This action cannot be undone.",
+      confirmText: "Discard",
+      cancelText: "Cancel",
+      variant: "danger",
+      onConfirm: () => {
+        localStorage.removeItem(STORAGE_KEYS.DRAFT_TEMPLATE);
+        setHasDraft(false);
+      },
+    });
   };
 
   // ========== Workout Start ==========
@@ -306,6 +327,8 @@ export function TemplatesPage() {
           }}
         />
       )}
+
+      <ConfirmDialog {...dialogProps} />
     </div>
   );
 }
