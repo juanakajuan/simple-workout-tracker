@@ -228,4 +228,7 @@ const allExercises = [...DEFAULT_EXERCISES, ...exercises];
           c) option 3
   ```
 
+  - Give me your recommended answers to the options along with the other options
+
 - Try to avoid using abbreviations
+- Avoid using fancy animations, I want things to be snappy and fast
