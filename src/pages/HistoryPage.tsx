@@ -17,13 +17,28 @@ export function HistoryPage() {
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
 
   // Merge default exercises with user exercises, user exercises override defaults
-  const allExercises = DEFAULT_EXERCISES.map((defaultEx) => {
-    const userOverride = userExercises.find((e) => e.id === defaultEx.id);
-    return userOverride || defaultEx;
-  }).concat(userExercises.filter((e) => !e.id.startsWith("default-")));
+  const allExercises = DEFAULT_EXERCISES.map((defaultExercise) => {
+    const userOverride = userExercises.find((exercise) => exercise.id === defaultExercise.id);
+    return userOverride || defaultExercise;
+  }).concat(userExercises.filter((exercise) => !exercise.id.startsWith("default-")));
 
-  const getExerciseById = (id: string) => allExercises.find((e) => e.id === id);
+  /**
+   * Retrieves an exercise by its unique identifier from the merged list of
+   * default and user exercises.
+   *
+   * @param id - The unique identifier of the exercise
+   * @returns The exercise if found, undefined otherwise
+   */
+  const getExerciseById = (id: string) => allExercises.find((exercise) => exercise.id === id);
 
+  /**
+   * Formats a date string into a human-readable format. Returns "Today" or
+   * "Yesterday" for recent dates, otherwise returns a formatted date string
+   * (e.g., "Mon, Jan 6").
+   *
+   * @param dateString - ISO date string to format
+   * @returns Formatted date string
+   */
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const today = new Date();
@@ -31,10 +46,10 @@ export function HistoryPage() {
     yesterday.setDate(yesterday.getDate() - 1);
 
     if (date.toDateString() === today.toDateString()) {
-      return "TODAY";
+      return "Today";
     }
     if (date.toDateString() === yesterday.toDateString()) {
-      return "YESTERDAY";
+      return "Yesterday";
     }
 
     return date.toLocaleDateString("en-US", {
@@ -44,19 +59,38 @@ export function HistoryPage() {
     });
   };
 
+  /**
+   * Calculates statistics for a workout including total sets, completed sets,
+   * and total volume (weight x reps summed across all sets).
+   *
+   * @param workout - The workout to calculate statistics for
+   * @returns Object containing totalSets, completedSets, and totalVolume (in lbs)
+   */
   const getWorkoutStats = (workout: Workout) => {
-    const totalSets = workout.exercises.reduce((acc, e) => acc + e.sets.length, 0);
+    const totalSets = workout.exercises.reduce(
+      (accumulator, exercise) => accumulator + exercise.sets.length,
+      0
+    );
     const completedSets = workout.exercises.reduce(
-      (acc, e) => acc + e.sets.filter((s) => s.completed).length,
+      (accumulator, exercise) => accumulator + exercise.sets.filter((set) => set.completed).length,
       0
     );
     const totalVolume = workout.exercises.reduce(
-      (acc, e) => acc + e.sets.reduce((setAcc, s) => setAcc + s.weight * s.reps, 0),
+      (accumulator, exercise) =>
+        accumulator +
+        exercise.sets.reduce((setAccumulator, set) => setAccumulator + set.weight * set.reps, 0),
       0
     );
     return { totalSets, completedSets, totalVolume };
   };
 
+  /**
+   * Formats a duration in seconds into a human-readable string.
+   * Returns format like "2h 30m" for durations over an hour, or "45 min" otherwise.
+   *
+   * @param seconds - Duration in seconds, or undefined
+   * @returns Formatted duration string, or empty string if seconds is undefined
+   */
   const formatDuration = (seconds: number | undefined): string => {
     if (!seconds) return "";
 
@@ -69,25 +103,31 @@ export function HistoryPage() {
     return `${minutes} min`;
   };
 
+  /**
+   * Deletes a workout from localStorage after user confirmation. Closes the
+   * workout detail modal if it's currently open.
+   *
+   * @param id - The unique identifier of the workout to delete
+   */
   const handleDeleteWorkout = (id: string) => {
     if (confirm("Are you sure you want to delete this workout?")) {
-      setWorkouts(workouts.filter((w) => w.id !== id));
+      setWorkouts(workouts.filter((workout) => workout.id !== id));
       setSelectedWorkout(null);
     }
   };
 
   // Group workouts by month
   const groupedWorkouts = workouts.reduce(
-    (acc, workout) => {
+    (accumulator, workout) => {
       const date = new Date(workout.date);
       const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
       const monthLabel = date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
-      if (!acc[monthKey]) {
-        acc[monthKey] = { label: monthLabel, workouts: [] };
+      if (!accumulator[monthKey]) {
+        accumulator[monthKey] = { label: monthLabel, workouts: [] };
       }
-      acc[monthKey].workouts.push(workout);
-      return acc;
+      accumulator[monthKey].workouts.push(workout);
+      return accumulator;
     },
     {} as Record<string, { label: string; workouts: Workout[] }>
   );

@@ -7,13 +7,15 @@ interface DraftBannerProps {
   onDismiss: () => void;
 }
 
-/**
- * Displays a banner when an unsaved template draft exists.
- * Allows users to continue editing the draft or dismiss it with confirmation.
- */
 export function DraftBanner({ onContinue, onDismiss }: DraftBannerProps) {
-  const handleDismissClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  /**
+   * Handles clicking the dismiss button. Stops event propagation to prevent
+   * triggering the banner's onClick and calls the onDismiss callback.
+   *
+   * @param event - The mouse event
+   */
+  const handleDismissClick = (event: React.MouseEvent) => {
+    event.stopPropagation();
     onDismiss();
   };
 

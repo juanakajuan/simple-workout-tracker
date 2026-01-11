@@ -11,12 +11,29 @@ interface SetRowProps {
   onRemove: () => void;
   canRemove: boolean;
   exerciseType: ExerciseType;
+  placeholderWeight?: number;
+  placeholderReps?: number;
 }
 
-export function SetRow({ set, onUpdate, onRemove, canRemove, exerciseType }: SetRowProps) {
+export function SetRow({
+  set,
+  onUpdate,
+  onRemove,
+  canRemove,
+  exerciseType,
+  placeholderWeight,
+  placeholderReps,
+}: SetRowProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const isBodyweight = exerciseType === "bodyweight";
+
+  /**
+   * Checks if the set has valid data for completion.
+   * For bodyweight exercises: reps must be > 0
+   * For weighted exercises: both weight and reps must be > 0
+   */
+  const canComplete = isBodyweight ? set.reps > 0 : set.weight > 0 && set.reps > 0;
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -31,6 +48,10 @@ export function SetRow({ set, onUpdate, onRemove, canRemove, exerciseType }: Set
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [menuOpen]);
 
+  /**
+   * Handles deleting the set. Only proceeds if canRemove is true.
+   * Closes the menu after deletion.
+   */
   const handleDelete = () => {
     if (canRemove) {
       onRemove();
@@ -69,9 +90,9 @@ export function SetRow({ set, onUpdate, onRemove, canRemove, exerciseType }: Set
             value={set.weight || ""}
             onChange={(e) => {
               const value = parseFloat(e.target.value);
-              onUpdate({ weight: value >= 0 ? value : 0 });
+              onUpdate({ weight: !isNaN(value) && value >= 0 ? value : 0 });
             }}
-            placeholder="lbs"
+            placeholder={placeholderWeight ? `${placeholderWeight}` : "lbs"}
             disabled={set.completed}
           />
         </div>
@@ -84,16 +105,21 @@ export function SetRow({ set, onUpdate, onRemove, canRemove, exerciseType }: Set
           value={set.reps || ""}
           onChange={(e) => {
             const value = parseInt(e.target.value);
-            onUpdate({ reps: value >= 0 ? value : 0 });
+            onUpdate({ reps: !isNaN(value) && value >= 0 ? value : 0 });
           }}
-          placeholder="0"
+          placeholder={placeholderReps ? `${placeholderReps}` : "0"}
           disabled={set.completed}
         />
       </div>
       <div className="set-done">
         <button
           className={`checkbox ${set.completed ? "checked" : ""}`}
-          onClick={() => onUpdate({ completed: !set.completed })}
+          onClick={() => {
+            if (set.completed || canComplete) {
+              onUpdate({ completed: !set.completed });
+            }
+          }}
+          disabled={!set.completed && !canComplete}
           aria-label={set.completed ? "Mark incomplete" : "Mark complete"}
         >
           <Check size={16} strokeWidth={3} />

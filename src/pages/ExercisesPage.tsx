@@ -26,10 +26,10 @@ export function ExercisesPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   // Merge default exercises with user exercises, user exercises override defaults
-  const allExercises = DEFAULT_EXERCISES.map((defaultEx) => {
-    const userOverride = exercises.find((e) => e.id === defaultEx.id);
-    return userOverride || defaultEx;
-  }).concat(exercises.filter((e) => !e.id.startsWith("default-")));
+  const allExercises = DEFAULT_EXERCISES.map((defaultExercise) => {
+    const userOverride = exercises.find((exercise) => exercise.id === defaultExercise.id);
+    return userOverride || defaultExercise;
+  }).concat(exercises.filter((exercise) => !exercise.id.startsWith("default-")));
 
   const filteredExercises = allExercises.filter((exercise) => {
     const matchesMuscle = filterMuscle === "all" || exercise.muscleGroup === filterMuscle;
@@ -39,24 +39,36 @@ export function ExercisesPage() {
   });
 
   const groupedExercises = filteredExercises.reduce(
-    (acc, exercise) => {
+    (accumulator, exercise) => {
       const group = exercise.muscleGroup;
-      if (!acc[group]) acc[group] = [];
-      acc[group].push(exercise);
-      return acc;
+      if (!accumulator[group]) accumulator[group] = [];
+      accumulator[group].push(exercise);
+      return accumulator;
     },
     {} as Record<MuscleGroup, Exercise[]>
   );
 
+  // Sort exercises alphabetically within each group
+  Object.keys(groupedExercises).forEach((group) => {
+    groupedExercises[group as MuscleGroup].sort((a, b) => a.name.localeCompare(b.name));
+  });
+
+  /**
+   * Saves an exercise to localStorage.
+   *
+   * @param data - Exercise data without the id field
+   */
   const handleSave = (data: Omit<Exercise, "id">) => {
     if (editingExercise) {
       // Check if this is an override for a default exercise
-      const existingUserExercise = exercises.find((e) => e.id === editingExercise.id);
+      const existingUserExercise = exercises.find((exercise) => exercise.id === editingExercise.id);
 
       if (existingUserExercise) {
         // Update existing user exercise or override
         setExercises(
-          exercises.map((e) => (e.id === editingExercise.id ? { ...data, id: e.id } : e))
+          exercises.map((exercise) =>
+            exercise.id === editingExercise.id ? { ...data, id: exercise.id } : exercise
+          )
         );
       } else {
         // Create new override for default exercise
@@ -69,17 +81,30 @@ export function ExercisesPage() {
     handleCloseModal();
   };
 
+  /**
+   * Deletes an exercise from localStorage. For user-created exercises, this removes
+   * them entirely. For default exercise overrides, this removes the override and
+   * reverts to the default exercise.
+   *
+   * @param id - The unique identifier of the exercise to delete
+   */
   const handleDelete = (id: string) => {
-    // Only delete if it's a user exercise (not a default exercise override)
-    // If it's a default exercise override, just remove the override
-    setExercises(exercises.filter((e) => e.id !== id));
+    setExercises(exercises.filter((exercise) => exercise.id !== id));
   };
 
+  /**
+   * Opens the exercise modal in edit mode for the specified exercise.
+   *
+   * @param exercise - The exercise to edit
+   */
   const handleEdit = (exercise: Exercise) => {
     setEditingExercise(exercise);
     setIsModalOpen(true);
   };
 
+  /**
+   * Closes the exercise modal and resets the editing state.
+   */
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingExercise(null);

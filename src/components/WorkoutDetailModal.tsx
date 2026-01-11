@@ -19,7 +19,13 @@ export function WorkoutDetailModal({
   onClose,
   onDelete,
 }: WorkoutDetailModalProps) {
-  const getExerciseById = (id: string) => exercises.find((e) => e.id === id);
+  /**
+   * Retrieves an exercise by its unique identifier from the exercises list.
+   *
+   * @param id - The unique identifier of the exercise
+   * @returns The exercise if found, undefined otherwise
+   */
+  const getExerciseById = (id: string) => exercises.find((exercise) => exercise.id === id);
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -28,6 +34,12 @@ export function WorkoutDetailModal({
     };
   }, []);
 
+  /**
+   * Formats a date string into a long format (e.g., "Monday, January 6, 2026").
+   *
+   * @param dateString - ISO date string to format
+   * @returns Formatted date string
+   */
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       weekday: "long",
@@ -38,7 +50,9 @@ export function WorkoutDetailModal({
   };
 
   const totalVolume = workout.exercises.reduce(
-    (acc, e) => acc + e.sets.reduce((setAcc, s) => setAcc + s.weight * s.reps, 0),
+    (accumulator, exercise) =>
+      accumulator +
+      exercise.sets.reduce((setAccumulator, set) => setAccumulator + set.weight * set.reps, 0),
     0
   );
 

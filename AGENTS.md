@@ -15,6 +15,7 @@ npm run dev          # Start Vite dev server with HMR at http://localhost:5173
 npm run build        # Type-check with tsc, then build production bundle
 npm run preview      # Preview production build locally
 npm run lint         # Run ESLint on all .ts/.tsx files
+npm run lint:fix     # Run ESLint and auto-fix issues
 npm run format       # Format all TypeScript/CSS with Prettier
 tsc -b               # Type-check all TypeScript projects
 tsc -b --watch       # Type-check in watch mode
@@ -29,7 +30,8 @@ tsc -b --watch       # Type-check in watch mode
 - Use explicit types for function parameters and return values
 - Use `import type` for type-only imports; avoid `any`
 - Prefer `interface` for object shapes, `type` for unions/intersections
-- Use named exports (except for React page components)
+- Always use named exports (`export function ComponentName`)
+- Add TSDoc comments to all utility functions and exported types
 
 ```typescript
 import type { Exercise, Workout } from "../types";
@@ -46,11 +48,11 @@ export function Component({ exercise, onClick }: ComponentProps) {
 
 ### Import Order
 
-Separate by blank lines:
+Separate by blank lines in this order:
 
-1. External dependencies (React, third-party libs)
-2. Type imports (`import type`)
-3. Utility/function imports
+1. External dependencies (React, third-party libraries)
+2. Type imports (`import type { ... }`)
+3. Utility/function imports from `src/utils/` and `src/hooks/`
 4. Component imports
 5. CSS imports (always last)
 
@@ -70,26 +72,27 @@ import "./WorkoutPage.css";
 
 ### Naming Conventions
 
-- Components/Types: `PascalCase` (`ExerciseCard`, `WorkoutSet`)
+- Components/Types/Interfaces: `PascalCase` (`ExerciseCard`, `WorkoutSet`, `ComponentProps`)
 - Files: Match component name (`ExerciseCard.tsx`, `ExerciseCard.css`)
-- Functions: `camelCase` (`generateId`, `getExercises`)
+- Functions/variables: `camelCase` (`generateId`, `getExercises`, `handleDelete`)
 - Constants: `SCREAMING_SNAKE_CASE` (`STORAGE_KEYS`, `DEFAULT_EXERCISES`)
 - CSS classes: `kebab-case` (`exercise-card`, `btn-primary`)
+- Event handlers: Prefix with `handle` (`handleDelete`, `handleSubmit`)
+- Custom hooks: Prefix with `use` (`useLocalStorage`)
 
 ### Formatting (Prettier)
 
-- Semicolons: Yes | Quotes: Double | Tab: 2 spaces | Trailing commas: ES5 | Print width: 100
+Semicolons: **Yes** | Quotes: **Double** | Tab: **2 spaces** | Trailing commas: **ES5** | Print width: **100**
 
 ### Error Handling & React Patterns
 
-- **localStorage**: Wrap in try-catch, return sensible defaults
-- **Destructive actions**: Use `confirm()` (delete, cancel)
+- **localStorage operations**: Always wrap in try-catch, return sensible defaults
+- **Destructive actions**: Always use `confirm()` before delete or cancel operations
 - **Input validation**: Fallback to 0 for empty/invalid numeric inputs
 - **Console errors**: Log with context: `console.error('Error reading key:', error)`
-- **Event handlers**: Prefix with `handle` (`handleDelete`, `handleClickOutside`)
-- **Custom hooks**: Prefix with `use` (`useLocalStorage`)
-- **Conditional rendering**: Use early returns for page-level components
 - **State updates**: Use functional updates when new state depends on previous state
+- **Conditional rendering**: Use early returns for page-level components
+- **Component structure**: Define `{ComponentName}Props` interface above component
 
 ```typescript
 export function getExercises(): Exercise[] {
@@ -102,20 +105,15 @@ export function getExercises(): Exercise[] {
 }
 ```
 
-### Component Structure
-
-- Define `{ComponentName}Props` interface above component
-- Destructure props in function signature
-- Co-locate CSS: `SetRow.tsx` + `SetRow.css`
-- Use `aria-label` for icon-only buttons, `aria-expanded` for menus
-
 ### CSS Guidelines
 
-- Use CSS variables from `index.css`: `var(--bg-card)`, `var(--accent)`
+- Use CSS variables from `index.css`: `var(--bg-card)`, `var(--accent)`, `var(--text-primary)`
 - Use global utility classes: `.btn`, `.card`, `.tag`
 - Component-scoped classes: `.exercise-card`, `.set-row`
 - Mobile-first design with 60px bottom clearance for tab navigation
-- Dark theme only (no light mode)
+- Dark theme only (no light mode support)
+- No hover styles (mobile-first PWA)
+- Use `aria-label` for icon-only buttons, `aria-expanded` for menus
 
 ## Architecture
 
@@ -123,29 +121,41 @@ export function getExercises(): Exercise[] {
 
 - **No global state library**: React hooks + local component state only
 - **Persistent storage**: All data in localStorage via `useLocalStorage` hook
-- **Storage keys** (`src/utils/storage.ts`):
+- **Cross-tab sync**: `useLocalStorage` automatically syncs across browser tabs via storage events
+- **Storage keys** (defined in `src/utils/storage.ts`):
   - `zenith_exercises`: User's exercise library
   - `zenith_workouts`: Completed workout history
   - `zenith_active_workout`: Current in-progress workout
   - `zenith_templates`: Workout templates
-- **Cross-tab sync**: `useLocalStorage` listens to storage events
+  - `zenith_settings`: User preferences
 
 ### Type System (`src/types/index.ts`)
+
+Core types:
 
 - `Exercise`: User exercises (id, name, muscleGroup, exerciseType, notes)
 - `Workout`: WorkoutExercise array + metadata (id, name, date, completed)
 - `WorkoutExercise`: Links Exercise to Workout with WorkoutSet array
 - `WorkoutSet`: Individual set data (id, weight, reps, completed)
-- `WorkoutTemplate`: Quick workout templates (id, name, TemplateExercise array)
+- `WorkoutTemplate`: Quick workout templates (id, name, days with exercises)
+- `Settings`: User preferences (autoMatchWeight, etc.)
 
-**ID generation**: Always use `generateId()` from `src/utils/storage.ts`
+**ID generation**: Always use `generateId()` from `src/utils/storage.ts`. Never create IDs manually.
 
 ### Application Structure
 
-- **Pages** (`src/pages/`): Full-page views, manage state and localStorage
-- **Components** (`src/components/`): Reusable UI, mostly presentational
-- **Routing**: React Router DOM - `/exercises`, `/workout`, `/history`
-- **Navigation**: `BottomTabBar` mobile-style tab navigation
+```
+src/
+├── pages/         # Full-page views, manage state and localStorage interactions
+├── components/    # Reusable UI components, mostly presentational
+├── hooks/         # Custom React hooks (useLocalStorage)
+├── utils/         # Utility functions (storage, formatting)
+├── types/         # TypeScript type definitions
+└── data/          # Static data (DEFAULT_EXERCISES)
+```
+
+**Routing**: React Router DOM - `/exercises`, `/workout`, `/history`, `/templates`, `/settings`
+**Navigation**: `BottomTabBar` provides mobile-style tab navigation
 
 ### Key Patterns
 
@@ -175,60 +185,46 @@ const [exercises, setExercises] = useLocalStorage<Exercise[]>(STORAGE_KEYS.EXERC
 
 **Workout lifecycle**:
 
-1. Start: Create Workout, save to `ACTIVE_WORKOUT`
-2. Track: Add exercises/sets, auto-sync to localStorage
-3. Finish: Move to `WORKOUTS` array, clear `ACTIVE_WORKOUT`
-4. Cancel: Delete `ACTIVE_WORKOUT` without saving
-
-**Default exercises**: Merge with user exercises:
-
-```typescript
-const allExercises = [...DEFAULT_EXERCISES, ...exercises];
-```
+1. **Start**: Create Workout, save to `zenith_active_workout`
+2. **Track**: Add exercises/sets, auto-sync to localStorage on every change
+3. **Finish**: Move to `zenith_workouts` array, clear `zenith_active_workout`
+4. **Cancel**: Delete `zenith_active_workout` without saving to history
 
 ## Common Tasks
 
 ### Adding a new feature
 
-1. `npm run dev` → start dev server
-2. Make changes (prefer editing existing files)
-3. `npm run lint` → check issues
-4. `npm run format` → format code
-5. `tsc -b` → verify types
-6. Test manually in browser
-
-### Modifying types
-
-1. Update `src/types/index.ts`
-2. Update `src/utils/storage.ts` if needed
-3. `tsc -b` → catch type errors
-4. Fix all errors before proceeding
+1. Make changes (prefer editing existing files over creating new ones)
+2. `npm run lint:fix` → auto-fix ESLint issues
+3. `npm run format` → format code with Prettier
+4. `tsc -b` → verify types pass
+5. Test manually in browser (do NOT start dev server via commands)
 
 ### Adding a component
 
 1. Create `ComponentName.tsx` + `ComponentName.css` in `src/components/`
-2. Define `ComponentNameProps` interface above component
-3. Export: `export function ComponentName({ ...props }) { ... }`
+2. Define `ComponentNameProps` interface above component function
+3. Use named export: `export function ComponentName({ ...props }) { ... }`
 4. Import CSS at bottom of .tsx file
-5. Use global utility classes where applicable
+5. Use global utility classes (`.btn`, `.card`, `.tag`) where applicable
 
-### Documentation
+### Modifying types
 
-- Make sure to add TSDoc documentation to new functions added.
+1. Update `src/types/index.ts`
+2. Update related files (`src/utils/storage.ts` if storage-related)
+3. Run `tsc -b` to catch all type errors
+4. Fix all errors before proceeding
 
-### Rules
+### Adding new utility functions
 
-- When asking questions and giving multiple options, instead of using bullets (-) to list those options, use multiple choice letters so I can easily reply like: 1. a -- 2. b -- 3. c
-  - For example:
+1. Add to appropriate file in `src/utils/` (usually `storage.ts`)
+2. Add TSDoc comments explaining purpose, parameters, and return value
+3. Export function and use in components via import
+4. Update type definitions if needed
 
-  ```
-      1. The question you are asking
-          a) option 1
-          b) option 2
-          c) option 3
-  ```
+## Agent-Specific Rules
 
-  - Give me your recommended answers to the options along with the other options
-
-- Try to avoid using abbreviations
+- **Question formatting**: When asking questions with multiple options, use lettered choices (a, b, c) instead of bullets for easy response
+- **Abbreviations**: Avoid abbreviations in code and communication
+- Give me your recommended answers to the options along with the other options
 - Avoid using fancy animations, I want things to be snappy and fast

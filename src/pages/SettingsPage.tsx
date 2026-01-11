@@ -16,6 +16,11 @@ export function SettingsPage() {
     autoMatchWeight: false,
   });
 
+  /**
+   * Updates the auto-match weight setting in localStorage.
+   *
+   * @param checked - Whether auto-match weight should be enabled
+   */
   const handleAutoMatchWeightToggle = (checked: boolean) => {
     setSettings({ ...settings, autoMatchWeight: checked });
   };

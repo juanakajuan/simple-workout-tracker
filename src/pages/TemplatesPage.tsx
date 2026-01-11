@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Play, Pencil, Trash2, MoreVertical } from "lucide-react";
+import { Plus, Play, Trash2, MoreVertical } from "lucide-react";
 
 import type { Workout, WorkoutTemplate, TemplateDay, WorkoutExercise } from "../types";
 
@@ -31,6 +31,10 @@ export function TemplatesPage() {
 
   // ========== Template CRUD ==========
 
+  /**
+   * Navigates to the template creation page. If a draft template exists,
+   * prompts the user to confirm discarding it before proceeding.
+   */
   const handleCreateTemplate = () => {
     // Check if draft exists
     if (localStorage.getItem(STORAGE_KEYS.DRAFT_TEMPLATE)) {
@@ -50,22 +54,38 @@ export function TemplatesPage() {
     }
   };
 
+  /**
+   * Navigates to the template editor page for a specific template.
+   *
+   * @param templateId - The unique identifier of the template to edit
+   */
   const handleEditTemplate = (templateId: string) => {
     navigate(`/templates/edit/${templateId}`);
   };
 
+  /**
+   * Deletes a template from localStorage after user confirmation.
+   *
+   * @param templateId - The unique identifier of the template to delete
+   */
   const deleteTemplate = (templateId: string) => {
     if (confirm("Are you sure you want to delete this template?")) {
-      setTemplates(templates.filter((t) => t.id !== templateId));
+      setTemplates(templates.filter((template) => template.id !== templateId));
     }
   };
 
   // ========== Draft Management ==========
 
+  /**
+   * Navigates to the template editor to continue editing a draft template.
+   */
   const handleContinueDraft = () => {
     navigate("/templates/new");
   };
 
+  /**
+   * Discards a draft template after user confirmation.
+   */
   const handleDismissDraft = () => {
     if (confirm("Are you sure you want to discard this draft template?")) {
       localStorage.removeItem(STORAGE_KEYS.DRAFT_TEMPLATE);
@@ -75,6 +95,12 @@ export function TemplatesPage() {
 
   // ========== Workout Start ==========
 
+  /**
+   * Handles clicking the start button on a template. For single-day templates,
+   * starts the workout immediately. For multi-day templates, shows the day selector.
+   *
+   * @param template - The workout template to start
+   */
   const handleTemplateClick = (template: WorkoutTemplate) => {
     // If template has only one day, start directly
     if (template.days.length === 1) {
@@ -86,6 +112,14 @@ export function TemplatesPage() {
     }
   };
 
+  /**
+   * Creates and starts a new workout from a template day. Generates workout
+   * exercises with the specified number of sets for each exercise. Navigates
+   * to the workout page after starting.
+   *
+   * @param template - The workout template
+   * @param day - The specific day within the template to start
+   */
   const startFromTemplateDay = (template: WorkoutTemplate, day: TemplateDay) => {
     const today = new Date();
 
@@ -132,16 +166,23 @@ export function TemplatesPage() {
 
   // ========== Template Stats ==========
 
+  /**
+   * Calculates statistics for a template including total exercises, total sets,
+   * and number of days.
+   *
+   * @param template - The workout template
+   * @returns Object containing exerciseCount, setCount, and dayCount
+   */
   const getTemplateStats = (template: WorkoutTemplate) => {
     let exerciseCount = 0;
     let setCount = 0;
 
     template.days.forEach((day) => {
-      day.muscleGroups.forEach((mg) => {
-        mg.exercises.forEach((ex) => {
-          if (ex.exerciseId) {
+      day.muscleGroups.forEach((muscleGroup) => {
+        muscleGroup.exercises.forEach((exercise) => {
+          if (exercise.exerciseId) {
             exerciseCount++;
-            setCount += ex.setCount;
+            setCount += exercise.setCount;
           }
         });
       });
@@ -150,12 +191,23 @@ export function TemplatesPage() {
     return { exerciseCount, setCount, dayCount: template.days.length };
   };
 
+  /**
+   * Toggles the kebab menu for a template. If the menu is already open,
+   * closes it. Otherwise, opens it and closes any other open menu.
+   *
+   * @param templateId - The unique identifier of the template
+   */
   const toggleMenu = (templateId: string) => {
     setOpenMenuId(openMenuId === templateId ? null : templateId);
   };
 
-  const handleClickOutside = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest(".template-kebab-menu")) return;
+  /**
+   * Closes any open kebab menu when clicking outside of the menu area.
+   *
+   * @param event - The mouse event
+   */
+  const handleClickOutside = (event: React.MouseEvent) => {
+    if ((event.target as HTMLElement).closest(".template-kebab-menu")) return;
     setOpenMenuId(null);
   };
 
@@ -163,9 +215,9 @@ export function TemplatesPage() {
     <div className="page templates-page" onClick={handleClickOutside}>
       <header className="page-header">
         <h1 className="page-title">Templates</h1>
-        <button className="btn btn-secondary btn-sm" onClick={handleCreateTemplate}>
+        <button className="btn btn-secondary btn-sm text-uppercase" onClick={handleCreateTemplate}>
           <Plus size={16} />
-          NEW
+          New
         </button>
       </header>
 
@@ -182,7 +234,12 @@ export function TemplatesPage() {
             const stats = getTemplateStats(template);
 
             return (
-              <div key={template.id} className="template-card card">
+              <div
+                key={template.id}
+                className="template-card card"
+                onClick={() => handleEditTemplate(template.id)}
+                style={{ cursor: "pointer" }}
+              >
                 <div className="template-card-header">
                   <div className="template-card-info">
                     <h3 className="template-card-name">{template.name}</h3>
@@ -207,17 +264,6 @@ export function TemplatesPage() {
                     {openMenuId === template.id && (
                       <div className="template-kebab-dropdown">
                         <button
-                          className="template-kebab-item"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setOpenMenuId(null);
-                            handleEditTemplate(template.id);
-                          }}
-                        >
-                          <Pencil size={16} />
-                          Edit
-                        </button>
-                        <button
                           className="template-kebab-item template-kebab-item-delete"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -234,11 +280,14 @@ export function TemplatesPage() {
                 </div>
                 <div className="template-card-actions">
                   <button
-                    className="btn btn-primary btn-sm"
-                    onClick={() => handleTemplateClick(template)}
+                    className="btn btn-primary btn-sm text-uppercase"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleTemplateClick(template);
+                    }}
                   >
                     <Play size={16} />
-                    START
+                    Start
                   </button>
                 </div>
               </div>

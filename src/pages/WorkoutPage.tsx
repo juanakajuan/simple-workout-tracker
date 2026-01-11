@@ -24,7 +24,12 @@ import type {
 import { muscleGroupLabels, exerciseTypeLabels, getMuscleGroupClassName } from "../types";
 
 import { useLocalStorage } from "../hooks/useLocalStorage";
-import { STORAGE_KEYS, generateId, DEFAULT_EXERCISES } from "../utils/storage";
+import {
+  STORAGE_KEYS,
+  generateId,
+  DEFAULT_EXERCISES,
+  getLastPerformedSets,
+} from "../utils/storage";
 
 import { SetRow } from "../components/SetRow";
 import { ExerciseSelector } from "../components/ExerciseSelector";
@@ -52,11 +57,15 @@ export function WorkoutPage() {
   const [updateTemplateOnReplace, setUpdateTemplateOnReplace] = useState(true);
 
   // Merge default exercises with user exercises, user exercises override defaults
-  const allExercises = DEFAULT_EXERCISES.map((defaultEx) => {
-    const userOverride = exercises.find((e) => e.id === defaultEx.id);
-    return userOverride || defaultEx;
-  }).concat(exercises.filter((e) => !e.id.startsWith("default-")));
+  const allExercises = DEFAULT_EXERCISES.map((defaultExercise) => {
+    const userOverride = exercises.find((exercise) => exercise.id === defaultExercise.id);
+    return userOverride || defaultExercise;
+  }).concat(exercises.filter((exercise) => !exercise.id.startsWith("default-")));
 
+  /**
+   * Creates and initializes a new empty workout with a default name based on the
+   * current day of the week (e.g., "Monday Workout").
+   */
   const startEmptyWorkout = () => {
     const today = new Date();
     const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -74,6 +83,12 @@ export function WorkoutPage() {
     setWorkoutName(defaultName);
   };
 
+  /**
+   * Adds an exercise to the active workout with one initial empty set.
+   * Closes the exercise selector modal after adding.
+   *
+   * @param exerciseId - The unique identifier of the exercise to add
+   */
   const addExerciseToWorkout = (exerciseId: string) => {
     if (!activeWorkout) return;
 
@@ -90,7 +105,14 @@ export function WorkoutPage() {
     setShowExerciseSelector(false);
   };
 
-  const handleCreateExercise = (exerciseData: Omit<Exercise, "id">) => {
+  /**
+   * Creates a new exercise and persists it to localStorage. If not in replacement
+   * mode, automatically adds the new exercise to the active workout.
+   *
+   * @param exerciseData - Exercise data without the id field
+   * @returns The unique identifier of the newly created exercise
+   */
+  const handleCreateExercise = (exerciseData: Omit<Exercise, "id">): string => {
     const newExercise: Exercise = {
       ...exerciseData,
       id: generateId(),
@@ -99,9 +121,19 @@ export function WorkoutPage() {
     // Persist via localStorage
     setExercises([...exercises, newExercise]);
 
-    addExerciseToWorkout(newExercise.id);
+    // Only auto-add to workout if not in replacement mode
+    if (!replacingWorkoutExerciseId) {
+      addExerciseToWorkout(newExercise.id);
+    }
+
+    return newExercise.id;
   };
 
+  /**
+   * Removes an exercise from the active workout.
+   *
+   * @param workoutExerciseId - The unique identifier of the workout exercise to remove
+   */
   const removeExerciseFromWorkout = (workoutExerciseId: string) => {
     if (!activeWorkout) return;
     setActiveWorkout({
@@ -110,6 +142,15 @@ export function WorkoutPage() {
     });
   };
 
+  /**
+   * Updates the set count for a specific exercise in a template. Used to keep
+   * templates in sync when sets are added or removed during a workout.
+   *
+   * @param templateId - The unique identifier of the template
+   * @param templateDayId - The unique identifier of the template day
+   * @param exercisePositionInWorkout - The zero-based position of the exercise in the workout
+   * @param newSetCount - The new number of sets for the exercise
+   */
   const updateTemplateSetCount = (
     templateId: string,
     templateDayId: string,
@@ -169,6 +210,13 @@ export function WorkoutPage() {
     setTemplates(updatedTemplates);
   };
 
+  /**
+   * Adds a new set to an exercise in the active workout. The new set inherits
+   * weight and reps from the last set. If the workout is from a template, updates
+   * the template set count as well.
+   *
+   * @param workoutExerciseId - The unique identifier of the workout exercise
+   */
   const addSet = (workoutExerciseId: string) => {
     if (!activeWorkout) return;
 
@@ -211,6 +259,15 @@ export function WorkoutPage() {
     }
   };
 
+  /**
+   * Updates a specific set within a workout exercise. If auto-match weight is
+   * enabled and weight is being updated, applies the weight change to all sets
+   * in the exercise.
+   *
+   * @param workoutExerciseId - The unique identifier of the workout exercise
+   * @param setId - The unique identifier of the set to update
+   * @param updates - Partial set data to update (weight, reps, or completed)
+   */
   const updateSet = (workoutExerciseId: string, setId: string, updates: Partial<WorkoutSet>) => {
     if (!activeWorkout) return;
 
@@ -240,6 +297,13 @@ export function WorkoutPage() {
     });
   };
 
+  /**
+   * Removes a set from a workout exercise. If the workout is from a template,
+   * updates the template set count as well.
+   *
+   * @param workoutExerciseId - The unique identifier of the workout exercise
+   * @param setId - The unique identifier of the set to remove
+   */
   const removeSet = (workoutExerciseId: string, setId: string) => {
     if (!activeWorkout) return;
 
@@ -270,6 +334,10 @@ export function WorkoutPage() {
     }
   };
 
+  /**
+   * Completes the active workout by calculating duration, marking it as completed,
+   * and saving it to workout history. Clears the active workout state.
+   */
   const finishWorkout = () => {
     if (!activeWorkout) return;
 
@@ -289,6 +357,10 @@ export function WorkoutPage() {
     setWorkoutName("");
   };
 
+  /**
+   * Cancels the active workout after user confirmation. All workout progress
+   * is discarded without saving to history.
+   */
   const cancelWorkout = () => {
     if (confirm("Are you sure you want to cancel this workout? All progress will be lost.")) {
       setActiveWorkout(null);
@@ -296,8 +368,21 @@ export function WorkoutPage() {
     }
   };
 
-  const getExerciseById = (id: string) => allExercises.find((e) => e.id === id);
+  /**
+   * Retrieves an exercise by its unique identifier from the merged list of
+   * default and user exercises.
+   *
+   * @param id - The unique identifier of the exercise
+   * @returns The exercise if found, undefined otherwise
+   */
+  const getExerciseById = (id: string) => allExercises.find((exercise) => exercise.id === id);
 
+  /**
+   * Gets the muscle group of the exercise currently being replaced. Used to filter
+   * replacement exercise options to the same muscle group.
+   *
+   * @returns The muscle group of the exercise being replaced, or undefined
+   */
   const getReplacementMuscleGroup = () => {
     if (!replacingWorkoutExerciseId || !activeWorkout) return undefined;
 
@@ -310,6 +395,12 @@ export function WorkoutPage() {
     return exercise?.muscleGroup;
   };
 
+  /**
+   * Gets the list of exercises available for replacement. Filters to only show
+   * exercises from the same muscle group as the exercise being replaced.
+   *
+   * @returns Filtered list of exercises for replacement, or all exercises if no filter applies
+   */
   const getReplacementExercises = () => {
     const muscleGroup = getReplacementMuscleGroup();
     if (!muscleGroup) return allExercises;
@@ -317,6 +408,13 @@ export function WorkoutPage() {
     return allExercises.filter((exercise) => exercise.muscleGroup === muscleGroup);
   };
 
+  /**
+   * Updates the notes for an exercise. For user exercises, updates the existing
+   * exercise. For default exercises, creates an override with the new notes.
+   *
+   * @param exerciseId - The unique identifier of the exercise
+   * @param noteText - The new note text to save
+   */
   const updateExerciseNote = (exerciseId: string, noteText: string) => {
     // Update in user exercises (will create override for default exercises)
     const existingExercise = exercises.find((exercise) => exercise.id === exerciseId);
@@ -336,11 +434,23 @@ export function WorkoutPage() {
     }
   };
 
+  /**
+   * Opens the note editor for a workout exercise and closes any open kebab menu.
+   *
+   * @param workoutExerciseId - The unique identifier of the workout exercise
+   */
   const addNoteToExercise = (workoutExerciseId: string) => {
     setEditingNoteId(workoutExerciseId);
     setOpenKebabMenu(null);
   };
 
+  /**
+   * Replaces an exercise in the workout with a new exercise. Preserves the number
+   * of sets but resets weight, reps, and completion status. Optionally updates
+   * the template if the workout is from a template.
+   *
+   * @param newExerciseId - The unique identifier of the replacement exercise
+   */
   const replaceExerciseInWorkout = (newExerciseId: string) => {
     if (!activeWorkout || !replacingWorkoutExerciseId) return;
 
@@ -383,6 +493,16 @@ export function WorkoutPage() {
     setUpdateTemplateOnReplace(false);
   };
 
+  /**
+   * Updates a specific exercise in a template to use a different exercise.
+   * Used when replacing an exercise during a workout and the user opts to
+   * update the template as well.
+   *
+   * @param templateId - The unique identifier of the template
+   * @param templateDayId - The unique identifier of the template day
+   * @param exercisePositionInWorkout - The zero-based position of the exercise in the workout
+   * @param newExerciseId - The unique identifier of the new exercise
+   */
   const updateTemplateExercise = (
     templateId: string,
     templateDayId: string,
@@ -442,6 +562,12 @@ export function WorkoutPage() {
     setTemplates(updatedTemplates);
   };
 
+  /**
+   * Deletes the notes from an exercise by setting them to an empty string.
+   * Closes any open kebab menu.
+   *
+   * @param exerciseId - The unique identifier of the exercise
+   */
   const deleteNoteFromExercise = (exerciseId: string) => {
     // Update exercise notes to empty
     const existingExercise = exercises.find((exercise) => exercise.id === exerciseId);
@@ -456,10 +582,21 @@ export function WorkoutPage() {
     setOpenKebabMenu(null);
   };
 
+  /**
+   * Checks whether an exercise has notes.
+   *
+   * @param exercise - The exercise to check
+   * @returns True if the exercise has non-empty notes, false otherwise
+   */
   const hasNote = (exercise: Exercise): boolean => {
     return !!exercise.notes;
   };
 
+  /**
+   * Checks if all sets in the active workout have been completed.
+   *
+   * @returns True if all sets are completed (and workout has exercises), false otherwise
+   */
   const allSetsCompleted = () => {
     if (!activeWorkout || activeWorkout.exercises.length === 0) return false;
     return activeWorkout.exercises.every((workoutExercise) =>
@@ -482,9 +619,9 @@ export function WorkoutPage() {
               <h2>Ready to train?</h2>
               <p>Start an empty workout</p>
             </div>
-            <button className="btn btn-primary" onClick={startEmptyWorkout}>
+            <button className="btn btn-primary text-uppercase" onClick={startEmptyWorkout}>
               <Play size={18} />
-              START
+              Start
             </button>
           </div>
         </div>
@@ -633,21 +770,29 @@ export function WorkoutPage() {
                   >
                     <span className="set-col-num"></span>
                     {exercise.exerciseType !== "bodyweight" && (
-                      <span className="set-col-weight">WEIGHT</span>
+                      <span className="set-col-weight text-uppercase">Weight</span>
                     )}
-                    <span className="set-col-reps">REPS</span>
-                    <span className="set-col-done">LOG</span>
+                    <span className="set-col-reps text-uppercase">Reps</span>
+                    <span className="set-col-done text-uppercase">Log</span>
                   </div>
-                  {workoutExercise.sets.map((set) => (
-                    <SetRow
-                      key={set.id}
-                      set={set}
-                      onUpdate={(updates) => updateSet(workoutExercise.id, set.id, updates)}
-                      onRemove={() => removeSet(workoutExercise.id, set.id)}
-                      canRemove={workoutExercise.sets.length > 1}
-                      exerciseType={exercise.exerciseType}
-                    />
-                  ))}
+                  {workoutExercise.sets.map((set, setIndex) => {
+                    // Get last performed sets for placeholder values
+                    const lastSets = getLastPerformedSets(workoutExercise.exerciseId);
+                    const lastSet = lastSets && lastSets[setIndex];
+
+                    return (
+                      <SetRow
+                        key={set.id}
+                        set={set}
+                        onUpdate={(updates) => updateSet(workoutExercise.id, set.id, updates)}
+                        onRemove={() => removeSet(workoutExercise.id, set.id)}
+                        canRemove={workoutExercise.sets.length > 1}
+                        exerciseType={exercise.exerciseType}
+                        placeholderWeight={lastSet?.weight}
+                        placeholderReps={lastSet?.reps}
+                      />
+                    );
+                  })}
                 </div>
 
                 <button className="add-set-btn" onClick={() => addSet(workoutExercise.id)}>

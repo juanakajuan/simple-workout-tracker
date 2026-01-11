@@ -43,8 +43,14 @@ export function ExerciseModal({
     };
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  /**
+   * Handles form submission. Validates that the name is not empty,
+   * then calls onSave with the trimmed exercise data.
+   *
+   * @param event - The form submit event
+   */
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
     if (!name.trim()) return;
     onSave({ name: name.trim(), muscleGroup, exerciseType, notes: notes.trim() });
   };
