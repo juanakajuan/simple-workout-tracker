@@ -3,6 +3,8 @@ import { X } from "lucide-react";
 
 import type { Exercise, MuscleGroup, ExerciseType } from "../types";
 
+import { useSwipeToClose } from "../hooks/useSwipeToClose";
+
 import "./ExerciseModal.css";
 
 interface ExerciseModalProps {
@@ -36,6 +38,8 @@ export function ExerciseModal({
   // Check if this is a default exercise (not yet overridden by user)
   const isDefaultExercise = exercise?.id.startsWith("default-") ?? false;
 
+  const swipeHandlers = useSwipeToClose(onClose);
+
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => {
@@ -56,8 +60,19 @@ export function ExerciseModal({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="modal-overlay"
+      onClick={onClose}
+      style={{ opacity: swipeHandlers.overlayOpacity }}
+    >
+      {/* eslint-disable react-hooks/refs -- False positive: passing ref object, not accessing .current */}
+      <div
+        ref={swipeHandlers.ref}
+        className="modal"
+        onClick={(e) => e.stopPropagation()}
+        style={swipeHandlers.style}
+      >
+        {/* eslint-enable react-hooks/refs */}
         <div className="modal-header">
           <h2 className="modal-title">{exercise ? "Edit Exercise" : "New Exercise"}</h2>
           <button className="btn btn-icon btn-ghost" onClick={onClose} aria-label="Close">

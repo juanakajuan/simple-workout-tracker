@@ -346,6 +346,7 @@ textarea {
   display: flex;
   flex-direction: column;
   animation: scaleIn 200ms ease;
+  touch-action: pan-y;
 }
 
 .modal-header {

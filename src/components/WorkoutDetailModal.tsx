@@ -4,6 +4,8 @@ import { X, Check, Trash2 } from "lucide-react";
 import type { Exercise, Workout } from "../types";
 import { muscleGroupLabels, exerciseTypeLabels, getMuscleGroupClassName } from "../types";
 
+import { useSwipeToClose } from "../hooks/useSwipeToClose";
+
 import "./WorkoutDetailModal.css";
 
 interface WorkoutDetailModalProps {
@@ -26,6 +28,8 @@ export function WorkoutDetailModal({
    * @returns The exercise if found, undefined otherwise
    */
   const getExerciseById = (id: string) => exercises.find((exercise) => exercise.id === id);
+
+  const swipeHandlers = useSwipeToClose(onClose);
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -57,8 +61,19 @@ export function WorkoutDetailModal({
   );
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal workout-detail-modal" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="modal-overlay"
+      onClick={onClose}
+      style={{ opacity: swipeHandlers.overlayOpacity }}
+    >
+      {/* eslint-disable react-hooks/refs -- False positive: passing ref object, not accessing .current */}
+      <div
+        ref={swipeHandlers.ref}
+        className="modal workout-detail-modal"
+        onClick={(e) => e.stopPropagation()}
+        style={swipeHandlers.style}
+      >
+        {/* eslint-enable react-hooks/refs */}
         <div className="modal-header">
           <div>
             <h2 className="modal-title">{workout.name}</h2>

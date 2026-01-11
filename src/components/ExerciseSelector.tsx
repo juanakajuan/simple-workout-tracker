@@ -5,6 +5,8 @@ import type { Exercise, MuscleGroup } from "../types";
 import { muscleGroupLabels, exerciseTypeLabels, MUSCLE_GROUPS, EXERCISE_TYPES } from "../types";
 import { getLastPerformedDate, formatRelativeDate } from "../utils/storage";
 
+import { useSwipeToClose } from "../hooks/useSwipeToClose";
+
 import { ExerciseModal } from "./ExerciseModal";
 
 import "./ExerciseSelector.css";
@@ -41,6 +43,8 @@ export function ExerciseSelector({
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const exerciseRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  const swipeHandlers = useSwipeToClose(onClose);
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -124,8 +128,19 @@ export function ExerciseSelector({
 
   return (
     <>
-      <div className="modal-overlay" onClick={onClose}>
-        <div className="modal exercise-selector-modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal-overlay"
+        onClick={onClose}
+        style={{ opacity: swipeHandlers.overlayOpacity }}
+      >
+        {/* eslint-disable react-hooks/refs -- False positive: passing ref object, not accessing .current */}
+        <div
+          ref={swipeHandlers.ref}
+          className="modal exercise-selector-modal"
+          onClick={(e) => e.stopPropagation()}
+          style={swipeHandlers.style}
+        >
+          {/* eslint-enable react-hooks/refs */}
           <div className="modal-header">
             <h2 className="modal-title">Select Exercise</h2>
             <div className="exercise-selector-header-actions">

@@ -4,6 +4,8 @@ import { X } from "lucide-react";
 import type { MuscleGroup } from "../types";
 import { muscleGroupLabels, muscleGroupColors } from "../types";
 
+import { useSwipeToClose } from "../hooks/useSwipeToClose";
+
 import "./MuscleGroupSelector.css";
 
 interface MuscleGroupSelectorProps {
@@ -23,6 +25,8 @@ const MUSCLE_GROUP_CATEGORIES: { label: string; groups: MuscleGroup[] }[] = [
 ];
 
 export function MuscleGroupSelector({ onSelect, onClose }: MuscleGroupSelectorProps) {
+  const swipeHandlers = useSwipeToClose(onClose);
+
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -32,8 +36,19 @@ export function MuscleGroupSelector({ onSelect, onClose }: MuscleGroupSelectorPr
   }, [onClose]);
 
   return (
-    <div className="muscle-group-selector-overlay" onClick={onClose}>
-      <div className="muscle-group-selector-modal" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="muscle-group-selector-overlay"
+      onClick={onClose}
+      style={{ opacity: swipeHandlers.overlayOpacity }}
+    >
+      {/* eslint-disable react-hooks/refs -- False positive: passing ref object, not accessing .current */}
+      <div
+        ref={swipeHandlers.ref}
+        className="muscle-group-selector-modal"
+        onClick={(e) => e.stopPropagation()}
+        style={swipeHandlers.style}
+      >
+        {/* eslint-enable react-hooks/refs */}
         <div className="muscle-group-selector-header">
           <h2 className="muscle-group-selector-title">Select Muscle Group</h2>
           <button className="btn btn-icon btn-ghost" onClick={onClose} aria-label="Close">

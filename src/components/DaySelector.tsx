@@ -4,6 +4,8 @@ import { X } from "lucide-react";
 import type { WorkoutTemplate, TemplateDay } from "../types";
 import { muscleGroupLabels, muscleGroupColors } from "../types";
 
+import { useSwipeToClose } from "../hooks/useSwipeToClose";
+
 import "./DaySelector.css";
 
 interface DaySelectorProps {
@@ -13,6 +15,8 @@ interface DaySelectorProps {
 }
 
 export function DaySelector({ template, onSelect, onClose }: DaySelectorProps) {
+  const swipeHandlers = useSwipeToClose(onClose);
+
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => {
@@ -54,8 +58,17 @@ export function DaySelector({ template, onSelect, onClose }: DaySelectorProps) {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal day-selector-modal" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="modal-overlay"
+      onClick={onClose}
+      style={{ opacity: swipeHandlers.overlayOpacity }}
+    >
+      <div
+        ref={swipeHandlers.ref}
+        className="modal day-selector-modal"
+        onClick={(e) => e.stopPropagation()}
+        style={swipeHandlers.style}
+      >
         <div className="modal-header">
           <div>
             <h2 className="modal-title">{template.name}</h2>
