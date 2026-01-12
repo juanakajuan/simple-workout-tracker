@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { AlertCircle } from "lucide-react";
 
 import { useSwipeToClose } from "../hooks/useSwipeToClose";
@@ -12,8 +12,10 @@ interface ConfirmDialogProps {
   confirmText?: string;
   cancelText?: string;
   variant?: "danger" | "standard";
-  onConfirm: () => void;
+  onConfirm: (checkboxChecked?: boolean) => void;
   onCancel: () => void;
+  checkboxLabel?: string;
+  checkboxDefaultChecked?: boolean;
 }
 
 export function ConfirmDialog({
@@ -25,8 +27,18 @@ export function ConfirmDialog({
   variant = "danger",
   onConfirm,
   onCancel,
+  checkboxLabel,
+  checkboxDefaultChecked = false,
 }: ConfirmDialogProps) {
+  const [checkboxChecked, setCheckboxChecked] = useState(checkboxDefaultChecked);
   const swipeHandlers = useSwipeToClose(onCancel);
+
+  // Reset checkbox state when dialog opens with new default value
+  useEffect(() => {
+    if (isOpen) {
+      setCheckboxChecked(checkboxDefaultChecked);
+    }
+  }, [isOpen, checkboxDefaultChecked]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -73,6 +85,19 @@ export function ConfirmDialog({
           {message && <p className="confirm-dialog-message">{message}</p>}
         </div>
 
+        {checkboxLabel && (
+          <div className="confirm-dialog-checkbox-container">
+            <label className="confirm-dialog-checkbox-label">
+              <input
+                type="checkbox"
+                checked={checkboxChecked}
+                onChange={(e) => setCheckboxChecked(e.target.checked)}
+              />
+              <span>{checkboxLabel}</span>
+            </label>
+          </div>
+        )}
+
         <div className="modal-footer confirm-dialog-footer">
           <button type="button" className="btn btn-secondary" onClick={onCancel}>
             {cancelText}
@@ -81,7 +106,7 @@ export function ConfirmDialog({
             type="button"
             className={`btn confirm-dialog-btn-confirm ${variant}`}
             onClick={() => {
-              onConfirm();
+              onConfirm(checkboxLabel ? checkboxChecked : undefined);
               onCancel();
             }}
           >

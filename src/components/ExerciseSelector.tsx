@@ -23,6 +23,7 @@ interface ExerciseSelectorProps {
   showTemplateUpdate?: boolean;
   onTemplateUpdateChange?: (update: boolean) => void;
   templateUpdateChecked?: boolean;
+  isTemplateWorkout?: boolean;
 }
 
 export function ExerciseSelector({
@@ -37,6 +38,7 @@ export function ExerciseSelector({
   showTemplateUpdate = false,
   onTemplateUpdateChange,
   templateUpdateChecked = false,
+  isTemplateWorkout = false,
 }: ExerciseSelectorProps) {
   const [search, setSearch] = useState("");
   const [filterMuscle, setFilterMuscle] = useState<MuscleGroup | "all">("all");
@@ -85,8 +87,8 @@ export function ExerciseSelector({
   });
 
   /**
-   * Handles creating a new exercise. In replacement mode, automatically
-   * selects the newly created exercise.
+   * Handles creating a new exercise. In replacement or template workout mode,
+   * automatically selects the newly created exercise.
    *
    * @param exerciseData - Exercise data without the id field
    */
@@ -95,21 +97,21 @@ export function ExerciseSelector({
       const newExerciseId = onCreateExercise(exerciseData);
       setShowCreateModal(false);
 
-      // Auto-select the newly created exercise in replacement mode
-      if (isReplacement) {
+      // Auto-select the newly created exercise in replacement or template workout mode
+      if (isReplacement || isTemplateWorkout) {
         setSelectedExerciseId(newExerciseId);
       }
     }
   };
 
   /**
-   * Handles clicking an exercise. In replacement mode, toggles selection.
+   * Handles clicking an exercise. In replacement or template workout mode, toggles selection.
    * In normal mode, immediately selects the exercise.
    *
    * @param exerciseId - The unique identifier of the clicked exercise
    */
   const handleExerciseClick = (exerciseId: string) => {
-    if (isReplacement) {
+    if (isReplacement || isTemplateWorkout) {
       setSelectedExerciseId((previous) => (previous === exerciseId ? null : exerciseId));
     } else {
       onSelect(exerciseId);
@@ -206,7 +208,8 @@ export function ExerciseSelector({
                       ? formatRelativeDate(lastPerformedDate)
                       : null;
 
-                    const isSelected = isReplacement && selectedExerciseId === exercise.id;
+                    const isSelected =
+                      (isReplacement || isTemplateWorkout) && selectedExerciseId === exercise.id;
 
                     return (
                       <button
@@ -238,7 +241,7 @@ export function ExerciseSelector({
             )}
           </div>
 
-          {isReplacement && (
+          {(isReplacement || isTemplateWorkout) && (
             <div className="selector-footer">
               {showTemplateUpdate && (
                 <label className="selector-template-update-label">

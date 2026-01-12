@@ -6,7 +6,9 @@ export interface ConfirmDialogOptions {
   confirmText?: string;
   cancelText?: string;
   variant?: "danger" | "standard";
-  onConfirm: () => void;
+  onConfirm: (checkboxChecked?: boolean) => void;
+  checkboxLabel?: string;
+  checkboxDefaultChecked?: boolean;
 }
 
 /**
@@ -75,6 +77,8 @@ export function useConfirmDialog() {
       variant: options.variant,
       onConfirm: options.onConfirm,
       onCancel: handleClose,
+      checkboxLabel: options.checkboxLabel,
+      checkboxDefaultChecked: options.checkboxDefaultChecked,
     }),
     [isOpen, options, handleClose]
   );

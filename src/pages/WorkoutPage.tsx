@@ -57,6 +57,7 @@ export function WorkoutPage() {
   const [openKebabMenu, setOpenKebabMenu] = useState<string | null>(null);
   const [replacingWorkoutExerciseId, setReplacingWorkoutExerciseId] = useState<string | null>(null);
   const [updateTemplateOnReplace, setUpdateTemplateOnReplace] = useState(true);
+  const [updateTemplateOnAdd, setUpdateTemplateOnAdd] = useState(true);
   const { showConfirm, dialogProps } = useConfirmDialog();
 
   // Merge default exercises with user exercises, user exercises override defaults
@@ -573,6 +574,155 @@ export function WorkoutPage() {
   };
 
   /**
+   * Removes a specific exercise from a template. Used when deleting an exercise
+   * from a workout and the user opts to update the template as well. If the
+   * muscle group becomes empty after removal, the entire muscle group is removed.
+   *
+   * @param templateId - The unique identifier of the template
+   * @param templateDayId - The unique identifier of the template day
+   * @param exercisePositionInWorkout - The zero-based position of the exercise in the workout
+   */
+  const removeExerciseFromTemplate = (
+    templateId: string,
+    templateDayId: string,
+    exercisePositionInWorkout: number
+  ) => {
+    const template = templates.find((template) => template.id === templateId);
+    if (!template) return;
+
+    const day = template.days.find((day) => day.id === templateDayId);
+    if (!day) return;
+
+    let currentPosition = 0;
+    let targetMuscleGroupId: string | null = null;
+    let targetExerciseId: string | null = null;
+
+    // Find the exercise at the specified position
+    for (const muscleGroup of day.muscleGroups) {
+      for (const exercise of muscleGroup.exercises) {
+        if (currentPosition === exercisePositionInWorkout) {
+          targetMuscleGroupId = muscleGroup.id;
+          targetExerciseId = exercise.id;
+          break;
+        }
+        currentPosition++;
+      }
+      if (targetMuscleGroupId) break;
+    }
+
+    if (!targetMuscleGroupId || !targetExerciseId) return;
+
+    const updatedTemplates = templates.map((template) => {
+      if (template.id !== templateId) return template;
+
+      return {
+        ...template,
+        days: template.days.map((day) => {
+          if (day.id !== templateDayId) return day;
+
+          return {
+            ...day,
+            muscleGroups: day.muscleGroups
+              .map((muscleGroup) => {
+                if (muscleGroup.id !== targetMuscleGroupId) return muscleGroup;
+
+                // Remove the target exercise
+                const updatedExercises = muscleGroup.exercises.filter(
+                  (exercise) => exercise.id !== targetExerciseId
+                );
+
+                return {
+                  ...muscleGroup,
+                  exercises: updatedExercises,
+                };
+              })
+              .filter((muscleGroup) => muscleGroup.exercises.length > 0), // Remove empty muscle groups
+          };
+        }),
+      };
+    });
+
+    setTemplates(updatedTemplates);
+  };
+
+  /**
+   * Adds a new exercise to a template. Used when adding an exercise to a workout
+   * and the user opts to update the template as well. The exercise is added to
+   * an existing muscle group that matches the exercise's muscle group, or a new
+   * muscle group is created if none exists.
+   *
+   * @param templateId - The unique identifier of the template
+   * @param templateDayId - The unique identifier of the template day
+   * @param exercise - The exercise to add to the template
+   */
+  const addExerciseToTemplate = (templateId: string, templateDayId: string, exercise: Exercise) => {
+    const template = templates.find((template) => template.id === templateId);
+    if (!template) return;
+
+    const day = template.days.find((day) => day.id === templateDayId);
+    if (!day) return;
+
+    const updatedTemplates = templates.map((template) => {
+      if (template.id !== templateId) return template;
+
+      return {
+        ...template,
+        days: template.days.map((day) => {
+          if (day.id !== templateDayId) return day;
+
+          // Find existing muscle group that matches the exercise's muscle group
+          const existingMuscleGroup = day.muscleGroups.find(
+            (muscleGroup) => muscleGroup.muscleGroup === exercise.muscleGroup
+          );
+
+          if (existingMuscleGroup) {
+            // Add exercise to existing muscle group
+            return {
+              ...day,
+              muscleGroups: day.muscleGroups.map((muscleGroup) => {
+                if (muscleGroup.id !== existingMuscleGroup.id) return muscleGroup;
+
+                return {
+                  ...muscleGroup,
+                  exercises: [
+                    ...muscleGroup.exercises,
+                    {
+                      id: generateId(),
+                      exerciseId: exercise.id,
+                      setCount: 3, // Default set count
+                    },
+                  ],
+                };
+              }),
+            };
+          } else {
+            // Create new muscle group with the exercise
+            return {
+              ...day,
+              muscleGroups: [
+                ...day.muscleGroups,
+                {
+                  id: generateId(),
+                  muscleGroup: exercise.muscleGroup,
+                  exercises: [
+                    {
+                      id: generateId(),
+                      exerciseId: exercise.id,
+                      setCount: 3, // Default set count
+                    },
+                  ],
+                },
+              ],
+            };
+          }
+        }),
+      };
+    });
+
+    setTemplates(updatedTemplates);
+  };
+
+  /**
    * Deletes the notes from an exercise by setting them to an empty string.
    * Closes any open kebab menu.
    *
@@ -750,7 +900,46 @@ export function WorkoutPage() {
                         <button
                           className="kebab-menu-item kebab-menu-item-danger"
                           onClick={() => {
-                            removeExerciseFromWorkout(workoutExercise.id);
+                            const isFromTemplate = !!(
+                              activeWorkout.templateId && activeWorkout.templateDayId
+                            );
+
+                            if (isFromTemplate) {
+                              // Get exercise position before deletion for template update
+                              const exercisePosition = activeWorkout.exercises.findIndex(
+                                (e) => e.id === workoutExercise.id
+                              );
+
+                              showConfirm({
+                                title: "Delete Exercise?",
+                                message: "Remove this exercise from your workout.",
+                                confirmText: "Send it to the shadow realm",
+                                variant: "danger",
+                                checkboxLabel: "Update template",
+                                checkboxDefaultChecked: true,
+                                onConfirm: (checkboxChecked) => {
+                                  // Update template first (before removing from workout to preserve position)
+                                  if (
+                                    checkboxChecked &&
+                                    activeWorkout.templateId &&
+                                    activeWorkout.templateDayId &&
+                                    exercisePosition !== -1
+                                  ) {
+                                    removeExerciseFromTemplate(
+                                      activeWorkout.templateId,
+                                      activeWorkout.templateDayId,
+                                      exercisePosition
+                                    );
+                                  }
+                                  // Then remove from workout
+                                  removeExerciseFromWorkout(workoutExercise.id);
+                                },
+                              });
+                            } else {
+                              // Not from template, delete directly
+                              removeExerciseFromWorkout(workoutExercise.id);
+                            }
+
                             setOpenKebabMenu(null);
                           }}
                         >
@@ -863,16 +1052,37 @@ export function WorkoutPage() {
               replaceExerciseInWorkout(exerciseId);
             } else {
               addExerciseToWorkout(exerciseId);
+              // Update template if workout is from template and checkbox is checked
+              if (
+                activeWorkout?.templateId &&
+                activeWorkout?.templateDayId &&
+                updateTemplateOnAdd
+              ) {
+                const exercise = allExercises.find((e) => e.id === exerciseId);
+                if (exercise) {
+                  addExerciseToTemplate(
+                    activeWorkout.templateId,
+                    activeWorkout.templateDayId,
+                    exercise
+                  );
+                }
+              }
             }
           }}
           onClose={() => {
             setShowExerciseSelector(false);
             setReplacingWorkoutExerciseId(null);
             setUpdateTemplateOnReplace(true);
+            setUpdateTemplateOnAdd(true);
           }}
           onCreateExercise={handleCreateExercise}
           hideFilter={!!replacingWorkoutExerciseId}
           isReplacement={!!replacingWorkoutExerciseId}
+          isTemplateWorkout={
+            !replacingWorkoutExerciseId &&
+            !!activeWorkout?.templateId &&
+            !!activeWorkout?.templateDayId
+          }
           currentExerciseId={
             replacingWorkoutExerciseId
               ? activeWorkout?.exercises.find((e) => e.id === replacingWorkoutExerciseId)
@@ -880,12 +1090,16 @@ export function WorkoutPage() {
               : undefined
           }
           showTemplateUpdate={
-            !!replacingWorkoutExerciseId &&
             !!activeWorkout?.templateId &&
-            !!activeWorkout?.templateDayId
+            !!activeWorkout?.templateDayId &&
+            (!!replacingWorkoutExerciseId || showExerciseSelector)
           }
-          templateUpdateChecked={updateTemplateOnReplace}
-          onTemplateUpdateChange={setUpdateTemplateOnReplace}
+          templateUpdateChecked={
+            replacingWorkoutExerciseId ? updateTemplateOnReplace : updateTemplateOnAdd
+          }
+          onTemplateUpdateChange={
+            replacingWorkoutExerciseId ? setUpdateTemplateOnReplace : setUpdateTemplateOnAdd
+          }
         />
       )}
 

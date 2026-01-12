@@ -227,3 +227,4 @@ const [exercises, setExercises] = useLocalStorage<Exercise[]>(STORAGE_KEYS.EXERC
 - **Abbreviations**: Avoid abbreviations in code and communication
 - Give me your recommended answers to the options along with the other options
 - Avoid using fancy animations, I want things to be snappy and fast
+- After you are finished and giving a summary of changes, at the end give me a one-liner commit message using conventional commits style
