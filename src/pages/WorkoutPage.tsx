@@ -36,6 +36,7 @@ import { SetRow } from "../components/SetRow";
 import { ExerciseSelector } from "../components/ExerciseSelector";
 import { WorkoutTimer } from "../components/WorkoutTimer";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { ExerciseHistoryModal } from "../components/ExerciseHistoryModal";
 
 import "./WorkoutPage.css";
 
@@ -58,6 +59,9 @@ export function WorkoutPage() {
   const [replacingWorkoutExerciseId, setReplacingWorkoutExerciseId] = useState<string | null>(null);
   const [updateTemplateOnReplace, setUpdateTemplateOnReplace] = useState(true);
   const [updateTemplateOnAdd, setUpdateTemplateOnAdd] = useState(true);
+  const [selectedExerciseForHistory, setSelectedExerciseForHistory] = useState<Exercise | null>(
+    null
+  );
   const { showConfirm, dialogProps } = useConfirmDialog();
 
   // Merge default exercises with user exercises, user exercises override defaults
@@ -850,7 +854,12 @@ export function WorkoutPage() {
                       {muscleGroupLabels[exercise.muscleGroup]}
                     </span>
                     <div className="exercise-name-row">
-                      <h3 className="workout-exercise-name">{exercise.name}</h3>
+                      <h3
+                        className="workout-exercise-name clickable"
+                        onClick={() => setSelectedExerciseForHistory(exercise)}
+                      >
+                        {exercise.name}
+                      </h3>
                       <span className="tag tag-muted">
                         {exerciseTypeLabels[exercise.exerciseType]}
                       </span>
@@ -1100,6 +1109,13 @@ export function WorkoutPage() {
           onTemplateUpdateChange={
             replacingWorkoutExerciseId ? setUpdateTemplateOnReplace : setUpdateTemplateOnAdd
           }
+        />
+      )}
+
+      {selectedExerciseForHistory && (
+        <ExerciseHistoryModal
+          exercise={selectedExerciseForHistory}
+          onClose={() => setSelectedExerciseForHistory(null)}
         />
       )}
 

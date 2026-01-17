@@ -201,6 +201,15 @@
   font-weight: 600;
 }
 
+.workout-exercise-name.clickable {
+  cursor: pointer;
+  transition: color var(--transition);
+}
+
+.workout-exercise-name.clickable:hover {
+  color: var(--accent);
+}
+
 /* Sets table */
 .sets-container {
   margin-bottom: 0.75rem;

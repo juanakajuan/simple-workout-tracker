@@ -15,6 +15,7 @@ import { MUSCLE_GROUPS, EXERCISE_TYPES, muscleGroupLabels, exerciseTypeLabels } 
 
 import { ExerciseCard } from "../components/ExerciseCard";
 import { ExerciseModal } from "../components/ExerciseModal";
+import { ExerciseHistoryModal } from "../components/ExerciseHistoryModal";
 
 import "./ExercisesPage.css";
 
@@ -22,6 +23,9 @@ export function ExercisesPage() {
   const [exercises, setExercises] = useLocalStorage<Exercise[]>(STORAGE_KEYS.EXERCISES, []);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
+  const [selectedExerciseForHistory, setSelectedExerciseForHistory] = useState<Exercise | null>(
+    null
+  );
   const [filterMuscle, setFilterMuscle] = useState<MuscleGroup | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -166,7 +170,8 @@ export function ExercisesPage() {
                     <ExerciseCard
                       key={exercise.id}
                       exercise={exercise}
-                      onClick={() => handleEdit(exercise)}
+                      onClick={() => setSelectedExerciseForHistory(exercise)}
+                      onEdit={() => handleEdit(exercise)}
                       isDefault={exercise.id.startsWith("default-")}
                       lastPerformed={lastPerformed}
                     />
@@ -195,6 +200,13 @@ export function ExercisesPage() {
           exerciseTypes={EXERCISE_TYPES}
           muscleGroupLabels={muscleGroupLabels}
           exerciseTypeLabels={exerciseTypeLabels}
+        />
+      )}
+
+      {selectedExerciseForHistory && (
+        <ExerciseHistoryModal
+          exercise={selectedExerciseForHistory}
+          onClose={() => setSelectedExerciseForHistory(null)}
         />
       )}
     </div>

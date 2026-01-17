@@ -480,3 +480,28 @@ export function downloadDataFile(jsonString: string): void {
 export function hasActiveWorkout(): boolean {
   return getActiveWorkout() !== null;
 }
+
+/**
+ * Gets the workout history for a specific exercise.
+ * Returns all completed workouts containing the exercise in reverse chronological order.
+ *
+ * @param exerciseId - The ID of the exercise to find
+ * @returns Array of workouts containing this exercise, sorted by date (newest first)
+ *
+ * @example
+ * const history = getExerciseHistory("exercise-123");
+ * if (history.length > 0) {
+ *   console.log(`Exercise performed in ${history.length} workouts`);
+ * }
+ */
+export function getExerciseHistory(exerciseId: string): Workout[] {
+  const workouts = getWorkouts();
+
+  const workoutsWithExercise = workouts.filter(
+    (workout) => workout.completed && workout.exercises.some((ex) => ex.exerciseId === exerciseId)
+  );
+
+  return workoutsWithExercise.sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+}
