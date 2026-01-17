@@ -346,3 +346,137 @@ export function getSettings(): Settings {
 export function saveSettings(settings: Settings): void {
   localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
 }
+
+/**
+ * Exports all Zenith application data from localStorage.
+ * Automatically discovers and exports all keys prefixed with "zenith_".
+ * Includes metadata for version compatibility and future-proofing.
+ *
+ * @returns JSON string containing all application data with metadata
+ *
+ * @example
+ * const exportData = exportAllData();
+ * downloadDataFile(exportData);
+ */
+export function exportAllData(): string {
+  const data: Record<string, string> = {};
+
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith("zenith_")) {
+      const value = localStorage.getItem(key);
+      if (value !== null) {
+        data[key] = value;
+      }
+    }
+  }
+
+  const exportObject = {
+    version: "1.0",
+    appName: "Zenith",
+    exportDate: new Date().toISOString(),
+    data: data,
+  };
+
+  return JSON.stringify(exportObject, null, 2);
+}
+
+/**
+ * Imports application data from a JSON string and replaces all existing data.
+ * Validates the data structure and clears all existing zenith_* keys before importing.
+ *
+ * @param jsonString - JSON string containing exported data
+ * @throws Error if JSON is invalid or data structure is incorrect
+ *
+ * @example
+ * const fileContent = await file.text();
+ * importAllData(fileContent);
+ */
+export function importAllData(jsonString: string): void {
+  let importObject: {
+    version: string;
+    appName: string;
+    exportDate: string;
+    data: Record<string, string>;
+  };
+
+  try {
+    importObject = JSON.parse(jsonString);
+  } catch (error) {
+    console.error("Error parsing import file:", error);
+    throw new Error("Invalid JSON file. Please select a valid Zenith backup file.");
+  }
+
+  if (!importObject.version || !importObject.appName || !importObject.data) {
+    throw new Error("Invalid backup file format. Missing required fields.");
+  }
+
+  if (importObject.appName !== "Zenith") {
+    throw new Error("This file is not a valid Zenith backup.");
+  }
+
+  if (importObject.version !== "1.0") {
+    console.warn(`Importing data from version ${importObject.version}`);
+  }
+
+  const keysToRemove: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith("zenith_")) {
+      keysToRemove.push(key);
+    }
+  }
+  keysToRemove.forEach((key) => localStorage.removeItem(key));
+
+  try {
+    Object.entries(importObject.data).forEach(([key, value]) => {
+      localStorage.setItem(key, value);
+    });
+  } catch (error) {
+    console.error("Error writing imported data to localStorage:", error);
+    throw new Error(
+      "Failed to import data. Your storage may be full or the data may be too large."
+    );
+  }
+}
+
+/**
+ * Triggers a browser download of the provided data as a JSON file.
+ * Filename format: zenith-backup-YYYY-MM-DD.json
+ *
+ * @param jsonString - JSON string to download
+ *
+ * @example
+ * const data = exportAllData();
+ * downloadDataFile(data);
+ */
+export function downloadDataFile(jsonString: string): void {
+  const blob = new Blob([jsonString], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  const today = new Date().toISOString().split("T")[0];
+  link.download = `zenith-backup-${today}.json`;
+  link.href = url;
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Checks if there is currently an active workout in progress.
+ * Used to warn users before destructive operations like data import.
+ *
+ * @returns True if an active workout exists, false otherwise
+ *
+ * @example
+ * if (hasActiveWorkout()) {
+ *   alert('You have an active workout that will be lost!');
+ * }
+ */
+export function hasActiveWorkout(): boolean {
+  return getActiveWorkout() !== null;
+}
