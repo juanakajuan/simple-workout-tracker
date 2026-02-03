@@ -1,10 +1,12 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { X, Check, Trash2 } from "lucide-react";
 
 import type { Exercise, Workout } from "../types";
 import { muscleGroupLabels, exerciseTypeLabels, getMuscleGroupClassName } from "../types";
 
 import { useSwipeToClose } from "../hooks/useSwipeToClose";
+
+import { ExerciseHistoryModal } from "./ExerciseHistoryModal";
 
 import "./WorkoutDetailModal.css";
 
@@ -27,6 +29,10 @@ export function WorkoutDetailModal({
    * @param id - The unique identifier of the exercise
    * @returns The exercise if found, undefined otherwise
    */
+  const [selectedExerciseForHistory, setSelectedExerciseForHistory] = useState<Exercise | null>(
+    null
+  );
+
   const getExerciseById = (id: string) => exercises.find((exercise) => exercise.id === id);
 
   const swipeHandlers = useSwipeToClose(onClose);
@@ -112,7 +118,12 @@ export function WorkoutDetailModal({
                   <span className={`tag ${getMuscleGroupClassName(exercise.muscleGroup)}`}>
                     {muscleGroupLabels[exercise.muscleGroup]}
                   </span>
-                  <h3 className="detail-exercise-name">{exercise.name}</h3>
+                  <h3
+                    className="detail-exercise-name clickable"
+                    onClick={() => setSelectedExerciseForHistory(exercise)}
+                  >
+                    {exercise.name}
+                  </h3>
                   <span className="detail-exercise-type">
                     {exerciseTypeLabels[exercise.exerciseType]}
                   </span>
@@ -145,6 +156,13 @@ export function WorkoutDetailModal({
           </button>
         </div>
       </div>
+
+      {selectedExerciseForHistory && (
+        <ExerciseHistoryModal
+          exercise={selectedExerciseForHistory}
+          onClose={() => setSelectedExerciseForHistory(null)}
+        />
+      )}
     </div>
   );
 }

@@ -68,6 +68,11 @@
   margin: 0.4rem 0 0.15rem;
 }
 
+.detail-exercise-name.clickable {
+  cursor: pointer;
+  color: var(--accent);
+}
+
 .detail-exercise-type {
   font-size: 0.8rem;
   color: var(--text-secondary);
