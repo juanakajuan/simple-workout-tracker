@@ -119,6 +119,7 @@ export function TemplateEditorPage() {
 
     const state = location.state as {
       selectedMuscleGroup?: MuscleGroup;
+      selectedMuscleGroups?: MuscleGroup[];
       selectedExerciseId?: string;
       updateTemplate?: boolean;
       updatedDays?: TemplateDay[];
@@ -126,7 +127,36 @@ export function TemplateEditorPage() {
       newExercise?: Exercise;
     };
 
-    // Handle muscle group selection
+    // Handle multiple muscle group selection (new multi-select flow)
+    if (state.selectedMuscleGroups && state.selectedMuscleGroups.length > 0) {
+      // Clear navigation state immediately to prevent re-triggering
+      navigate(location.pathname, { replace: true, state: {} });
+
+      const newMuscleGroups: TemplateMuscleGroup[] = state.selectedMuscleGroups.map((mg) => ({
+        id: generateId(),
+        muscleGroup: mg,
+        exercises: [
+          {
+            id: generateId(),
+            exerciseId: null,
+            setCount: 3,
+          },
+        ],
+      }));
+
+      setDays((prevDays) =>
+        prevDays.map((day, i) => {
+          if (i !== activeDayIndex) return day;
+          return {
+            ...day,
+            muscleGroups: [...day.muscleGroups, ...newMuscleGroups],
+          };
+        })
+      );
+      return;
+    }
+
+    // Handle single muscle group selection (legacy/backward compatibility)
     if (state.selectedMuscleGroup) {
       // Clear navigation state immediately to prevent re-triggering
       navigate(location.pathname, { replace: true, state: {} });
@@ -307,7 +337,8 @@ export function TemplateEditorPage() {
     const path = isEditMode
       ? `/templates/${id}/select-muscle-group`
       : "/templates/new/select-muscle-group";
-    navigate(path);
+    const existingMuscleGroups = activeDay.muscleGroups.map((mg) => mg.muscleGroup);
+    navigate(path, { state: { existingMuscleGroups } });
   };
 
   /**
