@@ -128,6 +128,9 @@ export function TemplateEditorPage() {
 
     // Handle muscle group selection
     if (state.selectedMuscleGroup) {
+      // Clear navigation state immediately to prevent re-triggering
+      navigate(location.pathname, { replace: true, state: {} });
+
       const newMuscleGroup: TemplateMuscleGroup = {
         id: generateId(),
         muscleGroup: state.selectedMuscleGroup,
@@ -140,8 +143,8 @@ export function TemplateEditorPage() {
         ],
       };
 
-      setDays(
-        days.map((day, i) => {
+      setDays((prevDays) =>
+        prevDays.map((day, i) => {
           if (i !== activeDayIndex) return day;
           return {
             ...day,
@@ -149,23 +152,24 @@ export function TemplateEditorPage() {
           };
         })
       );
-
-      // Clear navigation state
-      navigate(location.pathname, { replace: true, state: {} });
+      return;
     }
 
     // Handle new exercise creation
     if (state.newExercise) {
-      setExercises([...exercises, state.newExercise]);
+      setExercises((prevExercises) => [...prevExercises, state.newExercise!]);
     }
 
     // Handle exercise selection
     if (state.selectedExerciseId && state.updateTemplate && exerciseSelectorTarget) {
+      // Clear navigation state immediately to prevent re-triggering
+      navigate(location.pathname, { replace: true, state: {} });
+
       const { muscleGroupId, exerciseId } = exerciseSelectorTarget;
       const selectedExerciseId = state.selectedExerciseId;
 
-      setDays(
-        days.map((day, i) => {
+      setDays((prevDays) =>
+        prevDays.map((day, i) => {
           if (i !== activeDayIndex) return day;
           return {
             ...day,
@@ -185,29 +189,20 @@ export function TemplateEditorPage() {
 
       setExerciseSelectorTarget(null);
       setError("");
-
-      // Clear navigation state
-      navigate(location.pathname, { replace: true, state: {} });
+      return;
     }
 
     // Handle day editor updates
     if (state.updatedDays && state.updatedActiveDayIndex !== undefined) {
+      // Clear navigation state immediately to prevent re-triggering
+      navigate(location.pathname, { replace: true, state: {} });
+
       setDays(state.updatedDays);
       setActiveDayIndex(state.updatedActiveDayIndex);
-
-      // Clear navigation state
-      navigate(location.pathname, { replace: true, state: {} });
+      return;
     }
-  }, [
-    location.state,
-    location.pathname,
-    navigate,
-    activeDayIndex,
-    days,
-    exerciseSelectorTarget,
-    exercises,
-    setExercises,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state]);
 
   /**
    * Navigates back to the templates list page.
