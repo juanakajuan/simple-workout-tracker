@@ -26,7 +26,7 @@ export function BottomTabBar() {
   /**
    * Handles clicking on a tab with sub-routes. If already active, scrolls to top
    * and navigates to the base route. If not active, navigates to the last visited
-   * sub-route for that tab.
+   * sub-route for that tab using replace to avoid cluttering history.
    *
    * @param event - The mouse event
    * @param basePath - The base path for the tab (e.g., "/templates")
@@ -47,7 +47,7 @@ export function BottomTabBar() {
         navigate(basePath);
       }
     } else {
-      navigate(lastPathRef.current || basePath);
+      navigate(lastPathRef.current || basePath, { replace: true });
     }
   };
 
