@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { AlertCircle } from "lucide-react";
 
-import { useSwipeToClose } from "../hooks/useSwipeToClose";
-
 import "./ConfirmDialog.css";
 
 interface ConfirmDialogProps {
@@ -31,14 +29,6 @@ export function ConfirmDialog({
   checkboxDefaultChecked = false,
 }: ConfirmDialogProps) {
   const [checkboxChecked, setCheckboxChecked] = useState(checkboxDefaultChecked);
-  const swipeHandlers = useSwipeToClose(onCancel);
-
-  // Reset checkbox state when dialog opens with new default value
-  useEffect(() => {
-    if (isOpen) {
-      setCheckboxChecked(checkboxDefaultChecked);
-    }
-  }, [isOpen, checkboxDefaultChecked]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -64,19 +54,8 @@ export function ConfirmDialog({
   if (!isOpen) return null;
 
   return (
-    <div
-      className="modal-overlay"
-      onClick={onCancel}
-      style={{ opacity: swipeHandlers.overlayOpacity }}
-    >
-      {/* eslint-disable react-hooks/refs -- False positive: passing ref object, not accessing .current */}
-      <div
-        ref={swipeHandlers.ref}
-        className="modal confirm-dialog"
-        onClick={(e) => e.stopPropagation()}
-        style={swipeHandlers.style}
-      >
-        {/* eslint-enable react-hooks/refs */}
+    <div className="modal-overlay" onClick={onCancel}>
+      <div className="modal confirm-dialog" onClick={(e) => e.stopPropagation()}>
         <div className="confirm-dialog-content">
           <div className="confirm-dialog-icon">
             <AlertCircle size={48} />

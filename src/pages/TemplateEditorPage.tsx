@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   Plus,
   ChevronLeft,
@@ -22,10 +22,6 @@ import { muscleGroupLabels, muscleGroupColors } from "../types";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { STORAGE_KEYS, generateId, DEFAULT_EXERCISES } from "../utils/storage";
 
-import { MuscleGroupSelector } from "../components/MuscleGroupSelector";
-import { ExerciseSelector } from "../components/ExerciseSelector";
-import { DayEditor } from "../components/DayEditor";
-
 import "./TemplateEditorPage.css";
 
 interface DraftTemplate {
@@ -36,6 +32,7 @@ interface DraftTemplate {
 
 export function TemplateEditorPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams<{ id: string }>();
   const isEditMode = id !== undefined;
 
@@ -54,9 +51,6 @@ export function TemplateEditorPage() {
   const [error, setError] = useState("");
   const [isInitialized, setIsInitialized] = useState(false);
 
-  const [showMuscleGroupSelector, setShowMuscleGroupSelector] = useState(false);
-
-  const [showExerciseSelector, setShowExerciseSelector] = useState(false);
   const [exerciseSelectorTarget, setExerciseSelectorTarget] = useState<{
     muscleGroupId: string;
     exerciseId: string;
@@ -64,7 +58,6 @@ export function TemplateEditorPage() {
   } | null>(null);
 
   const [showDayMenu, setShowDayMenu] = useState(false);
-  const [showDayEditor, setShowDayEditor] = useState(false);
 
   // Merge default exercises with user exercises
   const allExercises = DEFAULT_EXERCISES.map((defaultExercise) => {
@@ -119,6 +112,102 @@ export function TemplateEditorPage() {
       }
     }
   }, [name, days, activeDayIndex, isEditMode, isInitialized]);
+
+  // Handle navigation state from muscle group selector, exercise selector, and day editor
+  useEffect(() => {
+    if (!location.state) return;
+
+    const state = location.state as {
+      selectedMuscleGroup?: MuscleGroup;
+      selectedExerciseId?: string;
+      updateTemplate?: boolean;
+      updatedDays?: TemplateDay[];
+      updatedActiveDayIndex?: number;
+      newExercise?: Exercise;
+    };
+
+    // Handle muscle group selection
+    if (state.selectedMuscleGroup) {
+      const newMuscleGroup: TemplateMuscleGroup = {
+        id: generateId(),
+        muscleGroup: state.selectedMuscleGroup,
+        exercises: [
+          {
+            id: generateId(),
+            exerciseId: null,
+            setCount: 3,
+          },
+        ],
+      };
+
+      setDays(
+        days.map((day, i) => {
+          if (i !== activeDayIndex) return day;
+          return {
+            ...day,
+            muscleGroups: [...day.muscleGroups, newMuscleGroup],
+          };
+        })
+      );
+
+      // Clear navigation state
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+
+    // Handle new exercise creation
+    if (state.newExercise) {
+      setExercises([...exercises, state.newExercise]);
+    }
+
+    // Handle exercise selection
+    if (state.selectedExerciseId && state.updateTemplate && exerciseSelectorTarget) {
+      const { muscleGroupId, exerciseId } = exerciseSelectorTarget;
+      const selectedExerciseId = state.selectedExerciseId;
+
+      setDays(
+        days.map((day, i) => {
+          if (i !== activeDayIndex) return day;
+          return {
+            ...day,
+            muscleGroups: day.muscleGroups.map((muscleGroup) => {
+              if (muscleGroup.id !== muscleGroupId) return muscleGroup;
+              return {
+                ...muscleGroup,
+                exercises: muscleGroup.exercises.map((exercise) => {
+                  if (exercise.id !== exerciseId) return exercise;
+                  return { ...exercise, exerciseId: selectedExerciseId };
+                }),
+              };
+            }),
+          };
+        })
+      );
+
+      setExerciseSelectorTarget(null);
+      setError("");
+
+      // Clear navigation state
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+
+    // Handle day editor updates
+    if (state.updatedDays && state.updatedActiveDayIndex !== undefined) {
+      setDays(state.updatedDays);
+      setActiveDayIndex(state.updatedActiveDayIndex);
+
+      // Clear navigation state
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [
+    location.state,
+    location.pathname,
+    navigate,
+    activeDayIndex,
+    days,
+    exerciseSelectorTarget,
+    exercises,
+    setExercises,
+  ]);
 
   /**
    * Navigates back to the templates list page.
@@ -196,22 +285,12 @@ export function TemplateEditorPage() {
   };
 
   /**
-   * Opens the day editor modal.
+   * Opens the day editor via navigation.
    */
   const handleOpenDayEditor = () => {
-    setShowDayEditor(true);
+    const path = isEditMode ? `/templates/${id}/edit-days` : "/templates/new/edit-days";
+    navigate(path, { state: { days, activeDayIndex } });
     setShowDayMenu(false);
-  };
-
-  /**
-   * Saves the changes from the day editor modal.
-   *
-   * @param newDays - The updated array of days
-   * @param newActiveDayIndex - The new active day index
-   */
-  const handleSaveDays = (newDays: TemplateDay[], newActiveDayIndex: number) => {
-    setDays(newDays);
-    setActiveDayIndex(newActiveDayIndex);
   };
 
   /**
@@ -227,35 +306,13 @@ export function TemplateEditorPage() {
   // ========== Muscle Group Management ==========
 
   /**
-   * Adds a new muscle group to the active day with one placeholder exercise slot
-   * (3 sets by default). Closes the muscle group selector modal.
-   *
-   * @param muscleGroup - The muscle group to add
+   * Navigates to the muscle group selector for adding a new muscle group.
    */
-  const addMuscleGroupToActiveDay = (muscleGroup: MuscleGroup) => {
-    const newMuscleGroup: TemplateMuscleGroup = {
-      id: generateId(),
-      muscleGroup,
-      exercises: [
-        {
-          id: generateId(),
-          exerciseId: null,
-          setCount: 3,
-        },
-      ],
-    };
-
-    setDays(
-      days.map((day, i) => {
-        if (i !== activeDayIndex) return day;
-        return {
-          ...day,
-          muscleGroups: [...day.muscleGroups, newMuscleGroup],
-        };
-      })
-    );
-
-    setShowMuscleGroupSelector(false);
+  const handleAddMuscleGroup = () => {
+    const path = isEditMode
+      ? `/templates/${id}/select-muscle-group`
+      : "/templates/new/select-muscle-group";
+    navigate(path);
   };
 
   /**
@@ -314,75 +371,20 @@ export function TemplateEditorPage() {
   // ========== Exercise Management ==========
 
   /**
-   * Opens the exercise selector modal for a specific exercise slot in a muscle group.
+   * Navigates to the exercise selector for a specific exercise slot in a muscle group.
    *
    * @param muscleGroupId - The unique identifier of the muscle group
    * @param exerciseId - The unique identifier of the template exercise
    * @param muscleGroup - The muscle group type for filtering exercises
    */
-  const openExerciseSelector = (
+  const handleSelectExercise = (
     muscleGroupId: string,
     exerciseId: string,
     muscleGroup: MuscleGroup
   ) => {
     setExerciseSelectorTarget({ muscleGroupId, exerciseId, muscleGroup });
-    setShowExerciseSelector(true);
-  };
-
-  /**
-   * Assigns a selected exercise to a template exercise slot. Closes the
-   * exercise selector and clears any validation errors.
-   *
-   * @param selectedExerciseId - The unique identifier of the selected exercise
-   */
-  const selectExercise = (selectedExerciseId: string) => {
-    if (!exerciseSelectorTarget) return;
-
-    const { muscleGroupId, exerciseId } = exerciseSelectorTarget;
-
-    setDays(
-      days.map((day, i) => {
-        if (i !== activeDayIndex) return day;
-        return {
-          ...day,
-          muscleGroups: day.muscleGroups.map((muscleGroup) => {
-            if (muscleGroup.id !== muscleGroupId) return muscleGroup;
-            return {
-              ...muscleGroup,
-              exercises: muscleGroup.exercises.map((exercise) => {
-                if (exercise.id !== exerciseId) return exercise;
-                return { ...exercise, exerciseId: selectedExerciseId };
-              }),
-            };
-          }),
-        };
-      })
-    );
-
-    setShowExerciseSelector(false);
-    setExerciseSelectorTarget(null);
-    setError("");
-  };
-
-  /**
-   * Creates a new exercise and persists it to localStorage. Automatically
-   * assigns the new exercise to the current template exercise slot.
-   *
-   * @param exerciseData - Exercise data without the id field
-   * @returns The unique identifier of the newly created exercise
-   */
-  const handleCreateExercise = (exerciseData: Omit<Exercise, "id">): string => {
-    const newExercise: Exercise = {
-      ...exerciseData,
-      id: generateId(),
-    };
-
-    // Persist via localStorage
-    setExercises([...exercises, newExercise]);
-
-    selectExercise(newExercise.id);
-
-    return newExercise.id;
+    const path = isEditMode ? `/templates/${id}/select-exercise` : "/templates/new/select-exercise";
+    navigate(path, { state: { muscleGroup, updateTemplate: true } });
   };
 
   /**
@@ -425,21 +427,6 @@ export function TemplateEditorPage() {
         };
       })
     );
-  };
-
-  /**
-   * Gets the filtered and sorted list of exercises for the exercise selector.
-   * Filters to the target muscle group if an exercise slot is being filled.
-   *
-   * @returns Sorted array of exercises, optionally filtered by muscle group
-   */
-  const getFilteredExercises = () => {
-    if (!exerciseSelectorTarget) {
-      return [...allExercises].sort((a, b) => a.name.localeCompare(b.name));
-    }
-    return allExercises
-      .filter((exercise) => exercise.muscleGroup === exerciseSelectorTarget.muscleGroup)
-      .sort((a, b) => a.name.localeCompare(b.name));
   };
 
   return (
@@ -561,7 +548,7 @@ export function TemplateEditorPage() {
                           <button
                             className={`templates-exercise-btn ${exercise ? "has-exercise" : ""}`}
                             onClick={() =>
-                              openExerciseSelector(
+                              handleSelectExercise(
                                 muscleGroup.id,
                                 templateExercise.id,
                                 muscleGroup.muscleGroup
@@ -625,7 +612,7 @@ export function TemplateEditorPage() {
           <button
             type="button"
             className="btn btn-icon templates-fab"
-            onClick={() => setShowMuscleGroupSelector(true)}
+            onClick={handleAddMuscleGroup}
             aria-label="Add muscle group"
           >
             <Plus size={24} />
@@ -639,36 +626,6 @@ export function TemplateEditorPage() {
           </button>
         </div>
       </div>
-
-      {showMuscleGroupSelector && (
-        <MuscleGroupSelector
-          onSelect={addMuscleGroupToActiveDay}
-          onClose={() => setShowMuscleGroupSelector(false)}
-        />
-      )}
-
-      {showExerciseSelector && exerciseSelectorTarget && (
-        <ExerciseSelector
-          exercises={getFilteredExercises()}
-          onSelect={selectExercise}
-          onClose={() => {
-            setShowExerciseSelector(false);
-            setExerciseSelectorTarget(null);
-          }}
-          hideFilter
-          onCreateExercise={handleCreateExercise}
-          initialMuscleGroup={exerciseSelectorTarget.muscleGroup}
-        />
-      )}
-
-      {showDayEditor && (
-        <DayEditor
-          days={days}
-          activeDayIndex={activeDayIndex}
-          onSave={handleSaveDays}
-          onClose={() => setShowDayEditor(false)}
-        />
-      )}
     </>
   );
 }

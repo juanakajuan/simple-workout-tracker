@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Plus, Dumbbell, Search } from "lucide-react";
 
 import { useLocalStorage } from "../hooks/useLocalStorage";
@@ -11,21 +12,16 @@ import {
 } from "../utils/storage";
 
 import type { Exercise, MuscleGroup } from "../types";
-import { MUSCLE_GROUPS, EXERCISE_TYPES, muscleGroupLabels, exerciseTypeLabels } from "../types";
+import { MUSCLE_GROUPS, muscleGroupLabels } from "../types";
 
 import { ExerciseCard } from "../components/ExerciseCard";
-import { ExerciseModal } from "../components/ExerciseModal";
-import { ExerciseHistoryModal } from "../components/ExerciseHistoryModal";
 
 import "./ExercisesPage.css";
 
 export function ExercisesPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [exercises, setExercises] = useLocalStorage<Exercise[]>(STORAGE_KEYS.EXERCISES, []);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
-  const [selectedExerciseForHistory, setSelectedExerciseForHistory] = useState<Exercise | null>(
-    null
-  );
   const [filterMuscle, setFilterMuscle] = useState<MuscleGroup | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -57,68 +53,72 @@ export function ExercisesPage() {
     groupedExercises[group as MuscleGroup].sort((a, b) => a.name.localeCompare(b.name));
   });
 
-  /**
-   * Saves an exercise to localStorage.
-   *
-   * @param data - Exercise data without the id field
-   */
-  const handleSave = (data: Omit<Exercise, "id">) => {
-    if (editingExercise) {
-      // Check if this is an override for a default exercise
-      const existingUserExercise = exercises.find((exercise) => exercise.id === editingExercise.id);
+  // Handle navigation returns with save/delete actions
+  useEffect(() => {
+    if (location.state?.action === "save") {
+      const { data, exerciseId } = location.state;
 
-      if (existingUserExercise) {
-        // Update existing user exercise or override
-        setExercises(
-          exercises.map((exercise) =>
-            exercise.id === editingExercise.id ? { ...data, id: exercise.id } : exercise
-          )
-        );
+      if (exerciseId) {
+        // Edit existing exercise
+        const existingUserExercise = exercises.find((exercise) => exercise.id === exerciseId);
+
+        if (existingUserExercise) {
+          // Update existing user exercise or override
+          setExercises(
+            exercises.map((exercise) =>
+              exercise.id === exerciseId ? { ...data, id: exercise.id } : exercise
+            )
+          );
+        } else {
+          // Create new override for default exercise
+          setExercises([...exercises, { ...data, id: exerciseId }]);
+        }
       } else {
-        // Create new override for default exercise
-        setExercises([...exercises, { ...data, id: editingExercise.id }]);
+        // Create new user exercise
+        setExercises([...exercises, { ...data, id: generateId() }]);
       }
-    } else {
-      // Create new user exercise
-      setExercises([...exercises, { ...data, id: generateId() }]);
+
+      // Clear navigation state
+      navigate(location.pathname, { replace: true, state: {} });
+    } else if (location.state?.action === "delete") {
+      const { exerciseId } = location.state;
+      setExercises(exercises.filter((exercise) => exercise.id !== exerciseId));
+
+      // Clear navigation state
+      navigate(location.pathname, { replace: true, state: {} });
     }
-    handleCloseModal();
-  };
+  }, [location.state, exercises, setExercises, navigate, location.pathname]);
 
   /**
-   * Deletes an exercise from localStorage. For user-created exercises, this removes
-   * them entirely. For default exercise overrides, this removes the override and
-   * reverts to the default exercise.
-   *
-   * @param id - The unique identifier of the exercise to delete
+   * Opens the exercise creation page.
    */
-  const handleDelete = (id: string) => {
-    setExercises(exercises.filter((exercise) => exercise.id !== id));
+  const handleCreate = () => {
+    navigate("/exercises/new");
   };
 
   /**
-   * Opens the exercise modal in edit mode for the specified exercise.
+   * Opens the exercise edit page for the specified exercise.
    *
    * @param exercise - The exercise to edit
    */
   const handleEdit = (exercise: Exercise) => {
-    setEditingExercise(exercise);
-    setIsModalOpen(true);
+    navigate(`/exercises/edit/${exercise.id}`);
   };
 
   /**
-   * Closes the exercise modal and resets the editing state.
+   * Opens the exercise history page for the specified exercise.
+   *
+   * @param exercise - The exercise to view history for
    */
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setEditingExercise(null);
+  const handleViewHistory = (exercise: Exercise) => {
+    navigate(`/exercises/history/${exercise.id}`);
   };
 
   return (
     <div className="page">
       <header className="page-header">
         <h1 className="page-title">Exercises</h1>
-        <button className="btn btn-secondary btn-sm" onClick={() => setIsModalOpen(true)}>
+        <button className="btn btn-secondary btn-sm" onClick={handleCreate}>
           <Plus size={16} />
           NEW
         </button>
@@ -170,7 +170,7 @@ export function ExercisesPage() {
                     <ExerciseCard
                       key={exercise.id}
                       exercise={exercise}
-                      onClick={() => setSelectedExerciseForHistory(exercise)}
+                      onClick={() => handleViewHistory(exercise)}
                       onEdit={() => handleEdit(exercise)}
                       isDefault={exercise.id.startsWith("default-")}
                       lastPerformed={lastPerformed}
@@ -181,33 +181,6 @@ export function ExercisesPage() {
             </div>
           ))}
         </div>
-      )}
-
-      {isModalOpen && (
-        <ExerciseModal
-          exercise={editingExercise}
-          onSave={handleSave}
-          onClose={handleCloseModal}
-          onDelete={
-            editingExercise && !editingExercise.id.startsWith("default-")
-              ? () => {
-                  handleDelete(editingExercise.id);
-                  handleCloseModal();
-                }
-              : undefined
-          }
-          muscleGroups={MUSCLE_GROUPS}
-          exerciseTypes={EXERCISE_TYPES}
-          muscleGroupLabels={muscleGroupLabels}
-          exerciseTypeLabels={exerciseTypeLabels}
-        />
-      )}
-
-      {selectedExerciseForHistory && (
-        <ExerciseHistoryModal
-          exercise={selectedExerciseForHistory}
-          onClose={() => setSelectedExerciseForHistory(null)}
-        />
       )}
     </div>
   );

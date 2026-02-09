@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useCallback } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { History } from "lucide-react";
 
 import { useLocalStorage } from "../hooks/useLocalStorage";
@@ -8,15 +9,15 @@ import { STORAGE_KEYS, DEFAULT_EXERCISES } from "../utils/storage";
 import type { Exercise, Workout, MuscleGroup } from "../types";
 import { muscleGroupLabels, getMuscleGroupClassName } from "../types";
 
-import { WorkoutDetailModal } from "../components/WorkoutDetailModal";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 
 import "./HistoryPage.css";
 
 export function HistoryPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [workouts, setWorkouts] = useLocalStorage<Workout[]>(STORAGE_KEYS.WORKOUTS, []);
   const [userExercises] = useLocalStorage<Exercise[]>(STORAGE_KEYS.EXERCISES, []);
-  const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
   const { showConfirm, dialogProps } = useConfirmDialog();
 
   // Merge default exercises with user exercises, user exercises override defaults
@@ -107,24 +108,39 @@ export function HistoryPage() {
   };
 
   /**
-   * Deletes a workout from localStorage after user confirmation. Closes the
-   * workout detail modal if it's currently open.
+   * Deletes a workout from localStorage after user confirmation.
    *
    * @param id - The unique identifier of the workout to delete
    */
-  const handleDeleteWorkout = (id: string) => {
-    showConfirm({
-      title: "Delete this workout?",
-      message: "This action cannot be undone.",
-      confirmText: "Send it to the shadow realm",
-      cancelText: "Cancel",
-      variant: "danger",
-      onConfirm: () => {
-        setWorkouts(workouts.filter((workout) => workout.id !== id));
-        setSelectedWorkout(null);
-      },
-    });
-  };
+  const handleDeleteWorkout = useCallback(
+    (id: string) => {
+      showConfirm({
+        title: "Delete this workout?",
+        message: "This action cannot be undone.",
+        confirmText: "Send it to the shadow realm",
+        cancelText: "Cancel",
+        variant: "danger",
+        onConfirm: () => {
+          setWorkouts(workouts.filter((workout) => workout.id !== id));
+        },
+      });
+    },
+    [showConfirm, workouts, setWorkouts]
+  );
+
+  /**
+   * Listens for delete workout requests from location state.
+   * When a workout detail page requests deletion, it navigates back with
+   * the workout ID to delete.
+   */
+  useEffect(() => {
+    const state = location.state as { deleteWorkoutId?: string } | null;
+    if (state?.deleteWorkoutId) {
+      handleDeleteWorkout(state.deleteWorkoutId);
+      // Clear the state to prevent re-triggering on future navigations
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, location.pathname, navigate, handleDeleteWorkout]);
 
   // Group workouts by month
   const groupedWorkouts = workouts.reduce(
@@ -167,7 +183,7 @@ export function HistoryPage() {
                     <button
                       key={workout.id}
                       className="history-card card"
-                      onClick={() => setSelectedWorkout(workout)}
+                      onClick={() => navigate(`/history/workout/${workout.id}`)}
                     >
                       <div className="history-card-header">
                         <div className="history-card-date">{formatDate(workout.date)}</div>
@@ -213,15 +229,6 @@ export function HistoryPage() {
             </div>
           ))}
         </div>
-      )}
-
-      {selectedWorkout && (
-        <WorkoutDetailModal
-          workout={selectedWorkout}
-          exercises={allExercises}
-          onClose={() => setSelectedWorkout(null)}
-          onDelete={() => handleDeleteWorkout(selectedWorkout.id)}
-        />
       )}
 
       <ConfirmDialog {...dialogProps} />

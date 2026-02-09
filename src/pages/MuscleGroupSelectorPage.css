@@ -1,41 +1,8 @@
-/* Muscle Group Selector Modal */
-.muscle-group-selector-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.75);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-  padding: 1rem;
-}
-
-.muscle-group-selector-modal {
-  width: 100%;
-  max-width: 320px;
-  max-height: 70vh;
-  border-radius: var(--radius-lg);
-  background: var(--bg-secondary);
-  overflow: hidden;
+.muscle-group-selector-page {
   display: flex;
   flex-direction: column;
-}
-
-.muscle-group-selector-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-
-.muscle-group-selector-title {
-  font-size: 1.1rem;
-  font-weight: 600;
+  height: 100vh;
+  background: var(--bg-secondary);
 }
 
 .muscle-group-list {
@@ -43,6 +10,7 @@
   flex-direction: column;
   overflow-y: auto;
   flex: 1;
+  padding-bottom: 1rem;
 }
 
 .muscle-group-option {
@@ -56,6 +24,11 @@
   border: none;
   cursor: pointer;
   transition: background-color var(--transition);
+  color: var(--text-primary);
+}
+
+.muscle-group-option:active {
+  background: var(--bg-hover);
 }
 
 .muscle-group-indicator {

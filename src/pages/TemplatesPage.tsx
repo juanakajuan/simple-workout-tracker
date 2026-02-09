@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Plus, Play, Trash2, MoreVertical } from "lucide-react";
 
 import type { Workout, WorkoutTemplate, TemplateDay, WorkoutExercise } from "../types";
@@ -8,7 +8,6 @@ import { useLocalStorage } from "../hooks/useLocalStorage";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { STORAGE_KEYS, generateId } from "../utils/storage";
 
-import { DaySelector } from "../components/DaySelector";
 import { DraftBanner } from "../components/DraftBanner";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 
@@ -16,11 +15,9 @@ import "./TemplatesPage.css";
 
 export function TemplatesPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [templates, setTemplates] = useLocalStorage<WorkoutTemplate[]>(STORAGE_KEYS.TEMPLATES, []);
   const [, setActiveWorkout] = useLocalStorage<Workout | null>(STORAGE_KEYS.ACTIVE_WORKOUT, null);
-
-  const [showDaySelector, setShowDaySelector] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<WorkoutTemplate | null>(null);
 
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [hasDraft, setHasDraft] = useState(false);
@@ -31,6 +28,19 @@ export function TemplatesPage() {
     const draftExists = localStorage.getItem(STORAGE_KEYS.DRAFT_TEMPLATE) !== null;
     setHasDraft(draftExists);
   }, []);
+
+  // Handle day selection from navigation
+  useEffect(() => {
+    const state = location.state as {
+      selectedDay?: TemplateDay;
+      template?: WorkoutTemplate;
+    } | null;
+    if (state?.selectedDay && state?.template) {
+      startFromTemplateDay(state.template, state.selectedDay);
+      // Note: Don't clear state here - startFromTemplateDay navigates to /workout
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state]);
 
   // ========== Template CRUD ==========
 
@@ -127,9 +137,10 @@ export function TemplatesPage() {
     if (template.days.length === 1) {
       startFromTemplateDay(template, template.days[0]);
     } else {
-      // Show day selector for multi-day templates
-      setSelectedTemplate(template);
-      setShowDaySelector(true);
+      // Navigate to day selector for multi-day templates
+      navigate("/templates/select-day", {
+        state: { template },
+      });
     }
   };
 
@@ -178,8 +189,6 @@ export function TemplatesPage() {
     };
 
     setActiveWorkout(newWorkout);
-    setShowDaySelector(false);
-    setSelectedTemplate(null);
 
     // Navigate to workout page
     navigate("/workout");
@@ -315,17 +324,6 @@ export function TemplatesPage() {
             );
           })}
         </div>
-      )}
-
-      {showDaySelector && selectedTemplate && (
-        <DaySelector
-          template={selectedTemplate}
-          onSelect={(day) => startFromTemplateDay(selectedTemplate, day)}
-          onClose={() => {
-            setShowDaySelector(false);
-            setSelectedTemplate(null);
-          }}
-        />
       )}
 
       <ConfirmDialog {...dialogProps} />

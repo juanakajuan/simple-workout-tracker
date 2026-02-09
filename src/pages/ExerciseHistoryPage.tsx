@@ -1,30 +1,35 @@
-import { useEffect } from "react";
-import { X, Check } from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Check } from "lucide-react";
 
-import type { Exercise, Workout } from "../types";
+import type { Workout } from "../types";
 import { muscleGroupLabels, exerciseTypeLabels, getMuscleGroupClassName } from "../types";
 
-import { useSwipeToClose } from "../hooks/useSwipeToClose";
-import { getExerciseHistory } from "../utils/storage";
+import { getExercises, getExerciseHistory, DEFAULT_EXERCISES } from "../utils/storage";
 
-import "./ExerciseHistoryModal.css";
+import { PageHeader } from "../components/PageHeader";
 
-interface ExerciseHistoryModalProps {
-  exercise: Exercise;
-  onClose: () => void;
-}
+import "./ExerciseHistoryPage.css";
 
-export function ExerciseHistoryModal({ exercise, onClose }: ExerciseHistoryModalProps) {
+export function ExerciseHistoryPage() {
+  const { exerciseId } = useParams();
+  const navigate = useNavigate();
+
+  if (!exerciseId) {
+    navigate(-1);
+    return null;
+  }
+
+  // Find exercise from user exercises or default exercises
+  const userExercises = getExercises();
+  const allExercises = [...DEFAULT_EXERCISES, ...userExercises];
+  const exercise = allExercises.find((ex) => ex.id === exerciseId);
+
+  if (!exercise) {
+    navigate(-1);
+    return null;
+  }
+
   const workoutHistory = getExerciseHistory(exercise.id);
-
-  const swipeHandlers = useSwipeToClose(onClose);
-
-  useEffect(() => {
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, []);
 
   /**
    * Formats a date string into a human-readable format. Returns "Today" or
@@ -97,32 +102,15 @@ export function ExerciseHistoryModal({ exercise, onClose }: ExerciseHistoryModal
   };
 
   return (
-    <div
-      className="modal-overlay"
-      onClick={onClose}
-      style={{ opacity: swipeHandlers.overlayOpacity }}
-    >
-      {/* eslint-disable react-hooks/refs -- False positive: passing ref object, not accessing .current */}
-      <div
-        ref={swipeHandlers.ref}
-        className="modal exercise-history-modal"
-        onClick={(e) => e.stopPropagation()}
-        style={swipeHandlers.style}
-      >
-        {/* eslint-enable react-hooks/refs */}
-        <div className="modal-header">
-          <div>
-            <h2 className="modal-title">{exercise.name}</h2>
-            <div className="exercise-history-meta">
-              <span className={`tag ${getMuscleGroupClassName(exercise.muscleGroup)}`}>
-                {muscleGroupLabels[exercise.muscleGroup]}
-              </span>
-              <span className="tag tag-muted">{exerciseTypeLabels[exercise.exerciseType]}</span>
-            </div>
-          </div>
-          <button className="btn btn-icon btn-ghost" onClick={onClose} aria-label="Close">
-            <X size={20} />
-          </button>
+    <div className="exercise-history-page">
+      <PageHeader title={exercise.name} />
+
+      <div className="exercise-history-content">
+        <div className="exercise-history-meta">
+          <span className={`tag ${getMuscleGroupClassName(exercise.muscleGroup)}`}>
+            {muscleGroupLabels[exercise.muscleGroup]}
+          </span>
+          <span className="tag tag-muted">{exerciseTypeLabels[exercise.exerciseType]}</span>
         </div>
 
         {workoutHistory.length > 0 && (

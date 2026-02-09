@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   CirclePlay,
   Pencil,
@@ -33,14 +34,14 @@ import {
 } from "../utils/storage";
 
 import { SetRow } from "../components/SetRow";
-import { ExerciseSelector } from "../components/ExerciseSelector";
 import { WorkoutTimer } from "../components/WorkoutTimer";
 import { ConfirmDialog } from "../components/ConfirmDialog";
-import { ExerciseHistoryModal } from "../components/ExerciseHistoryModal";
 
 import "./WorkoutPage.css";
 
 export function WorkoutPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [exercises, setExercises] = useLocalStorage<Exercise[]>(STORAGE_KEYS.EXERCISES, []);
   const [workouts, setWorkouts] = useLocalStorage<Workout[]>(STORAGE_KEYS.WORKOUTS, []);
   const [templates, setTemplates] = useLocalStorage<WorkoutTemplate[]>(STORAGE_KEYS.TEMPLATES, []);
@@ -51,7 +52,6 @@ export function WorkoutPage() {
   const [settings] = useLocalStorage<Settings>(STORAGE_KEYS.SETTINGS, {
     autoMatchWeight: false,
   });
-  const [showExerciseSelector, setShowExerciseSelector] = useState(false);
   const [workoutName, setWorkoutName] = useState("");
   const [isEditingName, setIsEditingName] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -59,9 +59,6 @@ export function WorkoutPage() {
   const [replacingWorkoutExerciseId, setReplacingWorkoutExerciseId] = useState<string | null>(null);
   const [updateTemplateOnReplace, setUpdateTemplateOnReplace] = useState(true);
   const [updateTemplateOnAdd, setUpdateTemplateOnAdd] = useState(true);
-  const [selectedExerciseForHistory, setSelectedExerciseForHistory] = useState<Exercise | null>(
-    null
-  );
   const { showConfirm, dialogProps } = useConfirmDialog();
 
   // Merge default exercises with user exercises, user exercises override defaults
@@ -93,7 +90,6 @@ export function WorkoutPage() {
 
   /**
    * Adds an exercise to the active workout with one initial empty set.
-   * Closes the exercise selector modal after adding.
    *
    * @param exerciseId - The unique identifier of the exercise to add
    */
@@ -110,31 +106,6 @@ export function WorkoutPage() {
       ...activeWorkout,
       exercises: [...activeWorkout.exercises, workoutExercise],
     });
-    setShowExerciseSelector(false);
-  };
-
-  /**
-   * Creates a new exercise and persists it to localStorage. If not in replacement
-   * mode, automatically adds the new exercise to the active workout.
-   *
-   * @param exerciseData - Exercise data without the id field
-   * @returns The unique identifier of the newly created exercise
-   */
-  const handleCreateExercise = (exerciseData: Omit<Exercise, "id">): string => {
-    const newExercise: Exercise = {
-      ...exerciseData,
-      id: generateId(),
-    };
-
-    // Persist via localStorage
-    setExercises([...exercises, newExercise]);
-
-    // Only auto-add to workout if not in replacement mode
-    if (!replacingWorkoutExerciseId) {
-      addExerciseToWorkout(newExercise.id);
-    }
-
-    return newExercise.id;
   };
 
   /**
@@ -779,6 +750,104 @@ export function WorkoutPage() {
     setOpenKebabMenu(null);
   };
 
+  /**
+   * Opens the exercise selector for adding a new exercise to the workout.
+   */
+  const handleAddExercise = () => {
+    navigate("/workout/select-exercise", {
+      state: {
+        exercises: allExercises,
+        isReplacement: false,
+        isTemplateWorkout: !!activeWorkout?.templateId && !!activeWorkout?.templateDayId,
+        showTemplateUpdate: !!activeWorkout?.templateId && !!activeWorkout?.templateDayId,
+        templateUpdateChecked: updateTemplateOnAdd,
+      },
+    });
+  };
+
+  /**
+   * Opens the exercise selector for replacing an exercise in the workout.
+   *
+   * @param workoutExerciseId - The unique identifier of the workout exercise to replace
+   */
+  const handleReplaceExercise = (workoutExerciseId: string) => {
+    setReplacingWorkoutExerciseId(workoutExerciseId);
+    setOpenKebabMenu(null);
+
+    const workoutExercise = activeWorkout?.exercises.find((e) => e.id === workoutExerciseId);
+    const currentExerciseId = workoutExercise?.exerciseId;
+
+    navigate("/workout/select-exercise", {
+      state: {
+        exercises: getReplacementExercises(),
+        isReplacement: true,
+        hideFilter: true,
+        currentExerciseId,
+        showTemplateUpdate: !!activeWorkout?.templateId && !!activeWorkout?.templateDayId,
+        templateUpdateChecked: updateTemplateOnReplace,
+      },
+    });
+  };
+
+  /**
+   * Opens the exercise history view for a specific exercise.
+   *
+   * @param exerciseId - The unique identifier of the exercise
+   */
+  const handleViewHistory = (exerciseId: string) => {
+    navigate(`/workout/history/${exerciseId}`);
+  };
+
+  /**
+   * Handles navigation state from exercise selector, day selector, and exercise creation
+   */
+  useEffect(() => {
+    if (!location.state) return;
+
+    const state = location.state as {
+      selectedExerciseId?: string;
+      selectedDay?: string;
+      savedExercise?: boolean;
+      exerciseId?: string;
+      updateTemplate?: boolean;
+    };
+
+    // Handle exercise selection (add or replace)
+    if (state.selectedExerciseId) {
+      if (replacingWorkoutExerciseId) {
+        replaceExerciseInWorkout(state.selectedExerciseId);
+        setReplacingWorkoutExerciseId(null);
+        setUpdateTemplateOnReplace(true);
+      } else {
+        addExerciseToWorkout(state.selectedExerciseId);
+        // Update template if workout is from template and updateTemplate flag is set
+        if (
+          activeWorkout?.templateId &&
+          activeWorkout?.templateDayId &&
+          (state.updateTemplate ?? updateTemplateOnAdd)
+        ) {
+          const exercise = allExercises.find((e) => e.id === state.selectedExerciseId);
+          if (exercise) {
+            addExerciseToTemplate(activeWorkout.templateId, activeWorkout.templateDayId, exercise);
+          }
+        }
+        setUpdateTemplateOnAdd(true);
+      }
+      // Clear navigation state
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+
+    // Handle new exercise creation within selector flow
+    if (state.savedExercise && state.exerciseId) {
+      if (!replacingWorkoutExerciseId) {
+        addExerciseToWorkout(state.exerciseId);
+      }
+      // Clear navigation state
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state]);
+
   // No active workout - show start screen
   if (!activeWorkout) {
     return (
@@ -856,7 +925,7 @@ export function WorkoutPage() {
                     <div className="exercise-name-row">
                       <h3
                         className="workout-exercise-name clickable"
-                        onClick={() => setSelectedExerciseForHistory(exercise)}
+                        onClick={() => handleViewHistory(exercise.id)}
                       >
                         {exercise.name}
                       </h3>
@@ -898,10 +967,7 @@ export function WorkoutPage() {
                         )}
                         <button
                           className="kebab-menu-item"
-                          onClick={() => {
-                            setReplacingWorkoutExerciseId(workoutExercise.id);
-                            setOpenKebabMenu(null);
-                          }}
+                          onClick={() => handleReplaceExercise(workoutExercise.id)}
                         >
                           <ArrowLeftRight size={16} />
                           Replace Exercise
@@ -1025,10 +1091,7 @@ export function WorkoutPage() {
       </div>
 
       <div className="workout-actions">
-        <button
-          className="btn btn-secondary add-exercise-btn"
-          onClick={() => setShowExerciseSelector(true)}
-        >
+        <button className="btn btn-secondary add-exercise-btn" onClick={handleAddExercise}>
           <Plus size={20} />
           Add Exercise
         </button>
@@ -1052,72 +1115,6 @@ export function WorkoutPage() {
           )}
         </button>
       </div>
-
-      {(showExerciseSelector || replacingWorkoutExerciseId) && (
-        <ExerciseSelector
-          exercises={replacingWorkoutExerciseId ? getReplacementExercises() : allExercises}
-          onSelect={(exerciseId) => {
-            if (replacingWorkoutExerciseId) {
-              replaceExerciseInWorkout(exerciseId);
-            } else {
-              addExerciseToWorkout(exerciseId);
-              // Update template if workout is from template and checkbox is checked
-              if (
-                activeWorkout?.templateId &&
-                activeWorkout?.templateDayId &&
-                updateTemplateOnAdd
-              ) {
-                const exercise = allExercises.find((e) => e.id === exerciseId);
-                if (exercise) {
-                  addExerciseToTemplate(
-                    activeWorkout.templateId,
-                    activeWorkout.templateDayId,
-                    exercise
-                  );
-                }
-              }
-            }
-          }}
-          onClose={() => {
-            setShowExerciseSelector(false);
-            setReplacingWorkoutExerciseId(null);
-            setUpdateTemplateOnReplace(true);
-            setUpdateTemplateOnAdd(true);
-          }}
-          onCreateExercise={handleCreateExercise}
-          hideFilter={!!replacingWorkoutExerciseId}
-          isReplacement={!!replacingWorkoutExerciseId}
-          isTemplateWorkout={
-            !replacingWorkoutExerciseId &&
-            !!activeWorkout?.templateId &&
-            !!activeWorkout?.templateDayId
-          }
-          currentExerciseId={
-            replacingWorkoutExerciseId
-              ? activeWorkout?.exercises.find((e) => e.id === replacingWorkoutExerciseId)
-                  ?.exerciseId
-              : undefined
-          }
-          showTemplateUpdate={
-            !!activeWorkout?.templateId &&
-            !!activeWorkout?.templateDayId &&
-            (!!replacingWorkoutExerciseId || showExerciseSelector)
-          }
-          templateUpdateChecked={
-            replacingWorkoutExerciseId ? updateTemplateOnReplace : updateTemplateOnAdd
-          }
-          onTemplateUpdateChange={
-            replacingWorkoutExerciseId ? setUpdateTemplateOnReplace : setUpdateTemplateOnAdd
-          }
-        />
-      )}
-
-      {selectedExerciseForHistory && (
-        <ExerciseHistoryModal
-          exercise={selectedExerciseForHistory}
-          onClose={() => setSelectedExerciseForHistory(null)}
-        />
-      )}
 
       <ConfirmDialog {...dialogProps} />
     </div>

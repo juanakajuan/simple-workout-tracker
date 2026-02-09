@@ -1,48 +1,43 @@
-import { useState, useEffect } from "react";
-import { X, Check, Trash2 } from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Check, Trash2 } from "lucide-react";
 
-import type { Exercise, Workout } from "../types";
+import type { Exercise } from "../types";
 import { muscleGroupLabels, exerciseTypeLabels, getMuscleGroupClassName } from "../types";
 
-import { useSwipeToClose } from "../hooks/useSwipeToClose";
+import { getWorkouts, DEFAULT_EXERCISES, getExercises } from "../utils/storage";
 
-import { ExerciseHistoryModal } from "./ExerciseHistoryModal";
+import { PageHeader } from "../components/PageHeader";
 
-import "./WorkoutDetailModal.css";
+import "./WorkoutDetailPage.css";
 
-interface WorkoutDetailModalProps {
-  workout: Workout;
-  exercises: Exercise[];
-  onClose: () => void;
-  onDelete: () => void;
-}
+export function WorkoutDetailPage() {
+  const { workoutId } = useParams();
+  const navigate = useNavigate();
 
-export function WorkoutDetailModal({
-  workout,
-  exercises,
-  onClose,
-  onDelete,
-}: WorkoutDetailModalProps) {
+  if (!workoutId) {
+    navigate(-1);
+    return null;
+  }
+
+  const workouts = getWorkouts();
+  const workout = workouts.find((w) => w.id === workoutId);
+
+  if (!workout) {
+    navigate(-1);
+    return null;
+  }
+
+  // Get all exercises
+  const userExercises = getExercises();
+  const exercises = [...DEFAULT_EXERCISES, ...userExercises];
+
   /**
    * Retrieves an exercise by its unique identifier from the exercises list.
    *
    * @param id - The unique identifier of the exercise
    * @returns The exercise if found, undefined otherwise
    */
-  const [selectedExerciseForHistory, setSelectedExerciseForHistory] = useState<Exercise | null>(
-    null
-  );
-
   const getExerciseById = (id: string) => exercises.find((exercise) => exercise.id === id);
-
-  const swipeHandlers = useSwipeToClose(onClose);
-
-  useEffect(() => {
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, []);
 
   /**
    * Formats a date string into a long format (e.g., "Monday, January 6, 2026").
@@ -66,29 +61,29 @@ export function WorkoutDetailModal({
     0
   );
 
+  const handleDelete = () => {
+    navigate("..", {
+      state: { deleteWorkoutId: workoutId },
+      relative: "path",
+    });
+  };
+
+  const handleExerciseClick = (exercise: Exercise) => {
+    navigate(`exercise/${exercise.id}`);
+  };
+
+  const deleteButton = (
+    <button className="btn btn-danger btn-sm detail-delete-btn" onClick={handleDelete}>
+      <Trash2 size={18} />
+    </button>
+  );
+
   return (
-    <div
-      className="modal-overlay"
-      onClick={onClose}
-      style={{ opacity: swipeHandlers.overlayOpacity }}
-    >
-      {/* eslint-disable react-hooks/refs -- False positive: passing ref object, not accessing .current */}
-      <div
-        ref={swipeHandlers.ref}
-        className="modal workout-detail-modal"
-        onClick={(e) => e.stopPropagation()}
-        style={swipeHandlers.style}
-      >
-        {/* eslint-enable react-hooks/refs */}
-        <div className="modal-header">
-          <div>
-            <h2 className="modal-title">{workout.name}</h2>
-            <p className="detail-date">{formatDate(workout.date)}</p>
-          </div>
-          <button className="btn btn-icon btn-ghost" onClick={onClose} aria-label="Close">
-            <X size={20} />
-          </button>
-        </div>
+    <div className="workout-detail-page">
+      <PageHeader title={workout.name} actions={deleteButton} />
+
+      <div className="workout-detail-content">
+        <p className="detail-date">{formatDate(workout.date)}</p>
 
         <div className="detail-stats">
           <div className="stat">
@@ -120,7 +115,7 @@ export function WorkoutDetailModal({
                   </span>
                   <h3
                     className="detail-exercise-name clickable"
-                    onClick={() => setSelectedExerciseForHistory(exercise)}
+                    onClick={() => handleExerciseClick(exercise)}
                   >
                     {exercise.name}
                   </h3>
@@ -148,21 +143,7 @@ export function WorkoutDetailModal({
             );
           })}
         </div>
-
-        <div className="modal-footer">
-          <button className="btn btn-secondary delete-workout-btn" onClick={onDelete}>
-            <Trash2 size={20} />
-            Delete Workout
-          </button>
-        </div>
       </div>
-
-      {selectedExerciseForHistory && (
-        <ExerciseHistoryModal
-          exercise={selectedExerciseForHistory}
-          onClose={() => setSelectedExerciseForHistory(null)}
-        />
-      )}
     </div>
   );
 }

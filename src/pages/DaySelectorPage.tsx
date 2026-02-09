@@ -1,28 +1,25 @@
-import { useEffect } from "react";
-import { X } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
 
 import type { WorkoutTemplate, TemplateDay } from "../types";
 import { muscleGroupLabels, muscleGroupColors } from "../types";
 
-import { useSwipeToClose } from "../hooks/useSwipeToClose";
+import { PageHeader } from "../components/PageHeader";
 
-import "./DaySelector.css";
+import "./DaySelectorPage.css";
 
-interface DaySelectorProps {
-  template: WorkoutTemplate;
-  onSelect: (day: TemplateDay) => void;
-  onClose: () => void;
-}
+export function DaySelectorPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const template = location.state?.template as WorkoutTemplate | undefined;
 
-export function DaySelector({ template, onSelect, onClose }: DaySelectorProps) {
-  const swipeHandlers = useSwipeToClose(onClose);
+  if (!template) {
+    navigate("..", { relative: "path" });
+    return null;
+  }
 
-  useEffect(() => {
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, []);
+  const handleSelect = (day: TemplateDay) => {
+    navigate("..", { state: { selectedDay: day, template }, relative: "path" });
+  };
 
   /**
    * Calculates statistics for a template day including total exercises and total sets.
@@ -58,34 +55,17 @@ export function DaySelector({ template, onSelect, onClose }: DaySelectorProps) {
   };
 
   return (
-    <div
-      className="modal-overlay"
-      onClick={onClose}
-      style={{ opacity: swipeHandlers.overlayOpacity }}
-    >
-      <div
-        ref={swipeHandlers.ref}
-        className="modal day-selector-modal"
-        onClick={(e) => e.stopPropagation()}
-        style={swipeHandlers.style}
-      >
-        <div className="modal-header">
-          <div>
-            <h2 className="modal-title">{template.name}</h2>
-            <p className="day-selector-subtitle">Select a day to start</p>
-          </div>
-          <button className="btn btn-icon btn-ghost" onClick={onClose} aria-label="Close">
-            <X size={20} />
-          </button>
-        </div>
-
+    <div className="day-selector-page">
+      <PageHeader title={template.name} />
+      <div className="day-selector-content">
+        <p className="day-selector-subtitle">Select a day to start</p>
         <div className="day-selector-list">
           {template.days.map((day) => {
             const stats = getDayStats(day);
             const muscleGroups = getUniqueMuscleGroups(day);
 
             return (
-              <button key={day.id} className="day-selector-item" onClick={() => onSelect(day)}>
+              <button key={day.id} className="day-selector-item" onClick={() => handleSelect(day)}>
                 <div className="day-selector-item-header">
                   <span className="day-selector-item-name">{day.name}</span>
                   <span className="day-selector-item-stats">
