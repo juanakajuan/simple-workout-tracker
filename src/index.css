@@ -20,6 +20,8 @@
   --accent-dim: rgba(252, 61, 61, 0.15);
   --success: #22c55e;
   --info-blue: #7c93ff;
+  --warning: #f59e0b;
+  --warning-dim: rgba(251, 191, 36, 0.25);
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;

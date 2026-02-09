@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { MoreVertical, Trash2, Check } from "lucide-react";
+import { MoreVertical, Trash2, Check, SkipForward } from "lucide-react";
 
 import type { WorkoutSet, ExerciseType } from "../types";
 
@@ -59,9 +59,22 @@ export function SetRow({
     }
   };
 
+  /**
+   * Toggles the skipped status of a set. When skipping a set, clears
+   * completed status. When unskipping, just clears skipped status.
+   */
+  const handleSkipToggle = () => {
+    if (set.skipped) {
+      onUpdate({ skipped: false });
+    } else {
+      onUpdate({ skipped: true, completed: false });
+    }
+    setMenuOpen(false);
+  };
+
   return (
     <div
-      className={`set-row ${set.completed ? "completed" : ""} ${isBodyweight ? "bodyweight" : ""}`}
+      className={`set-row ${set.completed ? "completed" : ""} ${set.skipped ? "skipped" : ""} ${isBodyweight ? "bodyweight" : ""}`}
     >
       <div className="set-menu" ref={menuRef}>
         <button
@@ -74,6 +87,10 @@ export function SetRow({
         </button>
         {menuOpen && (
           <div className="set-menu-dropdown">
+            <button className="set-menu-item" onClick={handleSkipToggle}>
+              <SkipForward size={16} />
+              {set.skipped ? "Unskip set" : "Skip set"}
+            </button>
             <button className="set-menu-item danger" onClick={handleDelete} disabled={!canRemove}>
               <Trash2 size={16} />
               Delete set
@@ -93,7 +110,7 @@ export function SetRow({
               onUpdate({ weight: !isNaN(value) && value >= 0 ? value : 0 });
             }}
             placeholder={placeholderWeight ? `${placeholderWeight}` : "lbs"}
-            disabled={set.completed}
+            disabled={set.completed || set.skipped}
           />
         </div>
       )}
@@ -108,7 +125,7 @@ export function SetRow({
             onUpdate({ reps: !isNaN(value) && value >= 0 ? value : 0 });
           }}
           placeholder={placeholderReps ? `${placeholderReps}` : "0"}
-          disabled={set.completed}
+          disabled={set.completed || set.skipped}
         />
       </div>
       <div className="set-done">
@@ -116,10 +133,10 @@ export function SetRow({
           className={`checkbox ${set.completed ? "checked" : ""}`}
           onClick={() => {
             if (set.completed || canComplete) {
-              onUpdate({ completed: !set.completed });
+              onUpdate({ completed: !set.completed, skipped: false });
             }
           }}
-          disabled={!set.completed && !canComplete}
+          disabled={(!set.completed && !canComplete) || set.skipped}
           aria-label={set.completed ? "Mark incomplete" : "Mark complete"}
         >
           <Check size={16} strokeWidth={3} />

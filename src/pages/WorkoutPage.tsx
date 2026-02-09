@@ -12,6 +12,7 @@ import {
   MoreVertical,
   StickyNote,
   ArrowLeftRight,
+  SkipForward,
 } from "lucide-react";
 
 import type {
@@ -728,15 +729,38 @@ export function WorkoutPage() {
   };
 
   /**
-   * Checks if all sets in the active workout have been completed.
+   * Checks if all sets in the active workout have been completed or skipped.
    *
-   * @returns True if all sets are completed (and workout has exercises), false otherwise
+   * @returns True if all sets are completed or skipped (and workout has exercises), false otherwise
    */
   const allSetsCompleted = () => {
     if (!activeWorkout || activeWorkout.exercises.length === 0) return false;
     return activeWorkout.exercises.every((workoutExercise) =>
-      workoutExercise.sets.every((set) => set.completed)
+      workoutExercise.sets.every((set) => set.completed || set.skipped)
     );
+  };
+
+  /**
+   * Marks all incomplete sets of an exercise as skipped.
+   *
+   * @param workoutExerciseId - The unique identifier of the workout exercise
+   */
+  const skipRemainingSets = (workoutExerciseId: string) => {
+    if (!activeWorkout) return;
+
+    setActiveWorkout({
+      ...activeWorkout,
+      exercises: activeWorkout.exercises.map((exercise) => {
+        if (exercise.id !== workoutExerciseId) return exercise;
+
+        return {
+          ...exercise,
+          sets: exercise.sets.map((set) =>
+            !set.completed && !set.skipped ? { ...set, skipped: true } : set
+          ),
+        };
+      }),
+    });
   };
 
   /**
@@ -963,6 +987,18 @@ export function WorkoutPage() {
                           >
                             <StickyNote size={16} />
                             Add Note
+                          </button>
+                        )}
+                        {workoutExercise.sets.some((set) => !set.completed && !set.skipped) && (
+                          <button
+                            className="kebab-menu-item"
+                            onClick={() => {
+                              skipRemainingSets(workoutExercise.id);
+                              setOpenKebabMenu(null);
+                            }}
+                          >
+                            <SkipForward size={16} />
+                            Skip Remaining Sets
                           </button>
                         )}
                         <button

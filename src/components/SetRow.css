@@ -20,6 +20,11 @@
   opacity: 0.6;
 }
 
+.set-row.skipped .set-menu {
+  text-decoration: none;
+  opacity: 1;
+}
+
 /* Set Menu */
 .set-menu {
   position: relative;
@@ -88,6 +93,13 @@
   gap: 0.25rem;
 }
 
+.set-row.skipped .set-weight,
+.set-row.skipped .set-reps,
+.set-row.skipped .set-done {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
 .set-weight input,
 .set-reps input {
   width: 70px;
@@ -110,6 +122,12 @@
 .set-reps input:disabled {
   cursor: not-allowed;
   opacity: 0.7;
+  color: var(--text-muted);
+}
+
+.set-row.skipped .set-weight input,
+.set-row.skipped .set-reps input {
+  text-decoration: line-through;
   color: var(--text-muted);
 }
 
