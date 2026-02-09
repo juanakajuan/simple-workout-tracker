@@ -27,10 +27,17 @@ export default function App() {
         <Route path="/templates" element={<TemplatesPage />} />
         <Route path="/templates/select-day" element={<DaySelectorPage />} />
         <Route path="/templates/new" element={<TemplateEditorPage />} />
+        <Route path="/templates/new/select-exercise" element={<ExerciseSelectorPage />} />
+        <Route path="/templates/new/select-exercise/new" element={<ExerciseFormPage />} />
+        <Route path="/templates/new/select-muscle-group" element={<MuscleGroupSelectorPage />} />
+        <Route path="/templates/new/edit-days" element={<DayEditorPage />} />
         <Route path="/templates/edit/:id" element={<TemplateEditorPage />} />
         <Route path="/templates/edit/:id/select-exercise" element={<ExerciseSelectorPage />} />
         <Route path="/templates/edit/:id/select-exercise/new" element={<ExerciseFormPage />} />
-        <Route path="/templates/edit/:id/select-muscle" element={<MuscleGroupSelectorPage />} />
+        <Route
+          path="/templates/edit/:id/select-muscle-group"
+          element={<MuscleGroupSelectorPage />}
+        />
         <Route path="/templates/edit/:id/edit-days" element={<DayEditorPage />} />
         <Route path="/workout" element={<WorkoutPage />} />
         <Route path="/workout/select-exercise" element={<ExerciseSelectorPage />} />
