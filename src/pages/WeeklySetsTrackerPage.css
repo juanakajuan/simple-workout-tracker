@@ -1,0 +1,169 @@
+.weekly-sets-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--bg-primary);
+}
+
+.weekly-sets-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  padding-bottom: calc(70px + 1rem + env(safe-area-inset-bottom));
+}
+
+.weekly-sets-tracker {
+  padding: 1rem;
+}
+
+.weekly-sets-header {
+  margin-bottom: 1rem;
+}
+
+.weekly-sets-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.3rem;
+}
+
+.weekly-sets-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.weekly-sets-empty {
+  text-align: center;
+  padding: 1rem 0.5rem 0.25rem;
+  color: var(--text-secondary);
+}
+
+.weekly-sets-empty .hint {
+  margin-top: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.weekly-muscle-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.weekly-muscle-group-row {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.75rem;
+}
+
+.weekly-muscle-group-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.weekly-muscle-group-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.15rem;
+}
+
+.weekly-current-sets {
+  font-size: 0.78rem;
+  color: var(--text-primary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.weekly-change {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.weekly-change.positive {
+  color: var(--success);
+}
+
+.weekly-change.negative {
+  color: var(--accent);
+}
+
+.weekly-change.neutral {
+  color: var(--text-secondary);
+}
+
+.weekly-bars {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  align-items: end;
+  gap: 0.35rem;
+}
+
+.weekly-bar-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.weekly-bar-track {
+  width: 100%;
+  height: 64px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+}
+
+.weekly-bar {
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+  opacity: 0.7;
+}
+
+.weekly-bar.current {
+  opacity: 1;
+}
+
+.weekly-bar-count {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  line-height: 1;
+}
+
+.weekly-bar-label {
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  line-height: 1;
+  min-height: 0.62rem;
+}
+
+@media (max-width: 360px) {
+  .weekly-muscle-group-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .weekly-muscle-group-stats {
+    align-items: flex-start;
+  }
+
+  .weekly-bars {
+    gap: 0.25rem;
+  }
+
+  .weekly-bar-track {
+    height: 56px;
+  }
+
+  .weekly-bar-label {
+    font-size: 0.58rem;
+  }
+}

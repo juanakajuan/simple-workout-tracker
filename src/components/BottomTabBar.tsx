@@ -21,6 +21,7 @@ export function BottomTabBar() {
   }, [location.pathname]);
 
   const isTemplatesActive = location.pathname.startsWith("/templates");
+  const isHistoryActive = location.pathname.startsWith("/history");
   const isMoreActive = location.pathname.startsWith("/more");
 
   /**
@@ -96,7 +97,7 @@ export function BottomTabBar() {
 
       <NavLink
         to="/history"
-        className={({ isActive }) => `tab ${isActive ? "active" : ""}`}
+        className={`tab ${isHistoryActive ? "active" : ""}`}
         onClick={(e) => handleSimpleTabClick(e, location.pathname === "/history")}
       >
         <History size={24} />

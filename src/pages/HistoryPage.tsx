@@ -1,6 +1,6 @@
 import { useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { History } from "lucide-react";
+import { History, ChartColumnBig } from "lucide-react";
 
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
@@ -173,6 +173,15 @@ export function HistoryPage() {
         </div>
       ) : (
         <div className="history-list">
+          <button
+            type="button"
+            className="weekly-sets-button btn btn-secondary"
+            onClick={() => navigate("/history/weekly-sets")}
+          >
+            <ChartColumnBig size={18} />
+            View Weekly Sets Tracker
+          </button>
+
           {Object.entries(groupedWorkouts).map(([monthKey, { label, workouts: monthWorkouts }]) => (
             <div key={monthKey} className="history-month">
               <h2 className="month-title">{label}</h2>

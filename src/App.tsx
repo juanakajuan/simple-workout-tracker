@@ -5,6 +5,7 @@ import { TemplatesPage } from "./pages/TemplatesPage";
 import { TemplateEditorPage } from "./pages/TemplateEditorPage";
 import { WorkoutPage } from "./pages/WorkoutPage";
 import { HistoryPage } from "./pages/HistoryPage";
+import { WeeklySetsTrackerPage } from "./pages/WeeklySetsTrackerPage";
 import { MorePage } from "./pages/MorePage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { ExerciseFormPage } from "./pages/ExerciseFormPage";
@@ -45,6 +46,7 @@ export default function App() {
         <Route path="/workout/select-day" element={<DaySelectorPage />} />
         <Route path="/workout/history/:exerciseId" element={<ExerciseHistoryPage />} />
         <Route path="/history" element={<HistoryPage />} />
+        <Route path="/history/weekly-sets" element={<WeeklySetsTrackerPage />} />
         <Route path="/history/workout/:workoutId" element={<WorkoutDetailPage />} />
         <Route
           path="/history/workout/:workoutId/exercise/:exerciseId"

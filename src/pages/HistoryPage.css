@@ -4,6 +4,12 @@
   font-weight: 500;
 }
 
+.weekly-sets-button {
+  width: 100%;
+  justify-content: center;
+  gap: 0.45rem;
+}
+
 .history-list {
   display: flex;
   flex-direction: column;
