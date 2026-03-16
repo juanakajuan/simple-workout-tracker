@@ -11,8 +11,6 @@ import { SettingsPage } from "./pages/SettingsPage";
 import { ExerciseFormPage } from "./pages/ExerciseFormPage";
 import { ExerciseHistoryPage } from "./pages/ExerciseHistoryPage";
 import { ExerciseSelectorPage } from "./pages/ExerciseSelectorPage";
-import { DaySelectorPage } from "./pages/DaySelectorPage";
-import { DayEditorPage } from "./pages/DayEditorPage";
 import { MuscleGroupSelectorPage } from "./pages/MuscleGroupSelectorPage";
 import { WorkoutDetailPage } from "./pages/WorkoutDetailPage";
 
@@ -26,12 +24,10 @@ export default function App() {
         <Route path="/exercises/edit/:exerciseId" element={<ExerciseFormPage />} />
         <Route path="/exercises/history/:exerciseId" element={<ExerciseHistoryPage />} />
         <Route path="/templates" element={<TemplatesPage />} />
-        <Route path="/templates/select-day" element={<DaySelectorPage />} />
         <Route path="/templates/new" element={<TemplateEditorPage />} />
         <Route path="/templates/new/select-exercise" element={<ExerciseSelectorPage />} />
         <Route path="/templates/new/select-exercise/new" element={<ExerciseFormPage />} />
         <Route path="/templates/new/select-muscle-group" element={<MuscleGroupSelectorPage />} />
-        <Route path="/templates/new/edit-days" element={<DayEditorPage />} />
         <Route path="/templates/edit/:id" element={<TemplateEditorPage />} />
         <Route path="/templates/edit/:id/select-exercise" element={<ExerciseSelectorPage />} />
         <Route path="/templates/edit/:id/select-exercise/new" element={<ExerciseFormPage />} />
@@ -39,11 +35,9 @@ export default function App() {
           path="/templates/edit/:id/select-muscle-group"
           element={<MuscleGroupSelectorPage />}
         />
-        <Route path="/templates/edit/:id/edit-days" element={<DayEditorPage />} />
         <Route path="/workout" element={<WorkoutPage />} />
         <Route path="/workout/select-exercise" element={<ExerciseSelectorPage />} />
         <Route path="/workout/select-exercise/new" element={<ExerciseFormPage />} />
-        <Route path="/workout/select-day" element={<DaySelectorPage />} />
         <Route path="/workout/history/:exerciseId" element={<ExerciseHistoryPage />} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/history/weekly-sets" element={<WeeklySetsTrackerPage />} />

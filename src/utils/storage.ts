@@ -1,4 +1,27 @@
-import type { Exercise, Workout, WorkoutTemplate, Settings } from "../types";
+import type {
+  Exercise,
+  Workout,
+  WorkoutTemplate,
+  WorkoutTemplateDraft,
+  TemplateMuscleGroup,
+  Settings,
+} from "../types";
+
+interface LegacyTemplateDay {
+  id: string;
+  name: string;
+  muscleGroups: TemplateMuscleGroup[];
+}
+
+interface LegacyWorkoutTemplate {
+  id: string;
+  name: string;
+  days: LegacyTemplateDay[];
+}
+
+interface LegacyWorkout extends Workout {
+  templateDayId?: string;
+}
 
 /**
  * localStorage keys used throughout the application.
@@ -45,6 +68,137 @@ export function generateId(): string {
  */
 export function isDefaultExercise(exerciseId: string): boolean {
   return exerciseId.startsWith("default-");
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function parseStoredValue(key: string): unknown {
+  try {
+    const data = localStorage.getItem(key);
+    return data ? JSON.parse(data) : null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeMuscleGroups(value: unknown): TemplateMuscleGroup[] {
+  if (!Array.isArray(value)) return [];
+  return value as TemplateMuscleGroup[];
+}
+
+function isLegacyWorkoutTemplate(value: unknown): value is LegacyWorkoutTemplate {
+  return isRecord(value) && Array.isArray(value.days);
+}
+
+function getMigratedTemplateId(templateId: string, dayId: string, totalDays: number): string {
+  return totalDays === 1 ? templateId : `${templateId}__${dayId}`;
+}
+
+function getMigratedTemplateName(templateName: string, dayName: string, totalDays: number): string {
+  return totalDays === 1 ? templateName : `${templateName} - ${dayName}`;
+}
+
+function migrateLegacyTemplate(template: LegacyWorkoutTemplate): WorkoutTemplate[] {
+  return template.days.map((day) => ({
+    id: getMigratedTemplateId(template.id, day.id, template.days.length),
+    name: getMigratedTemplateName(template.name, day.name, template.days.length),
+    muscleGroups: normalizeMuscleGroups(day.muscleGroups),
+  }));
+}
+
+function normalizeTemplate(template: unknown): WorkoutTemplate[] {
+  if (!isRecord(template)) return [];
+
+  if (isLegacyWorkoutTemplate(template)) {
+    return migrateLegacyTemplate(template);
+  }
+
+  const id = typeof template.id === "string" ? template.id : null;
+  const name = typeof template.name === "string" ? template.name : "";
+  if (!id || !name.trim()) return [];
+
+  return [
+    {
+      id,
+      name: name.trim(),
+      muscleGroups: normalizeMuscleGroups(template.muscleGroups),
+    },
+  ];
+}
+
+export function normalizeTemplates(value: unknown): WorkoutTemplate[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap(normalizeTemplate);
+}
+
+export function normalizeTemplateDraft(value: unknown): WorkoutTemplateDraft | null {
+  if (!isRecord(value)) return null;
+
+  if (Array.isArray(value.muscleGroups)) {
+    return {
+      name: typeof value.name === "string" ? value.name : "",
+      muscleGroups: normalizeMuscleGroups(value.muscleGroups),
+    };
+  }
+
+  if (Array.isArray(value.days) && value.days.length > 0) {
+    const activeDayIndex =
+      typeof value.activeDayIndex === "number" && value.activeDayIndex >= 0
+        ? value.activeDayIndex
+        : 0;
+    const days = value.days as LegacyTemplateDay[];
+    const selectedDay = days[Math.min(activeDayIndex, days.length - 1)];
+
+    return {
+      name: getMigratedTemplateName(
+        typeof value.name === "string" ? value.name : "",
+        selectedDay.name,
+        days.length
+      ),
+      muscleGroups: normalizeMuscleGroups(selectedDay.muscleGroups),
+    };
+  }
+
+  return null;
+}
+
+export function normalizeActiveWorkout(value: unknown): Workout | null {
+  if (!isRecord(value)) return null;
+
+  const workout = value as unknown as LegacyWorkout;
+  if (!workout.templateId) {
+    const { templateDayId: _templateDayId, ...rest } = workout;
+    return rest;
+  }
+
+  if (!workout.templateDayId) {
+    return workout;
+  }
+
+  const storedTemplates = parseStoredValue(STORAGE_KEYS.TEMPLATES);
+  const legacyTemplate = Array.isArray(storedTemplates)
+    ? storedTemplates.find(
+        (template): template is LegacyWorkoutTemplate =>
+          isLegacyWorkoutTemplate(template) && template.id === workout.templateId
+      )
+    : undefined;
+
+  const normalizedTemplates = normalizeTemplates(storedTemplates);
+  const compositeTemplateId = `${workout.templateId}__${workout.templateDayId}`;
+
+  const nextTemplateId = legacyTemplate
+    ? getMigratedTemplateId(workout.templateId, workout.templateDayId, legacyTemplate.days.length)
+    : normalizedTemplates.some((template) => template.id === compositeTemplateId)
+      ? compositeTemplateId
+      : workout.templateId;
+
+  const { templateDayId: _templateDayId, ...rest } = workout;
+  return {
+    ...rest,
+    templateId: nextTemplateId,
+  };
 }
 
 /**
@@ -128,7 +282,7 @@ export function saveWorkouts(workouts: Workout[]): void {
 export function getActiveWorkout(): Workout | null {
   try {
     const data = localStorage.getItem(STORAGE_KEYS.ACTIVE_WORKOUT);
-    return data ? JSON.parse(data) : null;
+    return data ? normalizeActiveWorkout(JSON.parse(data)) : null;
   } catch {
     return null;
   }
@@ -149,7 +303,10 @@ export function getActiveWorkout(): Workout | null {
  */
 export function saveActiveWorkout(workout: Workout | null): void {
   if (workout) {
-    localStorage.setItem(STORAGE_KEYS.ACTIVE_WORKOUT, JSON.stringify(workout));
+    localStorage.setItem(
+      STORAGE_KEYS.ACTIVE_WORKOUT,
+      JSON.stringify(normalizeActiveWorkout(workout))
+    );
   } else {
     localStorage.removeItem(STORAGE_KEYS.ACTIVE_WORKOUT);
   }
@@ -167,8 +324,7 @@ export function saveActiveWorkout(workout: Workout | null): void {
  */
 export function getTemplates(): WorkoutTemplate[] {
   try {
-    const data = localStorage.getItem(STORAGE_KEYS.TEMPLATES);
-    return data ? JSON.parse(data) : [];
+    return normalizeTemplates(parseStoredValue(STORAGE_KEYS.TEMPLATES));
   } catch {
     return [];
   }
@@ -185,7 +341,22 @@ export function getTemplates(): WorkoutTemplate[] {
  * saveTemplates(templates);
  */
 export function saveTemplates(templates: WorkoutTemplate[]): void {
-  localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(templates));
+  localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(normalizeTemplates(templates)));
+}
+
+export function getDraftTemplate(): WorkoutTemplateDraft | null {
+  return normalizeTemplateDraft(parseStoredValue(STORAGE_KEYS.DRAFT_TEMPLATE));
+}
+
+export function saveDraftTemplate(draft: WorkoutTemplateDraft | null): void {
+  if (draft) {
+    localStorage.setItem(
+      STORAGE_KEYS.DRAFT_TEMPLATE,
+      JSON.stringify(normalizeTemplateDraft(draft))
+    );
+  } else {
+    localStorage.removeItem(STORAGE_KEYS.DRAFT_TEMPLATE);
+  }
 }
 
 /**

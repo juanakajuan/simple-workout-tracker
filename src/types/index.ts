@@ -62,7 +62,6 @@ export interface Workout {
   exercises: WorkoutExercise[];
   completed: boolean;
   templateId?: string;
-  templateDayId?: string;
 }
 
 export interface TemplateExercise {
@@ -77,16 +76,15 @@ export interface TemplateMuscleGroup {
   exercises: TemplateExercise[];
 }
 
-export interface TemplateDay {
+export interface WorkoutTemplate {
   id: string;
   name: string;
   muscleGroups: TemplateMuscleGroup[];
 }
 
-export interface WorkoutTemplate {
-  id: string;
+export interface WorkoutTemplateDraft {
   name: string;
-  days: TemplateDay[];
+  muscleGroups: TemplateMuscleGroup[];
 }
 
 export interface Settings {

@@ -1,12 +1,21 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { Plus, Play, Trash2, MoreVertical } from "lucide-react";
+import { useState, useEffect, type CSSProperties } from "react";
+import { useNavigate } from "react-router-dom";
+import { Plus, Play, Trash2, MoreVertical, Dumbbell, Layers3 } from "lucide-react";
 
-import type { Workout, WorkoutTemplate, TemplateDay, WorkoutExercise } from "../types";
+import type { Exercise, Workout, WorkoutTemplate, WorkoutExercise } from "../types";
+import { muscleGroupLabels, muscleGroupColors } from "../types";
 
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
-import { STORAGE_KEYS, generateId } from "../utils/storage";
+import {
+  STORAGE_KEYS,
+  generateId,
+  DEFAULT_EXERCISES,
+  normalizeTemplates,
+  normalizeActiveWorkout,
+  getDraftTemplate,
+  saveDraftTemplate,
+} from "../utils/storage";
 
 import { DraftBanner } from "../components/DraftBanner";
 import { ConfirmDialog } from "../components/ConfirmDialog";
@@ -15,42 +24,29 @@ import "./TemplatesPage.css";
 
 export function TemplatesPage() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const [templates, setTemplates] = useLocalStorage<WorkoutTemplate[]>(STORAGE_KEYS.TEMPLATES, []);
-  const [, setActiveWorkout] = useLocalStorage<Workout | null>(STORAGE_KEYS.ACTIVE_WORKOUT, null);
+  const [exercises] = useLocalStorage<Exercise[]>(STORAGE_KEYS.EXERCISES, []);
+  const [templates, setTemplates] = useLocalStorage<WorkoutTemplate[]>(STORAGE_KEYS.TEMPLATES, [], {
+    deserialize: normalizeTemplates,
+  });
+  const [, setActiveWorkout] = useLocalStorage<Workout | null>(STORAGE_KEYS.ACTIVE_WORKOUT, null, {
+    deserialize: normalizeActiveWorkout,
+  });
 
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [hasDraft, setHasDraft] = useState(false);
   const { showConfirm, dialogProps } = useConfirmDialog();
 
-  // Check for draft template on mount
+  const allExercises = DEFAULT_EXERCISES.map((defaultExercise) => {
+    const userOverride = exercises.find((exercise) => exercise.id === defaultExercise.id);
+    return userOverride || defaultExercise;
+  }).concat(exercises.filter((exercise) => !exercise.id.startsWith("default-")));
+
   useEffect(() => {
-    const draftExists = localStorage.getItem(STORAGE_KEYS.DRAFT_TEMPLATE) !== null;
-    setHasDraft(draftExists);
+    setHasDraft(getDraftTemplate() !== null);
   }, []);
 
-  // Handle day selection from navigation
-  useEffect(() => {
-    const state = location.state as {
-      selectedDay?: TemplateDay;
-      template?: WorkoutTemplate;
-    } | null;
-    if (state?.selectedDay && state?.template) {
-      startFromTemplateDay(state.template, state.selectedDay);
-      // Note: Don't clear state here - startFromTemplateDay navigates to /workout
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.state]);
-
-  // ========== Template CRUD ==========
-
-  /**
-   * Navigates to the template creation page. If a draft template exists,
-   * prompts the user to confirm discarding it before proceeding.
-   */
   const handleCreateTemplate = () => {
-    // Check if draft exists
-    if (localStorage.getItem(STORAGE_KEYS.DRAFT_TEMPLATE)) {
+    if (getDraftTemplate()) {
       showConfirm({
         title: "Discard unsaved draft?",
         message:
@@ -59,32 +55,20 @@ export function TemplatesPage() {
         cancelText: "Cancel",
         variant: "danger",
         onConfirm: () => {
-          localStorage.removeItem(STORAGE_KEYS.DRAFT_TEMPLATE);
+          saveDraftTemplate(null);
           setHasDraft(false);
           navigate("/templates/new");
         },
       });
-      // If user cancels, do nothing (stay on templates page)
     } else {
-      // No draft, proceed normally
       navigate("/templates/new");
     }
   };
 
-  /**
-   * Navigates to the template editor page for a specific template.
-   *
-   * @param templateId - The unique identifier of the template to edit
-   */
   const handleEditTemplate = (templateId: string) => {
     navigate(`/templates/edit/${templateId}`);
   };
 
-  /**
-   * Deletes a template from localStorage after user confirmation.
-   *
-   * @param templateId - The unique identifier of the template to delete
-   */
   const deleteTemplate = (templateId: string) => {
     showConfirm({
       title: "Delete this template?",
@@ -98,18 +82,10 @@ export function TemplatesPage() {
     });
   };
 
-  // ========== Draft Management ==========
-
-  /**
-   * Navigates to the template editor to continue editing a draft template.
-   */
   const handleContinueDraft = () => {
     navigate("/templates/new");
   };
 
-  /**
-   * Discards a draft template after user confirmation.
-   */
   const handleDismissDraft = () => {
     showConfirm({
       title: "Discard draft template?",
@@ -118,46 +94,17 @@ export function TemplatesPage() {
       cancelText: "Cancel",
       variant: "danger",
       onConfirm: () => {
-        localStorage.removeItem(STORAGE_KEYS.DRAFT_TEMPLATE);
+        saveDraftTemplate(null);
         setHasDraft(false);
       },
     });
   };
 
-  // ========== Workout Start ==========
-
-  /**
-   * Handles clicking the start button on a template. For single-day templates,
-   * starts the workout immediately. For multi-day templates, shows the day selector.
-   *
-   * @param template - The workout template to start
-   */
   const handleTemplateClick = (template: WorkoutTemplate) => {
-    // If template has only one day, start directly
-    if (template.days.length === 1) {
-      startFromTemplateDay(template, template.days[0]);
-    } else {
-      // Navigate to day selector for multi-day templates
-      navigate("/templates/select-day", {
-        state: { template },
-      });
-    }
-  };
-
-  /**
-   * Creates and starts a new workout from a template day. Generates workout
-   * exercises with the specified number of sets for each exercise. Navigates
-   * to the workout page after starting.
-   *
-   * @param template - The workout template
-   * @param day - The specific day within the template to start
-   */
-  const startFromTemplateDay = (template: WorkoutTemplate, day: TemplateDay) => {
     const today = new Date();
-
-    // Collect all exercises from the day's muscle groups
     const workoutExercises: WorkoutExercise[] = [];
-    day.muscleGroups.forEach((muscleGroup) => {
+
+    template.muscleGroups.forEach((muscleGroup) => {
       muscleGroup.exercises.forEach((templateExercise) => {
         if (templateExercise.exerciseId) {
           workoutExercises.push({
@@ -174,68 +121,68 @@ export function TemplatesPage() {
       });
     });
 
-    const workoutDisplayName =
-      template.days.length > 1 ? `${template.name} - ${day.name}` : template.name;
-
     const newWorkout: Workout = {
       id: generateId(),
-      name: workoutDisplayName,
+      name: template.name,
       date: today.toISOString(),
       startTime: today.toISOString(),
       exercises: workoutExercises,
       completed: false,
       templateId: template.id,
-      templateDayId: day.id,
     };
 
     setActiveWorkout(newWorkout);
-
-    // Navigate to workout page
     navigate("/workout");
   };
 
-  // ========== Template Stats ==========
-
-  /**
-   * Calculates statistics for a template including total exercises, total sets,
-   * and number of days.
-   *
-   * @param template - The workout template
-   * @returns Object containing exerciseCount, setCount, and dayCount
-   */
   const getTemplateStats = (template: WorkoutTemplate) => {
     let exerciseCount = 0;
     let setCount = 0;
 
-    template.days.forEach((day) => {
-      day.muscleGroups.forEach((muscleGroup) => {
-        muscleGroup.exercises.forEach((exercise) => {
-          if (exercise.exerciseId) {
-            exerciseCount++;
-            setCount += exercise.setCount;
-          }
-        });
+    template.muscleGroups.forEach((muscleGroup) => {
+      muscleGroup.exercises.forEach((exercise) => {
+        if (exercise.exerciseId) {
+          exerciseCount++;
+          setCount += exercise.setCount;
+        }
       });
     });
 
-    return { exerciseCount, setCount, dayCount: template.days.length };
+    return { exerciseCount, setCount };
   };
 
-  /**
-   * Toggles the kebab menu for a template. If the menu is already open,
-   * closes it. Otherwise, opens it and closes any other open menu.
-   *
-   * @param templateId - The unique identifier of the template
-   */
+  const getExerciseName = (exerciseId: string | null) => {
+    if (!exerciseId) return null;
+    return allExercises.find((exercise) => exercise.id === exerciseId)?.name ?? null;
+  };
+
+  const getExercisePreview = (template: WorkoutTemplate) => {
+    return template.muscleGroups
+      .flatMap((muscleGroup) =>
+        muscleGroup.exercises
+          .map((exercise) => getExerciseName(exercise.exerciseId))
+          .filter((name): name is string => Boolean(name))
+      )
+      .slice(0, 3);
+  };
+
+  const getCardStyle = (template: WorkoutTemplate): CSSProperties => {
+    const [first = "#fc3d3d", second = "#7c93ff", third = "#22c55e"] = template.muscleGroups.map(
+      (muscleGroup) => muscleGroupColors[muscleGroup.muscleGroup]
+    );
+
+    return {
+      cursor: "pointer",
+      "--template-accent-1": first,
+      "--template-accent-2": second,
+      "--template-accent-3": third,
+    } as CSSProperties;
+  };
+
   const toggleMenu = (templateId: string) => {
     setOpenMenuId(openMenuId === templateId ? null : templateId);
   };
 
-  /**
-   * Closes any open kebab menu when clicking outside of the menu area.
-   *
-   * @param event - The mouse event
-   */
   const handleClickOutside = (event: React.MouseEvent) => {
     if ((event.target as HTMLElement).closest(".template-kebab-menu")) return;
     setOpenMenuId(null);
@@ -262,55 +209,97 @@ export function TemplatesPage() {
         <div className="templates-list">
           {templates.map((template) => {
             const stats = getTemplateStats(template);
+            const previewExercises = getExercisePreview(template);
+            const extraExerciseCount = Math.max(stats.exerciseCount - previewExercises.length, 0);
 
             return (
               <div
                 key={template.id}
                 className="template-card card"
                 onClick={() => handleEditTemplate(template.id)}
-                style={{ cursor: "pointer" }}
+                style={getCardStyle(template)}
               >
-                <div className="template-card-header">
-                  <div className="template-card-info">
-                    <h3 className="template-card-name">{template.name}</h3>
-                    <span className="template-card-summary">
-                      {stats.dayCount > 1 && `${stats.dayCount} days · `}
-                      {stats.exerciseCount} exercise{stats.exerciseCount !== 1 ? "s" : ""} ·{" "}
-                      {stats.setCount} set{stats.setCount !== 1 ? "s" : ""}
-                    </span>
+                <div className="template-card-hero">
+                  <div className="template-card-header">
+                    <div className="template-card-info">
+                      <span className="template-card-kicker">Workout template</span>
+                      <h3 className="template-card-name">{template.name}</h3>
+                    </div>
+                    <div className="template-kebab-menu">
+                      <button
+                        className="btn btn-ghost btn-icon"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          toggleMenu(template.id);
+                        }}
+                        aria-label="More options"
+                        aria-expanded={openMenuId === template.id}
+                      >
+                        <MoreVertical size={18} />
+                      </button>
+                      {openMenuId === template.id && (
+                        <div className="template-kebab-dropdown">
+                          <button
+                            className="template-kebab-item template-kebab-item-delete"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setOpenMenuId(null);
+                              deleteTemplate(template.id);
+                            }}
+                          >
+                            <Trash2 size={16} />
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="template-kebab-menu">
-                    <button
-                      className="btn btn-ghost btn-icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleMenu(template.id);
-                      }}
-                      aria-label="More options"
-                      aria-expanded={openMenuId === template.id}
-                    >
-                      <MoreVertical size={18} />
-                    </button>
-                    {openMenuId === template.id && (
-                      <div className="template-kebab-dropdown">
-                        <button
-                          className="template-kebab-item template-kebab-item-delete"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setOpenMenuId(null);
-                            deleteTemplate(template.id);
-                          }}
-                        >
-                          <Trash2 size={16} />
-                          Delete
-                        </button>
-                      </div>
+
+                  <div className="template-card-stats">
+                    <div className="template-stat-pill">
+                      <Dumbbell size={15} />
+                      <span>
+                        {stats.exerciseCount} exercise{stats.exerciseCount !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+                    <div className="template-stat-pill">
+                      <Layers3 size={15} />
+                      <span>
+                        {stats.setCount} set{stats.setCount !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="template-card-body">
+                  <div className="template-card-muscles">
+                    {template.muscleGroups.map((muscleGroup) => (
+                      <span key={muscleGroup.id} className="template-card-muscle-chip">
+                        <span
+                          className="template-card-muscle-dot"
+                          style={{ backgroundColor: muscleGroupColors[muscleGroup.muscleGroup] }}
+                        />
+                        {muscleGroupLabels[muscleGroup.muscleGroup]}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="template-card-preview">
+                    {previewExercises.map((exerciseName) => (
+                      <span key={exerciseName} className="template-card-preview-item">
+                        {exerciseName}
+                      </span>
+                    ))}
+                    {extraExerciseCount > 0 && (
+                      <span className="template-card-preview-more">+{extraExerciseCount} more</span>
                     )}
                   </div>
                 </div>
+
                 <div className="template-card-actions">
+                  <span className="template-card-edit-hint">Tap card to edit template</span>
                   <button
-                    className="btn btn-primary btn-sm text-uppercase"
+                    className="btn btn-primary btn-sm text-uppercase template-card-start"
                     onClick={(event) => {
                       event.stopPropagation();
                       handleTemplateClick(template);
