@@ -12,8 +12,8 @@ export default defineConfig({
         name: "Zenith",
         short_name: "Zenith",
         description: "Personal workout tracking PWA",
-        theme_color: "#0a0a0a",
-        background_color: "#0a0a0a",
+        theme_color: "#09090b",
+        background_color: "#09090b",
         display: "standalone",
         orientation: "portrait",
         icons: [

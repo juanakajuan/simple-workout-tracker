@@ -7,26 +7,49 @@
 }
 
 :root {
-  --bg-primary: #0a0a0a;
-  --bg-secondary: #111111;
-  --bg-card: #161616;
-  --bg-input: #1c1c1c;
-  --text-primary: #ffffff;
-  --text-secondary: #a0a0a0;
-  --text-muted: #5a5a5a;
-  --border: #2a2a2a;
-  --border-focus: #3a3a3a;
-  --accent: #fc3d3d;
-  --accent-dim: rgba(252, 61, 61, 0.15);
+  /* Backgrounds - softer dark palette */
+  --bg-primary: #09090b;
+  --bg-secondary: #121215;
+  --bg-card: #18181b;
+  --bg-input: #1e1e22;
+  --bg-hover: rgba(255, 255, 255, 0.04);
+
+  /* Text - refined hierarchy */
+  --text-primary: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --text-muted: #52525b;
+
+  /* Borders - softer, translucent */
+  --border: rgba(255, 255, 255, 0.07);
+  --border-focus: rgba(255, 255, 255, 0.14);
+
+  /* Accent - slightly warmer, more refined red */
+  --accent: #ef4444;
+  --accent-hover: #dc2626;
+  --accent-dim: rgba(239, 68, 68, 0.12);
+
+  /* Semantic */
   --success: #22c55e;
-  --info-blue: #7c93ff;
+  --success-dim: rgba(34, 197, 94, 0.12);
+  --info-blue: #818cf8;
   --warning: #f59e0b;
-  --warning-dim: rgba(251, 191, 36, 0.25);
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  --transition: 150ms ease;
+  --warning-dim: rgba(245, 158, 11, 0.15);
+
+  /* Radius - larger, more rounded */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+
+  /* Shadows - layered for depth */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.35), 0 4px 12px rgba(0, 0, 0, 0.25);
+
+  /* Transitions - smoother */
+  --transition: 180ms ease;
+  --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 html {
@@ -77,10 +100,12 @@ textarea {
   color: inherit;
   background-color: var(--bg-input);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   padding: 0.75rem 1rem;
   width: 100%;
-  transition: border-color var(--transition);
+  transition:
+    border-color var(--transition),
+    box-shadow var(--transition);
 }
 
 input:focus,
@@ -88,6 +113,7 @@ select:focus,
 textarea:focus {
   outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
 }
 
 input::placeholder,
@@ -97,7 +123,7 @@ textarea::placeholder {
 
 select {
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a0a0a0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 1rem center;
   padding-right: 2.5rem;
@@ -110,8 +136,8 @@ a {
 
 /* Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -119,8 +145,12 @@ a {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.14);
 }
 
 /* Utility classes */
@@ -128,8 +158,8 @@ a {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 1rem;
-  padding-bottom: calc(70px + 1rem + env(safe-area-inset-bottom));
+  padding: 1.25rem;
+  padding-bottom: calc(72px + 1.25rem + env(safe-area-inset-bottom));
   overflow-y: auto;
 }
 
@@ -137,7 +167,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.75rem;
   position: sticky;
   top: 0;
   background: var(--bg-primary);
@@ -148,9 +178,10 @@ a {
 .page-title {
   font-size: 1.75rem;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
 }
 
+/* Buttons */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -160,7 +191,10 @@ a {
   border-radius: var(--radius-md);
   font-weight: 600;
   font-size: 0.9rem;
-  transition: all var(--transition);
+  transition:
+    all var(--transition),
+    transform 100ms ease;
+  cursor: pointer;
 }
 
 .btn-primary {
@@ -169,7 +203,8 @@ a {
 }
 
 .btn-primary:active {
-  transform: scale(0.98);
+  transform: scale(0.97);
+  background: var(--accent-hover);
 }
 
 .btn-secondary {
@@ -177,15 +212,27 @@ a {
   border: 1px solid var(--border);
 }
 
+.btn-secondary:active {
+  background: var(--bg-hover);
+}
+
 .btn-ghost {
   background: transparent;
   color: var(--text-secondary);
 }
 
+.btn-ghost:active {
+  background: var(--bg-hover);
+}
+
 .btn-danger {
   background: transparent;
   color: var(--accent);
-  border: 1px solid var(--accent);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.btn-danger:active {
+  background: var(--accent-dim);
 }
 
 .btn-icon {
@@ -193,6 +240,11 @@ a {
   border-radius: var(--radius-sm);
 }
 
+.btn-icon:active {
+  background: var(--bg-hover);
+}
+
+/* Cards */
 .card {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -200,6 +252,7 @@ a {
   padding: 1rem;
 }
 
+/* Tags */
 .tag {
   display: inline-flex;
   align-items: center;
@@ -217,90 +270,59 @@ a {
 }
 
 .tag-muted {
-  background: var(--bg-secondary);
+  background: rgba(255, 255, 255, 0.05);
   color: var(--text-secondary);
 }
 
 /* Muscle group colors - organized by training categories */
 /* Upper Push - Pink */
-.tag-muscle-chest {
-  background: rgba(236, 72, 153, 0.15);
-  color: #ec4899;
-}
-
-.tag-muscle-triceps {
-  background: rgba(236, 72, 153, 0.15);
-  color: #ec4899;
-}
-
+.tag-muscle-chest,
+.tag-muscle-triceps,
 .tag-muscle-shoulders {
-  background: rgba(236, 72, 153, 0.15);
-  color: #ec4899;
+  background: rgba(236, 72, 153, 0.12);
+  color: #f472b6;
 }
 
 /* Upper Pull - Blue */
-.tag-muscle-back {
-  background: rgba(59, 130, 246, 0.15);
-  color: #3b82f6;
-}
-
+.tag-muscle-back,
 .tag-muscle-biceps {
-  background: rgba(59, 130, 246, 0.15);
-  color: #3b82f6;
+  background: rgba(96, 165, 250, 0.12);
+  color: #60a5fa;
 }
 
 /* Legs - Green */
-.tag-muscle-quads {
-  background: rgba(34, 197, 94, 0.15);
-  color: #22c55e;
-}
-
-.tag-muscle-glutes {
-  background: rgba(34, 197, 94, 0.15);
-  color: #22c55e;
-}
-
+.tag-muscle-quads,
+.tag-muscle-glutes,
 .tag-muscle-hamstrings {
-  background: rgba(34, 197, 94, 0.15);
-  color: #22c55e;
+  background: rgba(34, 197, 94, 0.12);
+  color: #4ade80;
 }
 
 /* Accessory - Purple */
-.tag-muscle-calves {
-  background: rgba(168, 85, 247, 0.15);
-  color: #a855f7;
-}
-
-.tag-muscle-traps {
-  background: rgba(168, 85, 247, 0.15);
-  color: #a855f7;
-}
-
-.tag-muscle-forearms {
-  background: rgba(168, 85, 247, 0.15);
-  color: #a855f7;
-}
-
+.tag-muscle-calves,
+.tag-muscle-traps,
+.tag-muscle-forearms,
 .tag-muscle-abs {
-  background: rgba(168, 85, 247, 0.15);
-  color: #a855f7;
+  background: rgba(168, 85, 247, 0.12);
+  color: #c084fc;
 }
 
+/* Empty state */
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 3rem 1rem;
+  padding: 3rem 1.5rem;
   text-align: center;
   color: var(--text-muted);
 }
 
 .empty-state svg {
-  width: 64px;
-  height: 64px;
-  margin-bottom: 1rem;
-  opacity: 0.5;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 1.25rem;
+  opacity: 0.4;
 }
 
 .empty-state p {
@@ -325,24 +347,50 @@ textarea {
   min-height: 80px;
 }
 
-/* Modal (used only by ConfirmDialog) */
+/* Modal */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 100;
   padding: 1rem;
+  animation: fadeIn 200ms ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .modal {
   background: var(--bg-secondary);
-  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
   width: 100%;
   max-width: 400px;
   overflow: hidden;
+  box-shadow: var(--shadow-xl);
+  animation: slideUp 250ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .modal-header {
@@ -377,7 +425,7 @@ textarea {
 .checkbox {
   width: 22px;
   height: 22px;
-  border: 2px solid var(--border);
+  border: 2px solid rgba(255, 255, 255, 0.15);
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;

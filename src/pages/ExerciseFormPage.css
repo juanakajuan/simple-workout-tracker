@@ -8,7 +8,7 @@
 .exercise-form-content {
   flex: 1;
   overflow-y: auto;
-  padding: 1rem;
+  padding: 1.25rem;
   padding-bottom: 80px;
 }
 
@@ -23,7 +23,7 @@
 #exercise-form {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1.5rem;
 }
 
 .form-group {
@@ -33,22 +33,25 @@
 }
 
 .form-label {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-secondary);
 }
 
 #exercise-form input,
 #exercise-form select,
 #exercise-form textarea {
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.75rem 1rem;
   font-size: 0.95rem;
   background: var(--bg-input);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   color: var(--text-primary);
   font-family: inherit;
+  transition:
+    border-color var(--transition),
+    box-shadow var(--transition);
 }
 
 #exercise-form input:focus,
@@ -56,6 +59,7 @@
 #exercise-form textarea:focus {
   outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
 }
 
 #exercise-form textarea {
@@ -66,7 +70,6 @@
 .disabled-field {
   opacity: 0.5;
   cursor: not-allowed;
-  background: var(--bg-page);
 }
 
 .btn-full {
@@ -75,5 +78,5 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  margin-top: 1rem;
+  margin-top: 1.5rem;
 }

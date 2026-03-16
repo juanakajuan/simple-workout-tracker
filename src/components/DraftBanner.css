@@ -1,17 +1,21 @@
-/* Draft Banner Component */
 .draft-banner {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   padding: 0.875rem 1rem;
   margin-top: 1rem;
-  background: rgba(255, 23, 68, 0.12);
-  border: 1px solid rgba(255, 23, 68, 0.3);
+  background: var(--accent-dim);
+  border: 1px solid rgba(239, 68, 68, 0.2);
   border-radius: var(--radius-lg);
   cursor: pointer;
   transition:
     background var(--transition),
-    border-color var(--transition);
+    border-color var(--transition),
+    transform 100ms ease;
+}
+
+.draft-banner:active {
+  transform: scale(0.99);
 }
 
 .draft-banner-icon {
@@ -55,4 +59,8 @@
   transition:
     background var(--transition),
     color var(--transition);
+}
+
+.draft-banner-dismiss:active {
+  background: var(--bg-hover);
 }

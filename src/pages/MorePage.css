@@ -1,39 +1,46 @@
 .more-content {
-  padding: 0 16px 80px;
+  padding: 0 1.25rem 80px;
 }
 
 .more-section {
-  margin-bottom: 24px;
+  margin-bottom: 1.5rem;
 }
 
 .more-menu-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 0.875rem;
   width: 100%;
-  padding: 16px;
+  padding: 1rem 1.125rem;
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   color: var(--text-primary);
-  font-size: 16px;
+  font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition:
+    background-color var(--transition),
+    transform 100ms ease;
 }
 
 .more-menu-item:active {
-  background: var(--bg-secondary);
+  background: var(--bg-hover);
+  transform: scale(0.985);
 }
 
 .more-menu-item + .more-menu-item {
-  margin-top: 8px;
+  margin-top: 0.5rem;
 }
 
 .more-menu-item-icon {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--accent-dim);
+  border-radius: var(--radius-sm);
   color: var(--accent);
 }
 

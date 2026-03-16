@@ -2,11 +2,11 @@
   cursor: pointer;
   transition:
     background-color var(--transition),
-    transform var(--transition);
+    transform 100ms ease;
 }
 
 .exercise-card:active {
-  transform: scale(0.99);
+  transform: scale(0.985);
 }
 
 .exercise-card-header {
@@ -25,7 +25,7 @@
 
 .exercise-edit-btn {
   flex-shrink: 0;
-  opacity: 0.7;
+  opacity: 0.5;
   transition: opacity var(--transition);
 }
 
@@ -37,6 +37,7 @@
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
+  margin-top: 0.5rem;
 }
 
 .exercise-last-performed {

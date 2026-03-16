@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: var(--bg-secondary);
+  background: var(--bg-primary);
 }
 
 .muscle-group-list {
@@ -60,16 +60,16 @@
   font-size: 0.7rem;
   font-weight: 600;
   color: var(--text-muted);
-  background: var(--bg-tertiary);
+  background: rgba(255, 255, 255, 0.05);
   padding: 0.2rem 0.5rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   margin-left: auto;
 }
 
 .muscle-group-indicator {
   width: 14px;
   height: 14px;
-  border-radius: 3px;
+  border-radius: 4px;
   flex-shrink: 0;
 }
 
@@ -117,8 +117,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1rem;
-  background: var(--bg-card);
+  padding: 1rem 1.25rem;
+  background: rgba(18, 18, 21, 0.9);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-top: 1px solid var(--border);
   z-index: 10;
 }

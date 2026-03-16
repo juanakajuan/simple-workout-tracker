@@ -23,7 +23,7 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0.75rem;
-  padding: 1rem 1.25rem;
+  padding: 1.25rem;
   border-bottom: 1px solid var(--border);
 }
 
@@ -32,24 +32,26 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 0.25rem;
+  gap: 0.3rem;
 }
 
 .history-stat .stat-value {
   font-size: 1.5rem;
   font-weight: 700;
   color: var(--accent);
+  font-variant-numeric: tabular-nums;
 }
 
 .history-stat .stat-label {
   font-size: 0.7rem;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
+  font-weight: 500;
 }
 
 .history-content {
-  padding: 1rem 1.25rem;
+  padding: 1.25rem;
 }
 
 .empty-history {
@@ -76,11 +78,12 @@
 .history-workouts {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1rem;
 }
 
 .history-workout-entry {
   background: var(--bg-card);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 1rem;
 }
@@ -105,18 +108,18 @@
 }
 
 .history-workout-volume {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--accent);
-  background: var(--bg-input);
-  padding: 0.25rem 0.75rem;
+  background: var(--accent-dim);
+  padding: 0.3rem 0.75rem;
   border-radius: var(--radius-sm);
 }
 
 .history-sets {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.35rem;
 }
 
 .history-set {
@@ -124,7 +127,7 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.5rem 0.75rem;
-  background: var(--bg-page);
+  background: var(--bg-secondary);
   border-radius: var(--radius-sm);
   font-size: 0.9rem;
 }
