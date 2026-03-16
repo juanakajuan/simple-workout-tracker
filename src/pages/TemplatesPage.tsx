@@ -297,7 +297,6 @@ export function TemplatesPage() {
                 </div>
 
                 <div className="template-card-actions">
-                  <span className="template-card-edit-hint">Tap card to edit template</span>
                   <button
                     className="btn btn-primary btn-sm text-uppercase template-card-start"
                     onClick={(event) => {
