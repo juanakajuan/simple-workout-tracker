@@ -2,7 +2,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.875rem 1.25rem;
+  padding: calc(0.875rem + var(--safe-area-top)) 1.25rem 0.875rem;
   background: rgba(18, 18, 21, 0.9);
   backdrop-filter: blur(16px) saturate(180%);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
@@ -10,7 +10,7 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  min-height: 56px;
+  min-height: calc(56px + var(--safe-area-top));
 }
 
 .page-header-left,

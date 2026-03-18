@@ -1,6 +1,6 @@
 /* Templates Page - Card View */
 .templates-page {
-  padding-bottom: calc(60px + env(safe-area-inset-bottom));
+  padding-bottom: calc(var(--bottom-tab-bar-height) + 0.5rem);
 }
 
 .templates-page .page-header {

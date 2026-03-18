@@ -5,27 +5,28 @@
   right: 0;
   display: flex;
   justify-content: space-around;
-  align-items: center;
+  align-items: stretch;
   background: rgba(18, 18, 21, 0.85);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-top: 1px solid var(--border);
-  padding: 0.4rem 0;
-  padding-bottom: calc(0.4rem + env(safe-area-inset-bottom));
+  padding: var(--bottom-tab-bar-padding-y) 0;
+  padding-bottom: calc(var(--bottom-tab-bar-padding-y) + var(--safe-area-bottom));
+  min-height: var(--bottom-tab-bar-height);
   z-index: 50;
-  height: 60px;
 }
 
 .tab {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 0.2rem;
   padding: 0.5rem;
   color: var(--text-muted);
   transition: color var(--transition);
   text-decoration: none;
-  height: 56px;
+  min-height: var(--bottom-tab-bar-item-height);
   flex: 1;
   min-width: 0;
 }

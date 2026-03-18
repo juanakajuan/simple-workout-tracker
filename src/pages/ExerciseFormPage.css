@@ -2,6 +2,7 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
   background: var(--bg-primary);
 }
 
@@ -9,7 +10,7 @@
   flex: 1;
   overflow-y: auto;
   padding: 1.25rem;
-  padding-bottom: 80px;
+  padding-bottom: calc(var(--bottom-tab-bar-height) + 1rem);
 }
 
 .page-header-save-btn {
