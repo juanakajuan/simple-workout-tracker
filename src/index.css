@@ -9,7 +9,7 @@
 :root {
   --safe-area-top: env(safe-area-inset-top, 0px);
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
-  --safe-area-top-compact: max(calc(var(--safe-area-top) - 8px), 0px);
+  --safe-area-top-compact: max(calc(var(--safe-area-top) - 12px), 0px);
   --safe-area-bottom-compact: max(calc(var(--safe-area-bottom) - 8px), 0px);
   --bottom-tab-bar-item-height: 54px;
   --bottom-tab-bar-padding-y: 0.3rem;
