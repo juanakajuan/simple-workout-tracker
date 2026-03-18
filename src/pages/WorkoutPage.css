@@ -82,7 +82,7 @@
 
 /* Active workout header */
 .workout-header {
-  padding-top: var(--safe-area-top);
+  padding-top: var(--safe-area-top-compact);
   margin-bottom: 1.5rem;
 }
 
