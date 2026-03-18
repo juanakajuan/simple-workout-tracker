@@ -232,7 +232,14 @@ export function TemplateEditorPage() {
     const path = isEditMode
       ? `/templates/edit/${id}/select-exercise`
       : "/templates/new/select-exercise";
-    navigate(path, { state: { muscleGroup, updateTemplate: true } });
+    navigate(path, {
+      state: {
+        exercises: allExercises,
+        hideFilter: true,
+        initialMuscleGroup: muscleGroup,
+        templateUpdateChecked: true,
+      },
+    });
   };
 
   const getExerciseById = (exerciseId: string | null) => {

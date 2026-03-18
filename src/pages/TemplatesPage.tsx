@@ -160,8 +160,11 @@ export function TemplatesPage() {
     return template.muscleGroups
       .flatMap((muscleGroup) =>
         muscleGroup.exercises
-          .map((exercise) => getExerciseName(exercise.exerciseId))
-          .filter((name): name is string => Boolean(name))
+          .map((exercise) => {
+            const name = getExerciseName(exercise.exerciseId);
+            return name ? { id: exercise.id, name } : null;
+          })
+          .filter((exercise): exercise is { id: string; name: string } => Boolean(exercise))
       )
       .slice(0, 3);
   };
@@ -285,9 +288,9 @@ export function TemplatesPage() {
                   </div>
 
                   <div className="template-card-preview">
-                    {previewExercises.map((exerciseName) => (
-                      <span key={exerciseName} className="template-card-preview-item">
-                        {exerciseName}
+                    {previewExercises.map((exercise) => (
+                      <span key={exercise.id} className="template-card-preview-item">
+                        {exercise.name}
                       </span>
                     ))}
                     {extraExerciseCount > 0 && (

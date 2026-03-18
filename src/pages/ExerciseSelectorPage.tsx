@@ -11,7 +11,7 @@ import { PageHeader } from "../components/PageHeader";
 import "./ExerciseSelectorPage.css";
 
 interface ExerciseSelectorState {
-  exercises: Exercise[];
+  exercises?: Exercise[];
   hideFilter?: boolean;
   initialMuscleGroup?: MuscleGroup;
   isReplacement?: boolean;
@@ -27,7 +27,9 @@ export function ExerciseSelectorPage() {
   const state = location.state as ExerciseSelectorState | undefined;
 
   const [search, setSearch] = useState("");
-  const [filterMuscle, setFilterMuscle] = useState<MuscleGroup | "all">("all");
+  const [filterMuscle, setFilterMuscle] = useState<MuscleGroup | "all">(
+    state?.initialMuscleGroup ?? "all"
+  );
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const [updateTemplate, setUpdateTemplate] = useState(state?.templateUpdateChecked || false);
   const exerciseRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -63,7 +65,7 @@ export function ExerciseSelectorPage() {
   }
 
   const {
-    exercises,
+    exercises = [],
     hideFilter = false,
     isReplacement = false,
     currentExerciseId,
@@ -104,7 +106,7 @@ export function ExerciseSelectorPage() {
       setSelectedExerciseId((previous) => (previous === exerciseId ? null : exerciseId));
     } else {
       navigate("..", {
-        state: { selectedExerciseId: exerciseId },
+        state: { selectedExerciseId: exerciseId, updateTemplate },
         relative: "path",
       });
     }
