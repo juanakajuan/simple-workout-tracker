@@ -139,9 +139,6 @@ export function MuscleGroupSelectorPage() {
 
       {/* Footer */}
       <div className="muscle-group-selector-footer">
-        {selectedGroups.length > 0 && (
-          <span className="selection-count">{selectedGroups.length} selected</span>
-        )}
         <button
           className="btn btn-accent btn-add-muscle-groups text-uppercase"
           onClick={handleConfirm}
