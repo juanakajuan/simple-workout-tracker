@@ -17,13 +17,14 @@
 .muscle-group-option {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 0.75rem;
   width: 100%;
   padding: 0.9rem 1.25rem;
+  padding-left: calc(1.25rem - 3px);
   text-align: left;
   background: transparent;
   border: none;
+  border-left: 3px solid transparent;
   cursor: pointer;
   transition: all var(--transition);
   color: var(--text-primary);
@@ -34,7 +35,8 @@
 }
 
 .muscle-group-option.selected {
-  background: transparent;
+  background: var(--accent-dim);
+  border-left-color: var(--accent);
 }
 
 .muscle-group-option-content {
@@ -44,17 +46,9 @@
   flex: 1;
 }
 
-.checkmark-icon {
+.muscle-group-option.selected .muscle-group-name {
   color: var(--accent);
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  opacity: 0;
-  transition: opacity var(--transition);
-}
-
-.checkmark-icon.visible {
-  opacity: 1;
+  font-weight: 600;
 }
 
 .already-added-badge {

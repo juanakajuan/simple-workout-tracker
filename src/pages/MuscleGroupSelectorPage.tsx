@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Check } from "lucide-react";
 
 import type { MuscleGroup } from "../types";
 import { muscleGroupLabels, muscleGroupColors } from "../types";
@@ -118,6 +117,7 @@ export function MuscleGroupSelectorPage() {
                   key={group}
                   className={`muscle-group-option ${isSelected ? "selected" : ""}`}
                   onClick={() => toggleSelection(group)}
+                  aria-pressed={isSelected}
                 >
                   <div className="muscle-group-option-content">
                     <span
@@ -127,9 +127,6 @@ export function MuscleGroupSelectorPage() {
                     <span className="muscle-group-name">{muscleGroupLabels[group]}</span>
                     {alreadyAdded && <span className="already-added-badge">Added</span>}
                   </div>
-                  <span className={`checkmark-icon ${isSelected ? "visible" : ""}`}>
-                    <Check size={20} />
-                  </span>
                 </button>
               );
             })}
