@@ -10,6 +10,12 @@ import { PageHeader } from "../components/PageHeader";
 
 import "./ExerciseSelectorPage.css";
 
+interface TemplateSelectionTarget {
+  muscleGroupId: string;
+  exerciseId: string;
+  muscleGroup: MuscleGroup;
+}
+
 interface ExerciseSelectorState {
   exercises?: Exercise[];
   hideFilter?: boolean;
@@ -19,6 +25,7 @@ interface ExerciseSelectorState {
   showTemplateUpdate?: boolean;
   templateUpdateChecked?: boolean;
   isTemplateWorkout?: boolean;
+  templateSelectionTarget?: TemplateSelectionTarget;
 }
 
 export function ExerciseSelectorPage() {
@@ -106,7 +113,11 @@ export function ExerciseSelectorPage() {
       setSelectedExerciseId((previous) => (previous === exerciseId ? null : exerciseId));
     } else {
       navigate("..", {
-        state: { selectedExerciseId: exerciseId, updateTemplate },
+        state: {
+          selectedExerciseId: exerciseId,
+          updateTemplate,
+          templateSelectionTarget: state?.templateSelectionTarget,
+        },
         relative: "path",
       });
     }
@@ -118,7 +129,11 @@ export function ExerciseSelectorPage() {
   const handleConfirmSelection = () => {
     if (selectedExerciseId) {
       navigate("..", {
-        state: { selectedExerciseId, updateTemplate },
+        state: {
+          selectedExerciseId,
+          updateTemplate,
+          templateSelectionTarget: state?.templateSelectionTarget,
+        },
         relative: "path",
       });
     }

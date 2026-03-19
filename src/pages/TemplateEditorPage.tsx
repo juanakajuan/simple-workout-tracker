@@ -17,6 +17,12 @@ import {
 
 import "./TemplateEditorPage.css";
 
+interface TemplateSelectionTarget {
+  muscleGroupId: string;
+  exerciseId: string;
+  muscleGroup: MuscleGroup;
+}
+
 export function TemplateEditorPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -34,12 +40,6 @@ export function TemplateEditorPage() {
   const [nameError, setNameError] = useState("");
   const [isInitialized, setIsInitialized] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
-
-  const [exerciseSelectorTarget, setExerciseSelectorTarget] = useState<{
-    muscleGroupId: string;
-    exerciseId: string;
-    muscleGroup: MuscleGroup;
-  } | null>(null);
 
   const allExercises = DEFAULT_EXERCISES.map((defaultExercise) => {
     const userOverride = exercises.find((exercise) => exercise.id === defaultExercise.id);
@@ -80,6 +80,7 @@ export function TemplateEditorPage() {
       selectedMuscleGroups?: MuscleGroup[];
       selectedExerciseId?: string;
       updateTemplate?: boolean;
+      templateSelectionTarget?: TemplateSelectionTarget;
     };
 
     if (state.selectedMuscleGroups && state.selectedMuscleGroups.length > 0) {
@@ -122,10 +123,10 @@ export function TemplateEditorPage() {
       return;
     }
 
-    if (state.selectedExerciseId && state.updateTemplate && exerciseSelectorTarget) {
+    if (state.selectedExerciseId && state.templateSelectionTarget) {
       navigate(location.pathname, { replace: true, state: {} });
 
-      const { muscleGroupId, exerciseId } = exerciseSelectorTarget;
+      const { muscleGroupId, exerciseId } = state.templateSelectionTarget;
 
       setMuscleGroups((previous) =>
         previous.map((muscleGroup) => {
@@ -140,10 +141,9 @@ export function TemplateEditorPage() {
         })
       );
 
-      setExerciseSelectorTarget(null);
       setError("");
     }
-  }, [exerciseSelectorTarget, location.pathname, location.state, navigate]);
+  }, [location.pathname, location.state, navigate]);
 
   const handleBack = () => {
     navigate("/templates");
@@ -234,7 +234,6 @@ export function TemplateEditorPage() {
     exerciseId: string,
     muscleGroup: MuscleGroup
   ) => {
-    setExerciseSelectorTarget({ muscleGroupId, exerciseId, muscleGroup });
     const path = isEditMode
       ? `/templates/edit/${id}/select-exercise`
       : "/templates/new/select-exercise";
@@ -244,6 +243,11 @@ export function TemplateEditorPage() {
         hideFilter: true,
         initialMuscleGroup: muscleGroup,
         templateUpdateChecked: true,
+        templateSelectionTarget: {
+          muscleGroupId,
+          exerciseId,
+          muscleGroup,
+        },
       },
     });
   };
