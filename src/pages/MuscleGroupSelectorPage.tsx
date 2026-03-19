@@ -20,6 +20,15 @@ const MUSCLE_GROUP_CATEGORIES: { label: string; groups: MuscleGroup[] }[] = [
   { label: "Accessory", groups: ["calves", "traps", "forearms", "abs"] },
 ];
 
+const TAP_MOVE_THRESHOLD = 10;
+
+interface TouchGestureState {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  moved: boolean;
+}
+
 export function MuscleGroupSelectorPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -29,6 +38,7 @@ export function MuscleGroupSelectorPage() {
 
   const [selectedGroups, setSelectedGroups] = useState<MuscleGroup[]>(existingMuscleGroups);
   const lastTouchInteractionRef = useRef(0);
+  const touchGestureRef = useRef<TouchGestureState | null>(null);
 
   /**
    * Toggles the selection state of a muscle group.
@@ -48,8 +58,45 @@ export function MuscleGroupSelectorPage() {
 
   const hasRecentTouchInteraction = () => Date.now() - lastTouchInteractionRef.current < 500;
 
+  const handleTouchPointerDown = (event: PointerEvent<HTMLButtonElement>) => {
+    if (event.pointerType !== "touch") return;
+
+    touchGestureRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      moved: false,
+    };
+  };
+
+  const handleTouchPointerMove = (event: PointerEvent<HTMLButtonElement>) => {
+    if (event.pointerType !== "touch") return;
+
+    const gesture = touchGestureRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+
+    const deltaX = Math.abs(event.clientX - gesture.startX);
+    const deltaY = Math.abs(event.clientY - gesture.startY);
+    if (deltaX > TAP_MOVE_THRESHOLD || deltaY > TAP_MOVE_THRESHOLD) {
+      touchGestureRef.current = { ...gesture, moved: true };
+    }
+  };
+
+  const clearTouchGesture = (event: PointerEvent<HTMLButtonElement>) => {
+    if (event.pointerType !== "touch") return;
+
+    const gesture = touchGestureRef.current;
+    if (gesture?.pointerId === event.pointerId) {
+      touchGestureRef.current = null;
+    }
+  };
+
   const handleOptionPointerUp = (group: MuscleGroup, event: PointerEvent<HTMLButtonElement>) => {
     if (event.pointerType !== "touch") return;
+
+    const gesture = touchGestureRef.current;
+    touchGestureRef.current = null;
+    if (!gesture || gesture.pointerId !== event.pointerId || gesture.moved) return;
 
     lastTouchInteractionRef.current = Date.now();
     event.preventDefault();
@@ -88,6 +135,10 @@ export function MuscleGroupSelectorPage() {
     event: PointerEvent<HTMLButtonElement>
   ) => {
     if (event.pointerType !== "touch") return;
+
+    const gesture = touchGestureRef.current;
+    touchGestureRef.current = null;
+    if (!gesture || gesture.pointerId !== event.pointerId || gesture.moved) return;
 
     lastTouchInteractionRef.current = Date.now();
     event.preventDefault();
@@ -140,7 +191,10 @@ export function MuscleGroupSelectorPage() {
               <button
                 type="button"
                 className="btn btn-ghost btn-sm btn-select-all"
+                onPointerDown={handleTouchPointerDown}
+                onPointerMove={handleTouchPointerMove}
                 onPointerUp={(event) => handleSelectAllPointerUp(category.groups, event)}
+                onPointerCancel={clearTouchGesture}
                 onClick={(event) => handleSelectAllClick(category.groups, event)}
               >
                 {areAllSelected(category.groups) ? "Deselect All" : "Select All"}
@@ -155,7 +209,10 @@ export function MuscleGroupSelectorPage() {
                   type="button"
                   key={group}
                   className={`muscle-group-option ${isSelected ? "selected" : ""}`}
+                  onPointerDown={handleTouchPointerDown}
+                  onPointerMove={handleTouchPointerMove}
                   onPointerUp={(event) => handleOptionPointerUp(group, event)}
+                  onPointerCancel={clearTouchGesture}
                   onClick={(event) => handleOptionClick(group, event)}
                   aria-pressed={isSelected}
                 >
