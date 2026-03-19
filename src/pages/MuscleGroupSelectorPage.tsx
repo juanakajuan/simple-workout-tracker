@@ -27,7 +27,7 @@ export function MuscleGroupSelectorPage() {
   const state = location.state as { existingMuscleGroups?: MuscleGroup[] } | null;
   const existingMuscleGroups = state?.existingMuscleGroups ?? [];
 
-  const [selectedGroups, setSelectedGroups] = useState<MuscleGroup[]>([]);
+  const [selectedGroups, setSelectedGroups] = useState<MuscleGroup[]>(existingMuscleGroups);
 
   /**
    * Toggles the selection state of a muscle group.

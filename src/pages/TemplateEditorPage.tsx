@@ -83,24 +83,35 @@ export function TemplateEditorPage() {
       templateSelectionTarget?: TemplateSelectionTarget;
     };
 
-    if (state.selectedMuscleGroups && state.selectedMuscleGroups.length > 0) {
+    if (state.selectedMuscleGroups) {
+      const selectedMuscleGroups = state.selectedMuscleGroups;
+
       navigate(location.pathname, { replace: true, state: {} });
 
-      const newMuscleGroups: TemplateMuscleGroup[] = state.selectedMuscleGroups.map(
-        (muscleGroup) => ({
-          id: generateId(),
-          muscleGroup,
-          exercises: [
-            {
-              id: generateId(),
-              exerciseId: null,
-              setCount: 3,
-            },
-          ],
-        })
-      );
+      setMuscleGroups((previous) => {
+        const selectedSet = new Set(selectedMuscleGroups);
+        const existingGroups = previous.filter((muscleGroup) =>
+          selectedSet.has(muscleGroup.muscleGroup)
+        );
+        const existingGroupTypes = new Set(
+          existingGroups.map((muscleGroup) => muscleGroup.muscleGroup)
+        );
+        const newMuscleGroups: TemplateMuscleGroup[] = selectedMuscleGroups
+          .filter((muscleGroup) => !existingGroupTypes.has(muscleGroup))
+          .map((muscleGroup) => ({
+            id: generateId(),
+            muscleGroup,
+            exercises: [
+              {
+                id: generateId(),
+                exerciseId: null,
+                setCount: 3,
+              },
+            ],
+          }));
 
-      setMuscleGroups((previous) => [...previous, ...newMuscleGroups]);
+        return [...existingGroups, ...newMuscleGroups];
+      });
       return;
     }
 
