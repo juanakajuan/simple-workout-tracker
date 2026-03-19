@@ -9,12 +9,15 @@ export function BottomTabBar() {
   const navigate = useNavigate();
 
   const lastTemplatesPath = useRef("/templates");
+  const lastHistoryPath = useRef("/history");
   const lastMorePath = useRef("/more");
 
   // Update refs when location changes
   useEffect(() => {
     if (location.pathname.startsWith("/templates")) {
       lastTemplatesPath.current = location.pathname;
+    } else if (location.pathname.startsWith("/history")) {
+      lastHistoryPath.current = location.pathname;
     } else if (location.pathname.startsWith("/more")) {
       lastMorePath.current = location.pathname;
     }
@@ -98,7 +101,7 @@ export function BottomTabBar() {
       <NavLink
         to="/history"
         className={`tab ${isHistoryActive ? "active" : ""}`}
-        onClick={(e) => handleSimpleTabClick(e, location.pathname === "/history")}
+        onClick={(e) => handleTabClick(e, "/history", lastHistoryPath, isHistoryActive)}
       >
         <History size={24} />
         <span>History</span>
