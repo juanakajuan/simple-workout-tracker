@@ -1,7 +1,14 @@
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Settings, ChevronRight, Download, Upload } from "lucide-react";
 
 import { useAppDialog } from "../hooks/useAppDialog";
+import {
+  APP_RELEASE,
+  formatBuildTimestamp,
+  hasUnseenAppUpdate,
+  markCurrentBuildAsSeen,
+} from "../utils/appRelease";
 import { exportAllData, importAllData, downloadDataFile, hasActiveWorkout } from "../utils/storage";
 
 import "./MorePage.css";
@@ -9,6 +16,12 @@ import "./MorePage.css";
 export function MorePage() {
   const navigate = useNavigate();
   const { showAlert, showConfirm } = useAppDialog();
+  const [hasRecentUpdate] = useState(() => hasUnseenAppUpdate());
+  const buildTimestampLabel = useMemo(() => formatBuildTimestamp(APP_RELEASE.builtAt), []);
+
+  useEffect(() => {
+    markCurrentBuildAsSeen();
+  }, []);
 
   /**
    * Handles exporting all user data to a JSON file.
@@ -101,6 +114,23 @@ export function MorePage() {
       </header>
 
       <div className="more-content">
+        <section className="more-section">
+          <div className="more-version-card">
+            <div className="more-version-header">
+              <p className="more-version-label">App Version</p>
+              {hasRecentUpdate ? <span className="more-version-badge">Updated</span> : null}
+            </div>
+
+            <p className="more-version-value">v{APP_RELEASE.version}</p>
+            <p className="more-version-meta">Build {APP_RELEASE.buildId}</p>
+            <p className="more-version-status">
+              {hasRecentUpdate
+                ? `This device picked up a newer build at ${buildTimestampLabel} since your last visit here.`
+                : `Built ${buildTimestampLabel}. This card will flag when a newer build is installed on this device.`}
+            </p>
+          </div>
+        </section>
+
         <section className="more-section">
           <button className="more-menu-item" onClick={() => navigate("/more/settings")}>
             <div className="more-menu-item-icon">

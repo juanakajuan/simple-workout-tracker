@@ -6,6 +6,62 @@
   margin-bottom: 1.5rem;
 }
 
+.more-version-card {
+  padding: 1rem 1.125rem;
+  background:
+    radial-gradient(circle at top right, rgba(129, 140, 248, 0.16), transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0)), var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.more-version-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.more-version-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.more-version-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.625rem;
+  border-radius: 999px;
+  background: var(--success-dim);
+  color: var(--success);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.more-version-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.more-version-meta {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.more-version-status {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
 .more-menu-item {
   display: flex;
   align-items: center;
