@@ -28,6 +28,9 @@
   cursor: pointer;
   transition: all var(--transition);
   color: var(--text-primary);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .muscle-group-option:active {
@@ -101,6 +104,7 @@
   font-size: 0.75rem;
   padding: 0.3rem 0.6rem;
   color: var(--accent);
+  touch-action: manipulation;
 }
 
 .muscle-group-selector-footer {

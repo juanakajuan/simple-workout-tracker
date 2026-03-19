@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import type { MouseEvent, PointerEvent } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
 import type { MuscleGroup } from "../types";
@@ -27,6 +28,7 @@ export function MuscleGroupSelectorPage() {
   const existingMuscleGroups = state?.existingMuscleGroups ?? [];
 
   const [selectedGroups, setSelectedGroups] = useState<MuscleGroup[]>(existingMuscleGroups);
+  const lastTouchInteractionRef = useRef(0);
 
   /**
    * Toggles the selection state of a muscle group.
@@ -42,6 +44,21 @@ export function MuscleGroupSelectorPage() {
         return [...prev, group];
       }
     });
+  };
+
+  const hasRecentTouchInteraction = () => Date.now() - lastTouchInteractionRef.current < 500;
+
+  const handleOptionPointerUp = (group: MuscleGroup, event: PointerEvent<HTMLButtonElement>) => {
+    if (event.pointerType !== "touch") return;
+
+    lastTouchInteractionRef.current = Date.now();
+    event.preventDefault();
+    toggleSelection(group);
+  };
+
+  const handleOptionClick = (group: MuscleGroup, event: MouseEvent<HTMLButtonElement>) => {
+    if (event.detail !== 0 && hasRecentTouchInteraction()) return;
+    toggleSelection(group);
   };
 
   /**
@@ -64,6 +81,25 @@ export function MuscleGroupSelectorPage() {
         return [...prev, ...newGroups];
       }
     });
+  };
+
+  const handleSelectAllPointerUp = (
+    categoryGroups: MuscleGroup[],
+    event: PointerEvent<HTMLButtonElement>
+  ) => {
+    if (event.pointerType !== "touch") return;
+
+    lastTouchInteractionRef.current = Date.now();
+    event.preventDefault();
+    handleSelectAll(categoryGroups);
+  };
+
+  const handleSelectAllClick = (
+    categoryGroups: MuscleGroup[],
+    event: MouseEvent<HTMLButtonElement>
+  ) => {
+    if (event.detail !== 0 && hasRecentTouchInteraction()) return;
+    handleSelectAll(categoryGroups);
   };
 
   /**
@@ -102,8 +138,10 @@ export function MuscleGroupSelectorPage() {
             <div className="muscle-group-category-header">
               <h3 className="muscle-group-category-title">{category.label}</h3>
               <button
+                type="button"
                 className="btn btn-ghost btn-sm btn-select-all"
-                onClick={() => handleSelectAll(category.groups)}
+                onPointerUp={(event) => handleSelectAllPointerUp(category.groups, event)}
+                onClick={(event) => handleSelectAllClick(category.groups, event)}
               >
                 {areAllSelected(category.groups) ? "Deselect All" : "Select All"}
               </button>
@@ -114,9 +152,11 @@ export function MuscleGroupSelectorPage() {
 
               return (
                 <button
+                  type="button"
                   key={group}
                   className={`muscle-group-option ${isSelected ? "selected" : ""}`}
-                  onClick={() => toggleSelection(group)}
+                  onPointerUp={(event) => handleOptionPointerUp(group, event)}
+                  onClick={(event) => handleOptionClick(group, event)}
                   aria-pressed={isSelected}
                 >
                   <div className="muscle-group-option-content">
