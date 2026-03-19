@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Plus, ChevronLeft, Minus, ChevronUp, ChevronDown, Trash2 } from "lucide-react";
 
@@ -31,7 +31,9 @@ export function TemplateEditorPage() {
   const [name, setName] = useState("");
   const [muscleGroups, setMuscleGroups] = useState<TemplateMuscleGroup[]>([]);
   const [error, setError] = useState("");
+  const [nameError, setNameError] = useState("");
   const [isInitialized, setIsInitialized] = useState(false);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   const [exerciseSelectorTarget, setExerciseSelectorTarget] = useState<{
     muscleGroupId: string;
@@ -150,9 +152,13 @@ export function TemplateEditorPage() {
   const saveTemplate = () => {
     const trimmedName = name.trim();
     if (!trimmedName) {
-      setError("Please enter a template name");
+      setNameError("Please enter a template name");
+      setError("");
+      nameInputRef.current?.focus();
       return;
     }
+
+    setNameError("");
 
     const hasExercises = muscleGroups.some((muscleGroup) =>
       muscleGroup.exercises.some((exercise) => exercise.exerciseId !== null)
@@ -274,15 +280,24 @@ export function TemplateEditorPage() {
 
       <div className="templates-title-section">
         <input
+          ref={nameInputRef}
           type="text"
-          className="templates-name-input"
+          className={`templates-name-input ${nameError ? "is-invalid" : ""}`}
           placeholder="Upper body workout"
           value={name}
+          aria-invalid={Boolean(nameError)}
+          aria-describedby={nameError ? "template-name-error" : undefined}
           onChange={(event) => {
             setName(event.target.value);
+            setNameError("");
             setError("");
           }}
         />
+        {nameError && (
+          <p id="template-name-error" className="templates-name-error" role="alert">
+            {nameError}
+          </p>
+        )}
       </div>
 
       <div className="templates-day-content">

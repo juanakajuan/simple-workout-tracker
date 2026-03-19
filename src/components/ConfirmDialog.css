@@ -87,3 +87,32 @@
 .confirm-dialog-checkbox-label span {
   line-height: 1;
 }
+
+.alert-dialog-footer {
+  padding: 0 1.5rem 1.5rem;
+}
+
+.alert-dialog-icon.standard {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.alert-dialog-icon.danger {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.alert-dialog-icon.warning {
+  background: var(--warning-dim);
+  color: var(--warning);
+}
+
+.confirm-dialog-btn-confirm.warning {
+  background: var(--warning);
+  color: #0f0f11;
+}
+
+.confirm-dialog-btn-confirm.warning:active {
+  transform: scale(0.97);
+  background: #d97706;
+}

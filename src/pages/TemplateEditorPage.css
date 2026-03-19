@@ -26,11 +26,11 @@
 .templates-name-input {
   width: 100%;
   background: transparent;
-  border: none;
+  border: 1px solid transparent;
   font-size: 1.35rem;
   font-weight: 600;
   color: var(--text-primary);
-  padding: 0;
+  padding: 0.15rem 0;
   letter-spacing: -0.02em;
 }
 
@@ -41,6 +41,17 @@
 .templates-name-input:focus {
   outline: none;
   box-shadow: none;
+  border-color: transparent;
+}
+
+.templates-name-input.is-invalid {
+  border-bottom-color: var(--accent);
+}
+
+.templates-name-error {
+  color: var(--accent);
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
 }
 
 /* Day Tabs */
