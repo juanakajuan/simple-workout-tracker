@@ -1,27 +1,12 @@
 import type {
   Exercise,
+  TemplateExercise,
+  TemplateMuscleGroup,
   Workout,
   WorkoutTemplate,
   WorkoutTemplateDraft,
-  TemplateMuscleGroup,
   Settings,
 } from "../types";
-
-interface LegacyTemplateDay {
-  id: string;
-  name: string;
-  muscleGroups: TemplateMuscleGroup[];
-}
-
-interface LegacyWorkoutTemplate {
-  id: string;
-  name: string;
-  days: LegacyTemplateDay[];
-}
-
-interface LegacyWorkout extends Workout {
-  templateDayId?: string;
-}
 
 /**
  * localStorage keys used throughout the application.
@@ -70,10 +55,22 @@ export function isDefaultExercise(exerciseId: string): boolean {
   return exerciseId.startsWith("default-");
 }
 
+/**
+ * Checks whether a value is a non-null object record.
+ *
+ * @param value - Value to inspect
+ * @returns True when the value is an object that can be accessed by keys
+ */
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
+/**
+ * Reads and parses a JSON value from localStorage.
+ *
+ * @param key - Storage key to read
+ * @returns Parsed value, or null when missing or invalid
+ */
 function parseStoredValue(key: string): unknown {
   try {
     const data = localStorage.getItem(key);
@@ -83,122 +80,135 @@ function parseStoredValue(key: string): unknown {
   }
 }
 
+/**
+ * Parses a JSON string while preserving invalid input as undefined.
+ *
+ * @param value - Raw JSON string to parse
+ * @returns Parsed value, or undefined when parsing fails
+ */
+function parseJsonString(value: string): unknown {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Normalizes a potential template exercise into a typed object.
+ *
+ * @param value - Candidate template exercise
+ * @returns Normalized exercise, or null for invalid input
+ */
+function normalizeTemplateExercise(value: unknown): TemplateExercise | null {
+  if (!isRecord(value)) return null;
+
+  const id = typeof value.id === "string" ? value.id : "";
+  if (!id) return null;
+
+  return {
+    id,
+    exerciseId:
+      typeof value.exerciseId === "string" || value.exerciseId === null ? value.exerciseId : null,
+    setCount:
+      typeof value.setCount === "number" && Number.isFinite(value.setCount) && value.setCount > 0
+        ? value.setCount
+        : 1,
+  };
+}
+
+/**
+ * Normalizes a potential muscle group list into a typed array.
+ *
+ * @param value - Candidate muscle group collection
+ * @returns Normalized muscle groups, or an empty array for invalid input
+ */
 function normalizeMuscleGroups(value: unknown): TemplateMuscleGroup[] {
   if (!Array.isArray(value)) return [];
-  return value as TemplateMuscleGroup[];
+
+  return value.flatMap((muscleGroup) => {
+    if (!isRecord(muscleGroup)) return [];
+
+    const id = typeof muscleGroup.id === "string" ? muscleGroup.id : "";
+    const groupName = typeof muscleGroup.muscleGroup === "string" ? muscleGroup.muscleGroup : "";
+    if (!id || !groupName) return [];
+
+    return [
+      {
+        id,
+        muscleGroup: groupName as TemplateMuscleGroup["muscleGroup"],
+        exercises: Array.isArray(muscleGroup.exercises)
+          ? muscleGroup.exercises.flatMap((exercise) => {
+              const normalizedExercise = normalizeTemplateExercise(exercise);
+              return normalizedExercise ? [normalizedExercise] : [];
+            })
+          : [],
+      },
+    ];
+  });
 }
 
-function isLegacyWorkoutTemplate(value: unknown): value is LegacyWorkoutTemplate {
-  return isRecord(value) && Array.isArray(value.days);
-}
-
-function getMigratedTemplateId(templateId: string, dayId: string, totalDays: number): string {
-  return totalDays === 1 ? templateId : `${templateId}__${dayId}`;
-}
-
-function getMigratedTemplateName(templateName: string, dayName: string, totalDays: number): string {
-  return totalDays === 1 ? templateName : `${templateName} - ${dayName}`;
-}
-
-function migrateLegacyTemplate(template: LegacyWorkoutTemplate): WorkoutTemplate[] {
-  return template.days.map((day) => ({
-    id: getMigratedTemplateId(template.id, day.id, template.days.length),
-    name: getMigratedTemplateName(template.name, day.name, template.days.length),
-    muscleGroups: normalizeMuscleGroups(day.muscleGroups),
-  }));
-}
-
-function normalizeTemplate(template: unknown): WorkoutTemplate[] {
-  if (!isRecord(template)) return [];
-
-  if (isLegacyWorkoutTemplate(template)) {
-    return migrateLegacyTemplate(template);
-  }
+/**
+ * Normalizes a single stored template value into the current standalone template shape.
+ *
+ * @param template - Raw stored template value
+ * @returns Normalized template, or null for invalid input
+ */
+function normalizeTemplate(template: unknown): WorkoutTemplate | null {
+  if (!isRecord(template)) return null;
 
   const id = typeof template.id === "string" ? template.id : null;
   const name = typeof template.name === "string" ? template.name : "";
-  if (!id || !name.trim()) return [];
+  if (!id || !name.trim()) return null;
 
-  return [
-    {
-      id,
-      name: name.trim(),
-      muscleGroups: normalizeMuscleGroups(template.muscleGroups),
-    },
-  ];
+  return {
+    id,
+    name: name.trim(),
+    muscleGroups: normalizeMuscleGroups(template.muscleGroups),
+  };
 }
 
+/**
+ * Normalizes stored template data into the current standalone template format.
+ *
+ * @param value - Raw stored template collection
+ * @returns Normalized templates, or an empty array for invalid input
+ */
 export function normalizeTemplates(value: unknown): WorkoutTemplate[] {
   if (!Array.isArray(value)) return [];
-  return value.flatMap(normalizeTemplate);
+  return value.flatMap((template) => {
+    const normalizedTemplate = normalizeTemplate(template);
+    return normalizedTemplate ? [normalizedTemplate] : [];
+  });
 }
 
+/**
+ * Normalizes stored draft template data.
+ *
+ * @param value - Raw stored draft value
+ * @returns Normalized draft template, or null when the input is unusable
+ */
 export function normalizeTemplateDraft(value: unknown): WorkoutTemplateDraft | null {
   if (!isRecord(value)) return null;
 
-  if (Array.isArray(value.muscleGroups)) {
-    return {
-      name: typeof value.name === "string" ? value.name : "",
-      muscleGroups: normalizeMuscleGroups(value.muscleGroups),
-    };
-  }
+  if (!Array.isArray(value.muscleGroups)) return null;
 
-  if (Array.isArray(value.days) && value.days.length > 0) {
-    const activeDayIndex =
-      typeof value.activeDayIndex === "number" && value.activeDayIndex >= 0
-        ? value.activeDayIndex
-        : 0;
-    const days = value.days as LegacyTemplateDay[];
-    const selectedDay = days[Math.min(activeDayIndex, days.length - 1)];
-
-    return {
-      name: getMigratedTemplateName(
-        typeof value.name === "string" ? value.name : "",
-        selectedDay.name,
-        days.length
-      ),
-      muscleGroups: normalizeMuscleGroups(selectedDay.muscleGroups),
-    };
-  }
-
-  return null;
+  return {
+    name: typeof value.name === "string" ? value.name : "",
+    muscleGroups: normalizeMuscleGroups(value.muscleGroups),
+  };
 }
 
+/**
+ * Normalizes stored active workout data.
+ *
+ * @param value - Raw stored active workout value
+ * @returns Normalized active workout, or null when the input is unusable
+ */
 export function normalizeActiveWorkout(value: unknown): Workout | null {
   if (!isRecord(value)) return null;
 
-  const workout = value as unknown as LegacyWorkout;
-  if (!workout.templateId) {
-    const { templateDayId: _templateDayId, ...rest } = workout;
-    return rest;
-  }
-
-  if (!workout.templateDayId) {
-    return workout;
-  }
-
-  const storedTemplates = parseStoredValue(STORAGE_KEYS.TEMPLATES);
-  const legacyTemplate = Array.isArray(storedTemplates)
-    ? storedTemplates.find(
-        (template): template is LegacyWorkoutTemplate =>
-          isLegacyWorkoutTemplate(template) && template.id === workout.templateId
-      )
-    : undefined;
-
-  const normalizedTemplates = normalizeTemplates(storedTemplates);
-  const compositeTemplateId = `${workout.templateId}__${workout.templateDayId}`;
-
-  const nextTemplateId = legacyTemplate
-    ? getMigratedTemplateId(workout.templateId, workout.templateDayId, legacyTemplate.days.length)
-    : normalizedTemplates.some((template) => template.id === compositeTemplateId)
-      ? compositeTemplateId
-      : workout.templateId;
-
-  const { templateDayId: _templateDayId, ...rest } = workout;
-  return {
-    ...rest,
-    templateId: nextTemplateId,
-  };
+  return value as unknown as Workout;
 }
 
 /**
@@ -344,10 +354,20 @@ export function saveTemplates(templates: WorkoutTemplate[]): void {
   localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(normalizeTemplates(templates)));
 }
 
+/**
+ * Retrieves the in-progress template draft from localStorage.
+ *
+ * @returns Normalized draft template, or null when no draft exists
+ */
 export function getDraftTemplate(): WorkoutTemplateDraft | null {
   return normalizeTemplateDraft(parseStoredValue(STORAGE_KEYS.DRAFT_TEMPLATE));
 }
 
+/**
+ * Saves or clears the current template draft in localStorage.
+ *
+ * @param draft - Draft template to persist, or null to remove it
+ */
 export function saveDraftTemplate(draft: WorkoutTemplateDraft | null): void {
   if (draft) {
     localStorage.setItem(
@@ -519,6 +539,77 @@ export function saveSettings(settings: Settings): void {
 }
 
 /**
+ * Converts raw stored JSON strings into canonical export values for known migrated keys.
+ *
+ * @param key - Storage key being exported
+ * @param value - Raw string value from localStorage
+ * @returns Canonical JSON string for export
+ */
+function normalizeStoredExportValue(key: string, value: string): string {
+  const parsedValue = parseJsonString(value);
+
+  if (parsedValue === undefined) {
+    return value;
+  }
+
+  switch (key) {
+    case STORAGE_KEYS.TEMPLATES:
+      return JSON.stringify(normalizeTemplates(parsedValue));
+    case STORAGE_KEYS.DRAFT_TEMPLATE: {
+      const draft = normalizeTemplateDraft(parsedValue);
+      return JSON.stringify(draft);
+    }
+    case STORAGE_KEYS.ACTIVE_WORKOUT: {
+      const workout = normalizeActiveWorkout(parsedValue);
+      return JSON.stringify(workout);
+    }
+    default:
+      return value;
+  }
+}
+
+/**
+ * Orders imported storage keys so template data is restored before dependent records.
+ *
+ * @param data - Raw imported storage map
+ * @returns Keys in the order they should be restored
+ */
+function getImportStorageOrder(data: Record<string, string>): string[] {
+  const prioritizedKeys = [
+    STORAGE_KEYS.TEMPLATES,
+    STORAGE_KEYS.DRAFT_TEMPLATE,
+    STORAGE_KEYS.ACTIVE_WORKOUT,
+  ];
+
+  return [
+    ...prioritizedKeys.filter((key) => key in data),
+    ...Object.keys(data).filter(
+      (key) => !prioritizedKeys.some((prioritizedKey) => prioritizedKey === key)
+    ),
+  ];
+}
+
+/**
+ * Converts imported storage entries into canonical persisted values.
+ *
+ * @param key - Storage key being imported
+ * @param value - Raw imported JSON string
+ * @returns Normalized string value, or null when the key should be omitted
+ */
+function normalizeStoredImportValue(key: string, value: string): string | null {
+  const normalizedValue = normalizeStoredExportValue(key, value);
+
+  if (
+    normalizedValue === "null" &&
+    (key === STORAGE_KEYS.DRAFT_TEMPLATE || key === STORAGE_KEYS.ACTIVE_WORKOUT)
+  ) {
+    return null;
+  }
+
+  return normalizedValue;
+}
+
+/**
  * Exports all Zenith application data from localStorage.
  * Automatically discovers and exports all keys prefixed with "zenith_".
  * Includes metadata for version compatibility and future-proofing.
@@ -537,7 +628,7 @@ export function exportAllData(): string {
     if (key && key.startsWith("zenith_")) {
       const value = localStorage.getItem(key);
       if (value !== null) {
-        data[key] = value;
+        data[key] = normalizeStoredExportValue(key, value);
       }
     }
   }
@@ -600,8 +691,12 @@ export function importAllData(jsonString: string): void {
   keysToRemove.forEach((key) => localStorage.removeItem(key));
 
   try {
-    Object.entries(importObject.data).forEach(([key, value]) => {
-      localStorage.setItem(key, value);
+    getImportStorageOrder(importObject.data).forEach((key) => {
+      const normalizedValue = normalizeStoredImportValue(key, importObject.data[key]);
+
+      if (normalizedValue !== null) {
+        localStorage.setItem(key, normalizedValue);
+      }
     });
   } catch (error) {
     console.error("Error writing imported data to localStorage:", error);
