@@ -1,10 +1,12 @@
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Check, Trash2 } from "lucide-react";
+import { Check, MoreVertical, Pencil, Trash2 } from "lucide-react";
 
-import type { Exercise } from "../types";
+import type { Exercise, Workout } from "../types";
 import { muscleGroupLabels, exerciseTypeLabels, getMuscleGroupClassName } from "../types";
 
-import { getWorkouts, DEFAULT_EXERCISES, getExercises } from "../utils/storage";
+import { useLocalStorage } from "../hooks/useLocalStorage";
+import { STORAGE_KEYS, DEFAULT_EXERCISES, getExercises } from "../utils/storage";
 
 import { PageHeader } from "../components/PageHeader";
 
@@ -13,14 +15,37 @@ import "./WorkoutDetailPage.css";
 export function WorkoutDetailPage() {
   const { workoutId } = useParams();
   const navigate = useNavigate();
+  const [workouts, setWorkouts] = useLocalStorage<Workout[]>(STORAGE_KEYS.WORKOUTS, []);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [workoutName, setWorkoutName] = useState("");
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const workout = workouts.find((w) => w.id === workoutId);
+
+  useEffect(() => {
+    if (workout) {
+      setWorkoutName(workout.name);
+    }
+  }, [workout?.name]);
+
+  useEffect(() => {
+    if (!isMenuOpen) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isMenuOpen]);
 
   if (!workoutId) {
     navigate(-1);
     return null;
   }
-
-  const workouts = getWorkouts();
-  const workout = workouts.find((w) => w.id === workoutId);
 
   if (!workout) {
     navigate(-1);
@@ -62,27 +87,132 @@ export function WorkoutDetailPage() {
   );
 
   const handleDelete = () => {
+    setIsMenuOpen(false);
     navigate("..", {
       state: { deleteWorkoutId: workoutId },
       relative: "path",
     });
   };
 
+  const handleStartRename = () => {
+    setIsMenuOpen(false);
+    setWorkoutName(workout.name);
+    setIsEditingName(true);
+  };
+
+  const handleCancelRename = () => {
+    setWorkoutName(workout.name);
+    setIsEditingName(false);
+  };
+
+  const handleSaveName = () => {
+    const trimmedName = workoutName.trim();
+
+    if (!trimmedName) {
+      setWorkoutName(workout.name);
+      setIsEditingName(false);
+      return;
+    }
+
+    if (trimmedName !== workout.name) {
+      setWorkouts((currentWorkouts) =>
+        currentWorkouts.map((currentWorkout) =>
+          currentWorkout.id === workout.id
+            ? { ...currentWorkout, name: trimmedName }
+            : currentWorkout
+        )
+      );
+    }
+
+    setWorkoutName(trimmedName);
+    setIsEditingName(false);
+  };
+
   const handleExerciseClick = (exercise: Exercise) => {
     navigate(`exercise/${exercise.id}`);
   };
 
-  const deleteButton = (
-    <button className="btn btn-danger btn-sm detail-delete-btn" onClick={handleDelete}>
-      <Trash2 size={18} />
-    </button>
+  const handleNameKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
+      handleSaveName();
+    }
+
+    if (event.key === "Escape") {
+      handleCancelRename();
+    }
+  };
+
+  const headerActions = (
+    <div className="detail-kebab-menu" ref={menuRef}>
+      <button
+        type="button"
+        className="btn btn-ghost btn-icon detail-header-btn"
+        onClick={() => setIsMenuOpen((currentValue) => !currentValue)}
+        aria-label="More options"
+        aria-expanded={isMenuOpen}
+      >
+        <MoreVertical size={18} />
+      </button>
+      {isMenuOpen && (
+        <div className="detail-kebab-dropdown">
+          <button type="button" className="detail-kebab-item" onClick={handleStartRename}>
+            <Pencil size={16} />
+            Rename workout
+          </button>
+          <button
+            type="button"
+            className="detail-kebab-item detail-kebab-item-danger"
+            onClick={handleDelete}
+          >
+            <Trash2 size={16} />
+            Delete workout
+          </button>
+        </div>
+      )}
+    </div>
   );
 
   return (
     <div className="workout-detail-page">
-      <PageHeader title={workout.name} actions={deleteButton} />
+      <PageHeader title={workout.name} actions={headerActions} />
 
       <div className="workout-detail-content">
+        {isEditingName && (
+          <div className="detail-name-editor card">
+            <label className="detail-name-label" htmlFor="workout-name-input">
+              Workout name
+            </label>
+            <div className="detail-name-row">
+              <input
+                id="workout-name-input"
+                type="text"
+                value={workoutName}
+                onChange={(event) => setWorkoutName(event.target.value)}
+                onKeyDown={handleNameKeyDown}
+                placeholder="Workout name"
+                autoFocus
+              />
+              <div className="detail-name-actions">
+                <button
+                  type="button"
+                  className="btn btn-secondary detail-name-cancel"
+                  onClick={handleCancelRename}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary detail-name-save"
+                  onClick={handleSaveName}
+                  disabled={!workoutName.trim()}
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <p className="detail-date">{formatDate(workout.date)}</p>
 
         <div className="detail-stats">

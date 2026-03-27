@@ -35,13 +35,9 @@
   width: 100%;
   text-align: left;
   cursor: pointer;
-  transition:
-    background-color var(--transition),
-    transform 100ms ease;
 }
 
 .history-card:active {
-  transform: scale(0.985);
 }
 
 .history-card-header {

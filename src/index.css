@@ -57,10 +57,6 @@
   --shadow: 0 2px 8px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
   --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.35), 0 4px 12px rgba(0, 0, 0, 0.25);
-
-  /* Transitions - smoother */
-  --transition: 180ms ease;
-  --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 html {
@@ -114,9 +110,6 @@ textarea {
   border-radius: var(--radius-md);
   padding: 0.75rem 1rem;
   width: 100%;
-  transition:
-    border-color var(--transition),
-    box-shadow var(--transition);
 }
 
 input:focus,
@@ -202,9 +195,6 @@ a {
   border-radius: var(--radius-md);
   font-weight: 600;
   font-size: 0.9rem;
-  transition:
-    all var(--transition),
-    transform 100ms ease;
   cursor: pointer;
 }
 
@@ -214,7 +204,6 @@ a {
 }
 
 .btn-primary:active {
-  transform: scale(0.97);
   background: var(--accent-hover);
 }
 
@@ -370,27 +359,6 @@ textarea {
   justify-content: center;
   z-index: 100;
   padding: 1rem;
-  animation: fadeIn 200ms ease;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(12px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
 }
 
 .modal {
@@ -401,7 +369,6 @@ textarea {
   max-width: 400px;
   overflow: hidden;
   box-shadow: var(--shadow-xl);
-  animation: slideUp 250ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .modal-header {
@@ -442,7 +409,6 @@ textarea {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all var(--transition);
   flex-shrink: 0;
 }
 
@@ -456,7 +422,6 @@ textarea {
   height: 14px;
   color: white;
   opacity: 0;
-  transition: opacity var(--transition);
 }
 
 .checkbox.checked svg {

@@ -26,7 +26,6 @@
   border: none;
   border-left: 3px solid transparent;
   cursor: pointer;
-  transition: all var(--transition);
   color: var(--text-primary);
   touch-action: manipulation;
   user-select: none;

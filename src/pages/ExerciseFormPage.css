@@ -50,9 +50,6 @@
   border-radius: var(--radius-md);
   color: var(--text-primary);
   font-family: inherit;
-  transition:
-    border-color var(--transition),
-    box-shadow var(--transition);
 }
 
 #exercise-form input:focus,
@@ -60,7 +57,6 @@
 #exercise-form textarea:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-dim);
 }
 
 #exercise-form textarea {

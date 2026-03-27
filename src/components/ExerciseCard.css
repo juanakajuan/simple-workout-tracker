@@ -1,12 +1,8 @@
 .exercise-card {
   cursor: pointer;
-  transition:
-    background-color var(--transition),
-    transform 100ms ease;
 }
 
 .exercise-card:active {
-  transform: scale(0.985);
 }
 
 .exercise-card-header {
@@ -26,7 +22,6 @@
 .exercise-edit-btn {
   flex-shrink: 0;
   opacity: 0.5;
-  transition: opacity var(--transition);
 }
 
 .exercise-edit-btn:hover {

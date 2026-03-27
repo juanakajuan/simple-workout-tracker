@@ -28,15 +28,11 @@
   border-radius: var(--radius-md);
   color: var(--text-primary);
   font-size: 0.9375rem;
-  transition:
-    border-color var(--transition),
-    box-shadow var(--transition);
 }
 
 .search-input:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-dim);
 }
 
 .search-input::placeholder {

@@ -84,7 +84,6 @@
   border: none;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all var(--transition);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -199,7 +198,6 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all var(--transition);
   text-align: left;
 }
 
@@ -286,14 +284,10 @@
   justify-content: center;
   flex-shrink: 0;
   cursor: pointer;
-  transition:
-    background var(--transition),
-    transform 100ms ease;
 }
 
 .templates-fab:active {
   background: var(--bg-hover);
-  transform: scale(0.95);
 }
 
 .templates-save-btn {
@@ -312,7 +306,6 @@
 
 .btn-accent:active {
   background: var(--accent-hover);
-  transform: scale(0.97);
 }
 
 /* Day Management Menu */
@@ -336,7 +329,6 @@
   min-width: 168px;
   z-index: 50;
   overflow: hidden;
-  animation: slideUp 150ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .templates-day-menu-dropdown button {
@@ -350,7 +342,6 @@
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: background var(--transition);
   text-align: left;
 }
 

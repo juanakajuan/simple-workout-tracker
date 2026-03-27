@@ -34,14 +34,10 @@
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-sm);
-  transition:
-    background var(--transition),
-    transform 100ms ease;
 }
 
 .page-header-back:active {
   background: var(--bg-hover);
-  transform: scale(0.92);
 }
 
 .page-header-title {

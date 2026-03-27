@@ -8,14 +8,9 @@
   border: 1px solid rgba(239, 68, 68, 0.2);
   border-radius: var(--radius-lg);
   cursor: pointer;
-  transition:
-    background var(--transition),
-    border-color var(--transition),
-    transform 100ms ease;
 }
 
 .draft-banner:active {
-  transform: scale(0.99);
 }
 
 .draft-banner-icon {
@@ -56,9 +51,6 @@
   border-radius: var(--radius-sm);
   color: var(--text-muted);
   cursor: pointer;
-  transition:
-    background var(--transition),
-    color var(--transition);
 }
 
 .draft-banner-dismiss:active {

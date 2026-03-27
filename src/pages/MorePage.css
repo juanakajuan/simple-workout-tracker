@@ -75,14 +75,10 @@
   font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
-  transition:
-    background-color var(--transition),
-    transform 100ms ease;
 }
 
 .more-menu-item:active {
   background: var(--bg-hover);
-  transform: scale(0.985);
 }
 
 .more-menu-item + .more-menu-item {
