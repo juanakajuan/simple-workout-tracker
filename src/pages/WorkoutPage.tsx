@@ -62,7 +62,6 @@ export function WorkoutPage() {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [openKebabMenu, setOpenKebabMenu] = useState<string | null>(null);
-  const [replacingWorkoutExerciseId, setReplacingWorkoutExerciseId] = useState<string | null>(null);
   const [updateTemplateOnReplace, setUpdateTemplateOnReplace] = useState(true);
   const [updateTemplateOnAdd, setUpdateTemplateOnAdd] = useState(true);
   const { showConfirm, dialogProps } = useConfirmDialog();
@@ -367,11 +366,11 @@ export function WorkoutPage() {
    *
    * @returns The muscle group of the exercise being replaced, or undefined
    */
-  const getReplacementMuscleGroup = () => {
-    if (!replacingWorkoutExerciseId || !activeWorkout) return undefined;
+  const getReplacementMuscleGroup = (workoutExerciseId: string) => {
+    if (!activeWorkout) return undefined;
 
     const workoutExercise = activeWorkout.exercises.find(
-      (exercise) => exercise.id === replacingWorkoutExerciseId
+      (exercise) => exercise.id === workoutExerciseId
     );
     if (!workoutExercise) return undefined;
 
@@ -385,8 +384,8 @@ export function WorkoutPage() {
    *
    * @returns Filtered list of exercises for replacement, or all exercises if no filter applies
    */
-  const getReplacementExercises = () => {
-    const muscleGroup = getReplacementMuscleGroup();
+  const getReplacementExercises = (workoutExerciseId: string) => {
+    const muscleGroup = getReplacementMuscleGroup(workoutExerciseId);
     if (!muscleGroup) return allExercises;
 
     return allExercises.filter((exercise) => exercise.muscleGroup === muscleGroup);
@@ -435,11 +434,15 @@ export function WorkoutPage() {
    *
    * @param newExerciseId - The unique identifier of the replacement exercise
    */
-  const replaceExerciseInWorkout = (newExerciseId: string) => {
-    if (!activeWorkout || !replacingWorkoutExerciseId) return;
+  const replaceExerciseInWorkout = (
+    workoutExerciseId: string,
+    newExerciseId: string,
+    shouldUpdateTemplate: boolean
+  ) => {
+    if (!activeWorkout) return;
 
     const workoutExerciseIndex = activeWorkout.exercises.findIndex(
-      (exercise) => exercise.id === replacingWorkoutExerciseId
+      (exercise) => exercise.id === workoutExerciseId
     );
 
     if (workoutExerciseIndex === -1) return;
@@ -456,7 +459,7 @@ export function WorkoutPage() {
     const updatedWorkout = {
       ...activeWorkout,
       exercises: activeWorkout.exercises.map((exercise) =>
-        exercise.id === replacingWorkoutExerciseId
+        exercise.id === workoutExerciseId
           ? { ...exercise, exerciseId: newExerciseId, sets: newSets }
           : exercise
       ),
@@ -464,12 +467,9 @@ export function WorkoutPage() {
 
     setActiveWorkout(updatedWorkout);
 
-    if (updateTemplateOnReplace && activeWorkout.templateId) {
+    if (shouldUpdateTemplate && activeWorkout.templateId) {
       updateTemplateExercise(activeWorkout.templateId, workoutExerciseIndex, newExerciseId);
     }
-
-    setReplacingWorkoutExerciseId(null);
-    setUpdateTemplateOnReplace(false);
   };
 
   /**
@@ -712,7 +712,6 @@ export function WorkoutPage() {
    * @param workoutExerciseId - The unique identifier of the workout exercise to replace
    */
   const handleReplaceExercise = (workoutExerciseId: string) => {
-    setReplacingWorkoutExerciseId(workoutExerciseId);
     setOpenKebabMenu(null);
 
     const workoutExercise = activeWorkout?.exercises.find((e) => e.id === workoutExerciseId);
@@ -720,10 +719,11 @@ export function WorkoutPage() {
 
     navigate("/workout/select-exercise", {
       state: {
-        exercises: getReplacementExercises(),
+        exercises: getReplacementExercises(workoutExerciseId),
         isReplacement: true,
         hideFilter: true,
         currentExerciseId,
+        replacementWorkoutExerciseId: workoutExerciseId,
         showTemplateUpdate: !!activeWorkout?.templateId,
         templateUpdateChecked: updateTemplateOnReplace,
       },
@@ -751,14 +751,18 @@ export function WorkoutPage() {
       savedExercise?: boolean;
       exerciseId?: string;
       updateTemplate?: boolean;
+      replacementWorkoutExerciseId?: string;
     };
 
     // Handle exercise selection (add or replace)
     if (state.selectedExerciseId) {
-      if (replacingWorkoutExerciseId) {
-        replaceExerciseInWorkout(state.selectedExerciseId);
-        setReplacingWorkoutExerciseId(null);
-        setUpdateTemplateOnReplace(true);
+      if (state.replacementWorkoutExerciseId) {
+        setUpdateTemplateOnReplace(state.updateTemplate ?? updateTemplateOnReplace);
+        replaceExerciseInWorkout(
+          state.replacementWorkoutExerciseId,
+          state.selectedExerciseId,
+          state.updateTemplate ?? updateTemplateOnReplace
+        );
       } else {
         addExerciseToWorkout(state.selectedExerciseId);
         // Update template if workout is from template and updateTemplate flag is set
@@ -776,7 +780,7 @@ export function WorkoutPage() {
 
     // Handle new exercise creation within selector flow
     if (state.savedExercise && state.exerciseId) {
-      if (!replacingWorkoutExerciseId) {
+      if (!state.replacementWorkoutExerciseId) {
         addExerciseToWorkout(state.exerciseId);
       }
       // Clear navigation state

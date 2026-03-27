@@ -22,6 +22,7 @@ interface ExerciseSelectorState {
   initialMuscleGroup?: MuscleGroup;
   isReplacement?: boolean;
   currentExerciseId?: string;
+  replacementWorkoutExerciseId?: string;
   showTemplateUpdate?: boolean;
   templateUpdateChecked?: boolean;
   isTemplateWorkout?: boolean;
@@ -116,6 +117,7 @@ export function ExerciseSelectorPage() {
         state: {
           selectedExerciseId: exerciseId,
           updateTemplate,
+          replacementWorkoutExerciseId: state?.replacementWorkoutExerciseId,
           templateSelectionTarget: state?.templateSelectionTarget,
         },
         relative: "path",
@@ -132,6 +134,7 @@ export function ExerciseSelectorPage() {
         state: {
           selectedExerciseId,
           updateTemplate,
+          replacementWorkoutExerciseId: state?.replacementWorkoutExerciseId,
           templateSelectionTarget: state?.templateSelectionTarget,
         },
         relative: "path",
