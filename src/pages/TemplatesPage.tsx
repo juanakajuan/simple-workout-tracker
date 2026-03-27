@@ -2,7 +2,7 @@ import { useState, useEffect, type CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Play, Trash2, MoreVertical, Dumbbell, Layers3 } from "lucide-react";
 
-import type { Exercise, Workout, WorkoutTemplate, WorkoutExercise } from "../types";
+import type { Workout, WorkoutTemplate, WorkoutExercise } from "../types";
 import { muscleGroupLabels, muscleGroupColors } from "../types";
 
 import { useLocalStorage } from "../hooks/useLocalStorage";
@@ -10,7 +10,6 @@ import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import {
   STORAGE_KEYS,
   generateId,
-  DEFAULT_EXERCISES,
   normalizeTemplates,
   normalizeActiveWorkout,
   getDraftTemplate,
@@ -24,7 +23,6 @@ import "./TemplatesPage.css";
 
 export function TemplatesPage() {
   const navigate = useNavigate();
-  const [exercises] = useLocalStorage<Exercise[]>(STORAGE_KEYS.EXERCISES, []);
   const [templates, setTemplates] = useLocalStorage<WorkoutTemplate[]>(STORAGE_KEYS.TEMPLATES, [], {
     deserialize: normalizeTemplates,
   });
@@ -35,11 +33,6 @@ export function TemplatesPage() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [hasDraft, setHasDraft] = useState(false);
   const { showConfirm, dialogProps } = useConfirmDialog();
-
-  const allExercises = DEFAULT_EXERCISES.map((defaultExercise) => {
-    const userOverride = exercises.find((exercise) => exercise.id === defaultExercise.id);
-    return userOverride || defaultExercise;
-  }).concat(exercises.filter((exercise) => !exercise.id.startsWith("default-")));
 
   useEffect(() => {
     setHasDraft(getDraftTemplate() !== null);
@@ -151,24 +144,6 @@ export function TemplatesPage() {
     return { exerciseCount, setCount };
   };
 
-  const getExerciseName = (exerciseId: string | null) => {
-    if (!exerciseId) return null;
-    return allExercises.find((exercise) => exercise.id === exerciseId)?.name ?? null;
-  };
-
-  const getExercisePreview = (template: WorkoutTemplate) => {
-    return template.muscleGroups
-      .flatMap((muscleGroup) =>
-        muscleGroup.exercises
-          .map((exercise) => {
-            const name = getExerciseName(exercise.exerciseId);
-            return name ? { id: exercise.id, name } : null;
-          })
-          .filter((exercise): exercise is { id: string; name: string } => Boolean(exercise))
-      )
-      .slice(0, 3);
-  };
-
   const getCardStyle = (template: WorkoutTemplate): CSSProperties => {
     const [first = "#fc3d3d", second = "#7c93ff", third = "#22c55e"] = template.muscleGroups.map(
       (muscleGroup) => muscleGroupColors[muscleGroup.muscleGroup]
@@ -212,8 +187,6 @@ export function TemplatesPage() {
         <div className="templates-list">
           {templates.map((template) => {
             const stats = getTemplateStats(template);
-            const previewExercises = getExercisePreview(template);
-            const extraExerciseCount = Math.max(stats.exerciseCount - previewExercises.length, 0);
 
             return (
               <div
@@ -225,7 +198,6 @@ export function TemplatesPage() {
                 <div className="template-card-hero">
                   <div className="template-card-header">
                     <div className="template-card-info">
-                      <span className="template-card-kicker">Workout template</span>
                       <h3 className="template-card-name">{template.name}</h3>
                     </div>
                     <div className="template-kebab-menu">
@@ -285,17 +257,6 @@ export function TemplatesPage() {
                         {muscleGroupLabels[muscleGroup.muscleGroup]}
                       </span>
                     ))}
-                  </div>
-
-                  <div className="template-card-preview">
-                    {previewExercises.map((exercise) => (
-                      <span key={exercise.id} className="template-card-preview-item">
-                        {exercise.name}
-                      </span>
-                    ))}
-                    {extraExerciseCount > 0 && (
-                      <span className="template-card-preview-more">+{extraExerciseCount} more</span>
-                    )}
                   </div>
                 </div>
 
