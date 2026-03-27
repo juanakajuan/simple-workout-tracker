@@ -88,9 +88,9 @@ export function WorkoutDetailPage() {
 
   const handleDelete = () => {
     setIsMenuOpen(false);
-    navigate("..", {
+    navigate("/history", {
+      replace: true,
       state: { deleteWorkoutId: workoutId },
-      relative: "path",
     });
   };
 
