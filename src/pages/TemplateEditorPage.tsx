@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type CSSProperties } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Plus, ChevronLeft, Minus, ChevronUp, ChevronDown, Trash2 } from "lucide-react";
 
-import type { Exercise, WorkoutTemplate, TemplateMuscleGroup, MuscleGroup } from "../types";
+import type { Exercise, WorkoutTemplate, TemplateExercise, TemplateMuscleGroup } from "../types";
 import { muscleGroupLabels, muscleGroupColors } from "../types";
 
 import { useLocalStorage } from "../hooks/useLocalStorage";
@@ -18,9 +18,43 @@ import {
 import "./TemplateEditorPage.css";
 
 interface TemplateSelectionTarget {
-  muscleGroupId: string;
-  exerciseId: string;
-  muscleGroup: MuscleGroup;
+  templateExerciseId: string;
+}
+
+function flattenTemplateMuscleGroups(muscleGroups: TemplateMuscleGroup[]): TemplateExercise[] {
+  return muscleGroups.flatMap((muscleGroup) =>
+    muscleGroup.exercises.map((exercise) => ({ ...exercise }))
+  );
+}
+
+function buildTemplateMuscleGroups(
+  templateExercises: TemplateExercise[],
+  exercises: Exercise[]
+): TemplateMuscleGroup[] {
+  const exercisesById = new Map(exercises.map((exercise) => [exercise.id, exercise]));
+  const muscleGroups: TemplateMuscleGroup[] = [];
+
+  templateExercises.forEach((templateExercise) => {
+    if (!templateExercise.exerciseId) return;
+
+    const exercise = exercisesById.get(templateExercise.exerciseId);
+    if (!exercise) return;
+
+    const previousGroup = muscleGroups[muscleGroups.length - 1];
+
+    if (previousGroup && previousGroup.muscleGroup === exercise.muscleGroup) {
+      previousGroup.exercises.push({ ...templateExercise });
+      return;
+    }
+
+    muscleGroups.push({
+      id: generateId(),
+      muscleGroup: exercise.muscleGroup,
+      exercises: [{ ...templateExercise }],
+    });
+  });
+
+  return muscleGroups;
 }
 
 export function TemplateEditorPage() {
@@ -35,7 +69,7 @@ export function TemplateEditorPage() {
   });
 
   const [name, setName] = useState("");
-  const [muscleGroups, setMuscleGroups] = useState<TemplateMuscleGroup[]>([]);
+  const [templateExercises, setTemplateExercises] = useState<TemplateExercise[]>([]);
   const [error, setError] = useState("");
   const [nameError, setNameError] = useState("");
   const [isInitialized, setIsInitialized] = useState(false);
@@ -51,7 +85,7 @@ export function TemplateEditorPage() {
       const template = templates.find((item) => item.id === id);
       if (template) {
         setName(template.name);
-        setMuscleGroups(template.muscleGroups);
+        setTemplateExercises(flattenTemplateMuscleGroups(template.muscleGroups));
       } else {
         navigate("/templates", { replace: true });
       }
@@ -59,7 +93,7 @@ export function TemplateEditorPage() {
       const draft = getDraftTemplate();
       if (draft) {
         setName(draft.name);
-        setMuscleGroups(draft.muscleGroups);
+        setTemplateExercises(draft.exercises);
       }
     }
 
@@ -68,89 +102,47 @@ export function TemplateEditorPage() {
 
   useEffect(() => {
     if (!isEditMode && isInitialized) {
-      saveDraftTemplate({ name, muscleGroups });
+      saveDraftTemplate({ name, exercises: templateExercises });
     }
-  }, [isEditMode, isInitialized, muscleGroups, name]);
+  }, [isEditMode, isInitialized, name, templateExercises]);
 
   useEffect(() => {
     if (!location.state) return;
 
     const state = location.state as {
-      selectedMuscleGroup?: MuscleGroup;
-      selectedMuscleGroups?: MuscleGroup[];
       selectedExerciseId?: string;
-      updateTemplate?: boolean;
+      appendTemplateExercise?: boolean;
       templateSelectionTarget?: TemplateSelectionTarget;
     };
-
-    if (state.selectedMuscleGroups) {
-      const selectedMuscleGroups = state.selectedMuscleGroups;
-
-      navigate(location.pathname, { replace: true, state: {} });
-
-      setMuscleGroups((previous) => {
-        const selectedSet = new Set(selectedMuscleGroups);
-        const existingGroups = previous.filter((muscleGroup) =>
-          selectedSet.has(muscleGroup.muscleGroup)
-        );
-        const existingGroupTypes = new Set(
-          existingGroups.map((muscleGroup) => muscleGroup.muscleGroup)
-        );
-        const newMuscleGroups: TemplateMuscleGroup[] = selectedMuscleGroups
-          .filter((muscleGroup) => !existingGroupTypes.has(muscleGroup))
-          .map((muscleGroup) => ({
-            id: generateId(),
-            muscleGroup,
-            exercises: [
-              {
-                id: generateId(),
-                exerciseId: null,
-                setCount: 3,
-              },
-            ],
-          }));
-
-        return [...existingGroups, ...newMuscleGroups];
-      });
-      return;
-    }
-
-    if (state.selectedMuscleGroup) {
-      navigate(location.pathname, { replace: true, state: {} });
-
-      const newMuscleGroup: TemplateMuscleGroup = {
-        id: generateId(),
-        muscleGroup: state.selectedMuscleGroup,
-        exercises: [
-          {
-            id: generateId(),
-            exerciseId: null,
-            setCount: 3,
-          },
-        ],
-      };
-
-      setMuscleGroups((previous) => [...previous, newMuscleGroup]);
-      return;
-    }
 
     if (state.selectedExerciseId && state.templateSelectionTarget) {
       navigate(location.pathname, { replace: true, state: {} });
 
-      const { muscleGroupId, exerciseId } = state.templateSelectionTarget;
+      const { templateExerciseId } = state.templateSelectionTarget;
 
-      setMuscleGroups((previous) =>
-        previous.map((muscleGroup) => {
-          if (muscleGroup.id !== muscleGroupId) return muscleGroup;
-          return {
-            ...muscleGroup,
-            exercises: muscleGroup.exercises.map((exercise) => {
-              if (exercise.id !== exerciseId) return exercise;
-              return { ...exercise, exerciseId: state.selectedExerciseId! };
-            }),
-          };
-        })
+      setTemplateExercises((previous) =>
+        previous.map((exercise) =>
+          exercise.id === templateExerciseId
+            ? { ...exercise, exerciseId: state.selectedExerciseId! }
+            : exercise
+        )
       );
+
+      setError("");
+      return;
+    }
+
+    if (state.selectedExerciseId && state.appendTemplateExercise) {
+      navigate(location.pathname, { replace: true, state: {} });
+
+      setTemplateExercises((previous) => [
+        ...previous,
+        {
+          id: generateId(),
+          exerciseId: state.selectedExerciseId!,
+          setCount: 3,
+        },
+      ]);
 
       setError("");
     }
@@ -171,26 +163,19 @@ export function TemplateEditorPage() {
 
     setNameError("");
 
-    const hasExercises = muscleGroups.some((muscleGroup) =>
-      muscleGroup.exercises.some((exercise) => exercise.exerciseId !== null)
-    );
+    const hasExercises = templateExercises.some((exercise) => exercise.exerciseId !== null);
 
     if (!hasExercises) {
       setError("Please add at least one exercise to the template");
       return;
     }
 
-    const cleanedMuscleGroups = muscleGroups
-      .map((muscleGroup) => ({
-        ...muscleGroup,
-        exercises: muscleGroup.exercises.filter((exercise) => exercise.exerciseId !== null),
-      }))
-      .filter((muscleGroup) => muscleGroup.exercises.length > 0);
+    const cleanedExercises = templateExercises.filter((exercise) => exercise.exerciseId !== null);
 
     const savedTemplate: WorkoutTemplate = {
       id: isEditMode ? id! : generateId(),
       name: trimmedName,
-      muscleGroups: cleanedMuscleGroups,
+      muscleGroups: buildTemplateMuscleGroups(cleanedExercises, allExercises),
     };
 
     const existingIndex = templates.findIndex((template) => template.id === savedTemplate.id);
@@ -209,23 +194,27 @@ export function TemplateEditorPage() {
     navigate("/templates");
   };
 
-  const handleAddMuscleGroup = () => {
+  const handleAddExercise = () => {
     const path = isEditMode
-      ? `/templates/edit/${id}/select-muscle-group`
-      : "/templates/new/select-muscle-group";
-    const existingMuscleGroups = muscleGroups.map((group) => group.muscleGroup);
-    navigate(path, { state: { existingMuscleGroups } });
+      ? `/templates/edit/${id}/select-exercise`
+      : "/templates/new/select-exercise";
+    navigate(path, {
+      state: {
+        exercises: allExercises,
+        appendTemplateExercise: true,
+      },
+    });
   };
 
-  const removeMuscleGroup = (muscleGroupId: string) => {
-    setMuscleGroups((previous) =>
-      previous.filter((muscleGroup) => muscleGroup.id !== muscleGroupId)
+  const removeExercise = (templateExerciseId: string) => {
+    setTemplateExercises((previous) =>
+      previous.filter((exercise) => exercise.id !== templateExerciseId)
     );
   };
 
-  const moveMuscleGroup = (muscleGroupId: string, direction: "up" | "down") => {
-    setMuscleGroups((previous) => {
-      const currentIndex = previous.findIndex((muscleGroup) => muscleGroup.id === muscleGroupId);
+  const moveExercise = (templateExerciseId: string, direction: "up" | "down") => {
+    setTemplateExercises((previous) => {
+      const currentIndex = previous.findIndex((exercise) => exercise.id === templateExerciseId);
       if (currentIndex === -1) return previous;
 
       const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
@@ -240,24 +229,22 @@ export function TemplateEditorPage() {
     });
   };
 
-  const handleSelectExercise = (
-    muscleGroupId: string,
-    exerciseId: string,
-    muscleGroup: MuscleGroup
-  ) => {
+  const handleSelectExercise = (templateExerciseId: string) => {
     const path = isEditMode
       ? `/templates/edit/${id}/select-exercise`
       : "/templates/new/select-exercise";
+    const templateExercise = templateExercises.find(
+      (exercise) => exercise.id === templateExerciseId
+    );
+    const currentExercise = getExerciseById(templateExercise?.exerciseId ?? null);
+
     navigate(path, {
       state: {
         exercises: allExercises,
-        hideFilter: true,
-        initialMuscleGroup: muscleGroup,
+        initialMuscleGroup: currentExercise?.muscleGroup,
         templateUpdateChecked: true,
         templateSelectionTarget: {
-          muscleGroupId,
-          exerciseId,
-          muscleGroup,
+          templateExerciseId,
         },
       },
     });
@@ -268,18 +255,12 @@ export function TemplateEditorPage() {
     return allExercises.find((exercise) => exercise.id === exerciseId) ?? null;
   };
 
-  const updateSetCount = (muscleGroupId: string, exerciseId: string, delta: number) => {
-    setMuscleGroups((previous) =>
-      previous.map((muscleGroup) => {
-        if (muscleGroup.id !== muscleGroupId) return muscleGroup;
-        return {
-          ...muscleGroup,
-          exercises: muscleGroup.exercises.map((exercise) => {
-            if (exercise.id !== exerciseId) return exercise;
-            const newCount = Math.max(1, Math.min(20, exercise.setCount + delta));
-            return { ...exercise, setCount: newCount };
-          }),
-        };
+  const updateSetCount = (templateExerciseId: string, delta: number) => {
+    setTemplateExercises((previous) =>
+      previous.map((exercise) => {
+        if (exercise.id !== templateExerciseId) return exercise;
+        const newCount = Math.max(1, Math.min(20, exercise.setCount + delta));
+        return { ...exercise, setCount: newCount };
       })
     );
   };
@@ -316,106 +297,100 @@ export function TemplateEditorPage() {
       </div>
 
       <div className="templates-day-content">
-        {muscleGroups.length === 0 ? (
+        {templateExercises.length === 0 ? (
           <div className="templates-empty-day">
-            <p>No muscle groups added yet.</p>
-            <p className="hint">Tap the + button to build this workout template.</p>
+            <p>No exercises added yet.</p>
+            <p className="hint">Tap the + button to add exercises straight to this template.</p>
           </div>
         ) : (
-          <div className="templates-muscle-groups-list">
-            {muscleGroups.map((muscleGroup, muscleGroupIndex) => (
-              <div key={muscleGroup.id} className="templates-muscle-group-row">
-                <div className="templates-muscle-group-reorder">
-                  <button
-                    className="btn btn-icon btn-ghost btn-sm"
-                    onClick={() => moveMuscleGroup(muscleGroup.id, "up")}
-                    disabled={muscleGroupIndex === 0}
-                    aria-label="Move up"
-                  >
-                    <ChevronUp size={16} />
-                  </button>
-                  <button
-                    className="btn btn-icon btn-ghost btn-sm"
-                    onClick={() => moveMuscleGroup(muscleGroup.id, "down")}
-                    disabled={muscleGroupIndex === muscleGroups.length - 1}
-                    aria-label="Move down"
-                  >
-                    <ChevronDown size={16} />
-                  </button>
-                </div>
+          <div className="templates-exercises-list">
+            {templateExercises.map((templateExercise, exerciseIndex) => {
+              const exercise = getExerciseById(templateExercise.exerciseId);
 
-                <div className="templates-muscle-group-content">
-                  <div className="templates-muscle-group-header">
-                    <span
-                      className="muscle-group-indicator-bar"
-                      style={{ backgroundColor: muscleGroupColors[muscleGroup.muscleGroup] }}
-                    />
-                    <span className="templates-muscle-group-name">
-                      {muscleGroupLabels[muscleGroup.muscleGroup]}
-                    </span>
+              return (
+                <div key={templateExercise.id} className="templates-exercise-item">
+                  <div className="templates-exercise-reorder">
+                    <button
+                      className="btn btn-icon btn-ghost btn-sm"
+                      onClick={() => moveExercise(templateExercise.id, "up")}
+                      disabled={exerciseIndex === 0}
+                      aria-label="Move up"
+                    >
+                      <ChevronUp size={16} />
+                    </button>
+                    <button
+                      className="btn btn-icon btn-ghost btn-sm"
+                      onClick={() => moveExercise(templateExercise.id, "down")}
+                      disabled={exerciseIndex === templateExercises.length - 1}
+                      aria-label="Move down"
+                    >
+                      <ChevronDown size={16} />
+                    </button>
                   </div>
 
-                  {muscleGroup.exercises.map((templateExercise) => {
-                    const exercise = getExerciseById(templateExercise.exerciseId);
-
-                    return (
-                      <div
-                        key={templateExercise.id}
-                        className={`templates-exercise-row ${exercise ? "has-selected-exercise" : ""}`}
-                      >
-                        <button
-                          className={`templates-exercise-btn ${exercise ? "has-exercise" : ""}`}
-                          onClick={() =>
-                            handleSelectExercise(
-                              muscleGroup.id,
-                              templateExercise.id,
-                              muscleGroup.muscleGroup
-                            )
+                  <div className="templates-exercise-content">
+                    {exercise && (
+                      <div className="templates-exercise-meta">
+                        <span
+                          className="templates-exercise-muscle-chip"
+                          style={
+                            {
+                              "--exercise-muscle-color": muscleGroupColors[exercise.muscleGroup],
+                            } as CSSProperties
                           }
                         >
-                          {exercise ? exercise.name : "Choose an exercise"}
-                        </button>
-                        {exercise && (
-                          <div className="templates-set-count-control">
-                            <button
-                              type="button"
-                              className="btn btn-icon btn-ghost btn-sm"
-                              onClick={() =>
-                                updateSetCount(muscleGroup.id, templateExercise.id, -1)
-                              }
-                              disabled={templateExercise.setCount <= 1}
-                              aria-label="Decrease sets"
-                            >
-                              <Minus size={14} />
-                            </button>
-                            <span className="templates-set-count-value">
-                              {templateExercise.setCount}
-                            </span>
-                            <button
-                              type="button"
-                              className="btn btn-icon btn-ghost btn-sm"
-                              onClick={() => updateSetCount(muscleGroup.id, templateExercise.id, 1)}
-                              disabled={templateExercise.setCount >= 20}
-                              aria-label="Increase sets"
-                            >
-                              <Plus size={14} />
-                            </button>
-                          </div>
-                        )}
+                          {muscleGroupLabels[exercise.muscleGroup]}
+                        </span>
                       </div>
-                    );
-                  })}
-                </div>
+                    )}
 
-                <button
-                  className="btn btn-icon btn-ghost templates-muscle-group-delete"
-                  onClick={() => removeMuscleGroup(muscleGroup.id)}
-                  aria-label="Remove muscle group"
-                >
-                  <Trash2 size={20} />
-                </button>
-              </div>
-            ))}
+                    <div
+                      className={`templates-exercise-row ${exercise ? "has-selected-exercise" : ""}`}
+                    >
+                      <button
+                        className={`templates-exercise-btn ${exercise ? "has-exercise" : ""}`}
+                        onClick={() => handleSelectExercise(templateExercise.id)}
+                      >
+                        {exercise ? exercise.name : "Choose an exercise"}
+                      </button>
+                      {exercise && (
+                        <div className="templates-set-count-control">
+                          <button
+                            type="button"
+                            className="btn btn-icon btn-ghost btn-sm"
+                            onClick={() => updateSetCount(templateExercise.id, -1)}
+                            disabled={templateExercise.setCount <= 1}
+                            aria-label="Decrease sets"
+                          >
+                            <Minus size={14} />
+                          </button>
+                          <span className="templates-set-count-value">
+                            {templateExercise.setCount}
+                          </span>
+                          <button
+                            type="button"
+                            className="btn btn-icon btn-ghost btn-sm"
+                            onClick={() => updateSetCount(templateExercise.id, 1)}
+                            disabled={templateExercise.setCount >= 20}
+                            aria-label="Increase sets"
+                          >
+                            <Plus size={14} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    className="btn btn-icon btn-ghost templates-exercise-delete"
+                    onClick={() => removeExercise(templateExercise.id)}
+                    aria-label="Remove exercise"
+                  >
+                    <Trash2 size={20} />
+                  </button>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -426,8 +401,8 @@ export function TemplateEditorPage() {
         <button
           type="button"
           className="btn btn-icon templates-fab"
-          onClick={handleAddMuscleGroup}
-          aria-label="Add muscle group"
+          onClick={handleAddExercise}
+          aria-label="Add exercise"
         >
           <Plus size={24} />
         </button>

@@ -118,6 +118,21 @@ function normalizeTemplateExercise(value: unknown): TemplateExercise | null {
 }
 
 /**
+ * Normalizes a potential template exercise list into a typed array.
+ *
+ * @param value - Candidate template exercise collection
+ * @returns Normalized exercises, or an empty array for invalid input
+ */
+function normalizeTemplateExercises(value: unknown): TemplateExercise[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((exercise) => {
+    const normalizedExercise = normalizeTemplateExercise(exercise);
+    return normalizedExercise ? [normalizedExercise] : [];
+  });
+}
+
+/**
  * Normalizes a potential muscle group list into a typed array.
  *
  * @param value - Candidate muscle group collection
@@ -191,11 +206,22 @@ export function normalizeTemplates(value: unknown): WorkoutTemplate[] {
 export function normalizeTemplateDraft(value: unknown): WorkoutTemplateDraft | null {
   if (!isRecord(value)) return null;
 
+  const name = typeof value.name === "string" ? value.name : "";
+
+  if (Array.isArray(value.exercises)) {
+    return {
+      name,
+      exercises: normalizeTemplateExercises(value.exercises),
+    };
+  }
+
   if (!Array.isArray(value.muscleGroups)) return null;
 
   return {
-    name: typeof value.name === "string" ? value.name : "",
-    muscleGroups: normalizeMuscleGroups(value.muscleGroups),
+    name,
+    exercises: normalizeMuscleGroups(value.muscleGroups).flatMap((muscleGroup) =>
+      muscleGroup.exercises.map((exercise) => ({ ...exercise }))
+    ),
   };
 }
 

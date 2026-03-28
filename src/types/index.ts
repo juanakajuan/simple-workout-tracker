@@ -84,7 +84,7 @@ export interface WorkoutTemplate {
 
 export interface WorkoutTemplateDraft {
   name: string;
-  muscleGroups: TemplateMuscleGroup[];
+  exercises: TemplateExercise[];
 }
 
 export interface Settings {

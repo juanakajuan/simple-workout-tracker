@@ -11,9 +11,7 @@ import { PageHeader } from "../components/PageHeader";
 import "./ExerciseSelectorPage.css";
 
 interface TemplateSelectionTarget {
-  muscleGroupId: string;
-  exerciseId: string;
-  muscleGroup: MuscleGroup;
+  templateExerciseId: string;
 }
 
 interface ExerciseSelectorState {
@@ -27,6 +25,7 @@ interface ExerciseSelectorState {
   templateUpdateChecked?: boolean;
   isTemplateWorkout?: boolean;
   templateSelectionTarget?: TemplateSelectionTarget;
+  appendTemplateExercise?: boolean;
 }
 
 export function ExerciseSelectorPage() {
@@ -119,6 +118,7 @@ export function ExerciseSelectorPage() {
           updateTemplate,
           replacementWorkoutExerciseId: state?.replacementWorkoutExerciseId,
           templateSelectionTarget: state?.templateSelectionTarget,
+          appendTemplateExercise: state?.appendTemplateExercise,
         },
         relative: "path",
       });
@@ -136,6 +136,7 @@ export function ExerciseSelectorPage() {
           updateTemplate,
           replacementWorkoutExerciseId: state?.replacementWorkoutExerciseId,
           templateSelectionTarget: state?.templateSelectionTarget,
+          appendTemplateExercise: state?.appendTemplateExercise,
         },
         relative: "path",
       });

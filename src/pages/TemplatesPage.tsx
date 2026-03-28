@@ -2,7 +2,7 @@ import { useState, useEffect, type CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Play, Trash2, MoreVertical, Dumbbell, Layers3 } from "lucide-react";
 
-import type { Workout, WorkoutTemplate, WorkoutExercise } from "../types";
+import type { Workout, WorkoutTemplate, WorkoutExercise, MuscleGroup } from "../types";
 import { muscleGroupLabels, muscleGroupColors } from "../types";
 
 import { useLocalStorage } from "../hooks/useLocalStorage";
@@ -128,6 +128,16 @@ export function TemplatesPage() {
     navigate("/workout");
   };
 
+  const getUniqueMuscleGroups = (template: WorkoutTemplate): MuscleGroup[] => {
+    const muscleGroups = new Set<MuscleGroup>();
+
+    template.muscleGroups.forEach((muscleGroup) => {
+      muscleGroups.add(muscleGroup.muscleGroup);
+    });
+
+    return Array.from(muscleGroups);
+  };
+
   const getTemplateStats = (template: WorkoutTemplate) => {
     let exerciseCount = 0;
     let setCount = 0;
@@ -145,9 +155,9 @@ export function TemplatesPage() {
   };
 
   const getCardStyle = (template: WorkoutTemplate): CSSProperties => {
-    const [first = "#fc3d3d", second = "#7c93ff", third = "#22c55e"] = template.muscleGroups.map(
-      (muscleGroup) => muscleGroupColors[muscleGroup.muscleGroup]
-    );
+    const [first = "#fc3d3d", second = "#7c93ff", third = "#22c55e"] = getUniqueMuscleGroups(
+      template
+    ).map((muscleGroup) => muscleGroupColors[muscleGroup]);
 
     return {
       cursor: "pointer",
@@ -187,6 +197,7 @@ export function TemplatesPage() {
         <div className="templates-list">
           {templates.map((template) => {
             const stats = getTemplateStats(template);
+            const muscleGroups = getUniqueMuscleGroups(template);
 
             return (
               <div
@@ -248,13 +259,13 @@ export function TemplatesPage() {
 
                 <div className="template-card-body">
                   <div className="template-card-muscles">
-                    {template.muscleGroups.map((muscleGroup) => (
-                      <span key={muscleGroup.id} className="template-card-muscle-chip">
+                    {muscleGroups.map((muscleGroup) => (
+                      <span key={muscleGroup} className="template-card-muscle-chip">
                         <span
                           className="template-card-muscle-dot"
-                          style={{ backgroundColor: muscleGroupColors[muscleGroup.muscleGroup] }}
+                          style={{ backgroundColor: muscleGroupColors[muscleGroup] }}
                         />
-                        {muscleGroupLabels[muscleGroup.muscleGroup]}
+                        {muscleGroupLabels[muscleGroup]}
                       </span>
                     ))}
                   </div>
