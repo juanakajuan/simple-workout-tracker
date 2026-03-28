@@ -5,7 +5,7 @@
   padding: 0.875rem 1rem;
   margin-top: 1rem;
   background: var(--accent-dim);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(255, 61, 0, 0.2);
   border-radius: var(--radius-lg);
   cursor: pointer;
 }

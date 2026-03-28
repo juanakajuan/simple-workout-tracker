@@ -3,14 +3,12 @@
   align-items: center;
   justify-content: space-between;
   padding: calc(0.6rem + var(--safe-area-top-compact)) 1.25rem 0.75rem;
-  background: rgba(18, 18, 21, 0.9);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-  border-bottom: 1px solid var(--border);
+  background: var(--bg-card);
   position: sticky;
   top: 0;
   z-index: 10;
   min-height: calc(52px + var(--safe-area-top-compact));
+  margin: 0 calc(-1.25rem) 1.75rem calc(-1.25rem);
 }
 
 .page-header-left,

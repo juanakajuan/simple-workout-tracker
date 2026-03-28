@@ -6,9 +6,7 @@
   display: flex;
   justify-content: space-around;
   align-items: stretch;
-  background: rgba(18, 18, 21, 0.85);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background: var(--bg-secondary);
   border-top: 1px solid var(--border);
   padding: var(--bottom-tab-bar-padding-y) 0;
   padding-bottom: calc(var(--bottom-tab-bar-padding-y) + var(--safe-area-bottom-compact));

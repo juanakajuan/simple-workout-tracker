@@ -1,9 +1,9 @@
-import { useState, useEffect, type CSSProperties } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Play, Trash2, MoreVertical, Dumbbell, Layers3 } from "lucide-react";
+import { Plus, ChevronRight, Trash2, MoreVertical, Pencil } from "lucide-react";
 
 import type { Workout, WorkoutTemplate, WorkoutExercise, MuscleGroup } from "../types";
-import { muscleGroupLabels, muscleGroupColors } from "../types";
+import { muscleGroupLabels, getMuscleGroupClassName } from "../types";
 
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
@@ -93,7 +93,7 @@ export function TemplatesPage() {
     });
   };
 
-  const handleTemplateClick = (template: WorkoutTemplate) => {
+  const handleStartTemplate = (template: WorkoutTemplate) => {
     const today = new Date();
     const workoutExercises: WorkoutExercise[] = [];
 
@@ -128,14 +128,8 @@ export function TemplatesPage() {
     navigate("/workout");
   };
 
-  const getUniqueMuscleGroups = (template: WorkoutTemplate): MuscleGroup[] => {
-    const muscleGroups = new Set<MuscleGroup>();
-
-    template.muscleGroups.forEach((muscleGroup) => {
-      muscleGroups.add(muscleGroup.muscleGroup);
-    });
-
-    return Array.from(muscleGroups);
+  const getTemplateMuscleGroups = (template: WorkoutTemplate): MuscleGroup[] => {
+    return Array.from(new Set(template.muscleGroups.map((mg) => mg.muscleGroup)));
   };
 
   const getTemplateStats = (template: WorkoutTemplate) => {
@@ -154,20 +148,8 @@ export function TemplatesPage() {
     return { exerciseCount, setCount };
   };
 
-  const getCardStyle = (template: WorkoutTemplate): CSSProperties => {
-    const [first = "#fc3d3d", second = "#7c93ff", third = "#22c55e"] = getUniqueMuscleGroups(
-      template
-    ).map((muscleGroup) => muscleGroupColors[muscleGroup]);
-
-    return {
-      cursor: "pointer",
-      "--template-accent-1": first,
-      "--template-accent-2": second,
-      "--template-accent-3": third,
-    } as CSSProperties;
-  };
-
-  const toggleMenu = (templateId: string) => {
+  const toggleMenu = (templateId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
     setOpenMenuId(openMenuId === templateId ? null : templateId);
   };
 
@@ -197,91 +179,81 @@ export function TemplatesPage() {
         <div className="templates-list">
           {templates.map((template) => {
             const stats = getTemplateStats(template);
-            const muscleGroups = getUniqueMuscleGroups(template);
+            const muscleGroups = getTemplateMuscleGroups(template);
 
             return (
-              <div
-                key={template.id}
-                className="template-card card"
-                onClick={() => handleEditTemplate(template.id)}
-                style={getCardStyle(template)}
-              >
-                <div className="template-card-hero">
-                  <div className="template-card-header">
-                    <div className="template-card-info">
-                      <h3 className="template-card-name">{template.name}</h3>
+              <div key={template.id} className="template-row">
+                <button
+                  className="template-row-clickable"
+                  onClick={() => {
+                    showConfirm({
+                      title: `Start "${template.name}"?`,
+                      message: "This will begin a new workout from this template.",
+                      confirmText: "Start",
+                      cancelText: "Cancel",
+                      variant: "standard",
+                      onConfirm: () => handleStartTemplate(template),
+                    });
+                  }}
+                >
+                  <div className="template-row-content">
+                    <div className="template-row-muscle-groups">
+                      {muscleGroups.map((mg) => (
+                        <span key={mg} className={`tag ${getMuscleGroupClassName(mg)}`}>
+                          {muscleGroupLabels[mg]}
+                        </span>
+                      ))}
                     </div>
-                    <div className="template-kebab-menu">
-                      <button
-                        className="btn btn-ghost btn-icon"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          toggleMenu(template.id);
-                        }}
-                        aria-label="More options"
-                        aria-expanded={openMenuId === template.id}
-                      >
-                        <MoreVertical size={18} />
-                      </button>
-                      {openMenuId === template.id && (
-                        <div className="template-kebab-dropdown">
-                          <button
-                            className="template-kebab-item template-kebab-item-delete"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setOpenMenuId(null);
-                              deleteTemplate(template.id);
-                            }}
-                          >
-                            <Trash2 size={16} />
-                            Delete
-                          </button>
-                        </div>
+                    <span className="template-row-name">{template.name}</span>
+                    <div className="template-row-tags">
+                      {stats.exerciseCount > 0 && (
+                        <span className="template-row-tag">
+                          {stats.exerciseCount} EXERCISE{stats.exerciseCount !== 1 ? "S" : ""}
+                        </span>
+                      )}
+                      {stats.setCount > 0 && (
+                        <span className="template-row-tag">{stats.setCount} SETS</span>
                       )}
                     </div>
                   </div>
+                  <ChevronRight size={18} className="template-row-chevron" />
+                </button>
 
-                  <div className="template-card-stats">
-                    <div className="template-stat-pill">
-                      <Dumbbell size={15} />
-                      <span>
-                        {stats.exerciseCount} exercise{stats.exerciseCount !== 1 ? "s" : ""}
-                      </span>
-                    </div>
-                    <div className="template-stat-pill">
-                      <Layers3 size={15} />
-                      <span>
-                        {stats.setCount} set{stats.setCount !== 1 ? "s" : ""}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="template-card-body">
-                  <div className="template-card-muscles">
-                    {muscleGroups.map((muscleGroup) => (
-                      <span key={muscleGroup} className="template-card-muscle-chip">
-                        <span
-                          className="template-card-muscle-dot"
-                          style={{ backgroundColor: muscleGroupColors[muscleGroup] }}
-                        />
-                        {muscleGroupLabels[muscleGroup]}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="template-card-actions">
+                <div className="template-kebab-menu">
                   <button
-                    className="btn btn-primary btn-sm text-uppercase template-card-start"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      handleTemplateClick(template);
-                    }}
+                    className="btn btn-ghost btn-icon template-row-menu-btn"
+                    onClick={(event) => toggleMenu(template.id, event)}
+                    aria-label="More options"
+                    aria-expanded={openMenuId === template.id}
                   >
-                    <Play size={16} />
-                    Start
+                    <MoreVertical size={18} />
                   </button>
+                  {openMenuId === template.id && (
+                    <div className="template-kebab-dropdown">
+                      <button
+                        className="template-kebab-item"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setOpenMenuId(null);
+                          handleEditTemplate(template.id);
+                        }}
+                      >
+                        <Pencil size={15} />
+                        Edit
+                      </button>
+                      <button
+                        className="template-kebab-item template-kebab-item-delete"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setOpenMenuId(null);
+                          deleteTemplate(template.id);
+                        }}
+                      >
+                        <Trash2 size={15} />
+                        Delete
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             );
