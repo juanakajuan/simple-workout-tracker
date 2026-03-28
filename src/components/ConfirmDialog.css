@@ -14,7 +14,6 @@
   width: 48px;
   height: 48px;
   margin: 0 auto 1.25rem;
-  background: var(--accent-dim);
   border-radius: var(--radius-md);
   color: var(--accent);
 }
@@ -93,17 +92,14 @@
 }
 
 .alert-dialog-icon.standard {
-  background: var(--accent-dim);
   color: var(--accent);
 }
 
 .alert-dialog-icon.danger {
-  background: var(--accent-dim);
   color: var(--accent);
 }
 
 .alert-dialog-icon.warning {
-  background: var(--warning-dim);
   color: var(--warning);
 }
 

@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import "./PageHeader.css";
 
 interface PageHeaderProps {
-  title: string;
+  title: ReactNode;
   showBackButton?: boolean;
   onBack?: () => void;
   actions?: ReactNode;

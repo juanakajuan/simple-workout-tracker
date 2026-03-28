@@ -6,52 +6,57 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  padding-top: 0;
 }
 
-/* Header */
-.templates-editor-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: calc(0.75rem + var(--safe-area-top-compact)) 1.25rem 0.85rem;
-  flex-shrink: 0;
+/* PageHeader on template page - match exercise page positioning */
+.templates-page-editor .page-header {
+  margin-left: -1.25rem;
+  margin-right: -1.25rem;
+  padding-left: 0;
+  padding-right: 0;
 }
 
-/* Title Section */
-.templates-title-section {
-  padding: 0 1.25rem 1rem;
-  flex-shrink: 0;
-}
-
-.templates-name-input {
-  width: 100%;
-  background: transparent;
-  border: 1px solid transparent;
-  font-size: 1.35rem;
+/* Header Name Input (styled like page-header-title but editable) */
+.templates-header-name-input {
+  font-size: 1.1rem;
   font-weight: 600;
   color: var(--text-primary);
-  padding: 0.15rem 0;
-  letter-spacing: -0.02em;
+  margin: 0;
+  text-align: center;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+  background: transparent;
+  border: none;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  width: 100%;
+  max-width: 300px;
 }
 
-.templates-name-input::placeholder {
+.templates-header-name-input::placeholder {
   color: var(--text-muted);
 }
 
-.templates-name-input:focus {
+.templates-header-name-input:focus {
   outline: none;
-  box-shadow: none;
-  border-color: transparent;
+  background: var(--bg-hover);
 }
 
-.templates-name-input.is-invalid {
-  border-bottom-color: var(--accent);
+.templates-header-name-input.is-invalid {
+  color: var(--accent);
 }
 
+/* Error message below header */
 .templates-name-error {
   color: var(--accent);
   font-size: 0.85rem;
-  margin-top: 0.5rem;
+  text-align: center;
+  padding: 0.25rem 1rem;
+  margin-top: -0.5rem;
 }
 
 /* Day Tabs */
@@ -274,7 +279,9 @@
 
 .templates-fab {
   width: 48px;
-  height: 48px;
+  height: auto;
+  padding: 0.9rem;
+  box-sizing: border-box;
   border-radius: var(--radius-md);
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -356,14 +363,6 @@
 
 /* Desktop Adjustments */
 @media (min-width: 768px) {
-  .templates-editor-header {
-    padding: 1rem 1.5rem;
-  }
-
-  .templates-title-section {
-    padding: 0 1.5rem 1rem;
-  }
-
   .templates-day-tabs {
     padding: 0 1.5rem;
   }
@@ -376,7 +375,8 @@
     padding: 1rem 1.5rem;
   }
 
-  .templates-name-input {
-    font-size: 1.5rem;
+  .templates-header-name-input {
+    font-size: 1.25rem;
+    max-width: 400px;
   }
 }

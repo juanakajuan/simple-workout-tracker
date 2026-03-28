@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, type CSSProperties } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import { Plus, ChevronLeft, Minus, ChevronUp, ChevronDown, Trash2 } from "lucide-react";
+import { Plus, Minus, ChevronUp, ChevronDown, Trash2 } from "lucide-react";
 
 import type { Exercise, WorkoutTemplate, TemplateExercise, TemplateMuscleGroup } from "../types";
 import { muscleGroupLabels, muscleGroupColors } from "../types";
 
 import { useLocalStorage } from "../hooks/useLocalStorage";
+import { PageHeader } from "../components/PageHeader";
 import {
   STORAGE_KEYS,
   generateId,
@@ -148,10 +149,6 @@ export function TemplateEditorPage() {
     }
   }, [location.pathname, location.state, navigate]);
 
-  const handleBack = () => {
-    navigate("/templates");
-  };
-
   const saveTemplate = () => {
     const trimmedName = name.trim();
     if (!trimmedName) {
@@ -267,34 +264,29 @@ export function TemplateEditorPage() {
 
   return (
     <div className="page templates-page-editor">
-      <div className="templates-editor-header">
-        <button className="btn btn-icon btn-ghost" onClick={handleBack} aria-label="Go back">
-          <ChevronLeft size={24} />
-          Back
-        </button>
-      </div>
-
-      <div className="templates-title-section">
-        <input
-          ref={nameInputRef}
-          type="text"
-          className={`templates-name-input ${nameError ? "is-invalid" : ""}`}
-          placeholder="Upper body workout"
-          value={name}
-          aria-invalid={Boolean(nameError)}
-          aria-describedby={nameError ? "template-name-error" : undefined}
-          onChange={(event) => {
-            setName(event.target.value);
-            setNameError("");
-            setError("");
-          }}
-        />
-        {nameError && (
-          <p id="template-name-error" className="templates-name-error" role="alert">
-            {nameError}
-          </p>
-        )}
-      </div>
+      <PageHeader
+        title={
+          <input
+            ref={nameInputRef}
+            type="text"
+            className={`templates-header-name-input ${nameError ? "is-invalid" : ""}`}
+            placeholder="Enter template name..."
+            value={name}
+            aria-invalid={Boolean(nameError)}
+            aria-describedby={nameError ? "template-name-error" : undefined}
+            onChange={(event) => {
+              setName(event.target.value);
+              setNameError("");
+              setError("");
+            }}
+          />
+        }
+      />
+      {nameError && (
+        <p id="template-name-error" className="templates-name-error" role="alert">
+          {nameError}
+        </p>
+      )}
 
       <div className="templates-day-content">
         {templateExercises.length === 0 ? (
