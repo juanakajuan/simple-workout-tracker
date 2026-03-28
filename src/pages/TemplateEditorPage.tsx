@@ -391,12 +391,11 @@ export function TemplateEditorPage() {
 
       <div className="templates-editor-footer">
         <button
-          type="button"
-          className="btn btn-icon templates-fab"
+          className="btn btn-secondary templates-add-exercise-btn"
           onClick={handleAddExercise}
-          aria-label="Add exercise"
         >
-          <Plus size={24} />
+          <Plus size={20} />
+          Add Exercise
         </button>
 
         <button className="btn btn-accent templates-save-btn text-uppercase" onClick={saveTemplate}>

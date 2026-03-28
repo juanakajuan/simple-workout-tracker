@@ -1,9 +1,18 @@
-.exercise-selector-page {
+.page-header-back {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 0.5rem;
   display: flex;
-  flex-direction: column;
-  height: 100vh;
-  height: 100dvh;
-  background: var(--bg-primary);
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  margin-left: -0.5rem;
+}
+
+.page-header-back:active {
+  background: var(--bg-hover);
 }
 
 .exercise-selector-content {
@@ -11,13 +20,6 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-}
-
-.btn-new-exercise {
-  font-size: 0.875rem;
-  padding: 0.5rem 0.875rem;
-  font-weight: 600;
-  gap: 0.375rem;
 }
 
 .selector-filters {
