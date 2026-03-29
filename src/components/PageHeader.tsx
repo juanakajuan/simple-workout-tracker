@@ -9,6 +9,7 @@ interface PageHeaderProps {
   title: ReactNode;
   showBackButton?: boolean;
   onBack?: () => void;
+  leftSlot?: ReactNode;
   actions?: ReactNode;
 }
 
@@ -16,7 +17,13 @@ interface PageHeaderProps {
  * Reusable page header component with back button and optional actions.
  * Used across all full-page views that were previously modals.
  */
-export function PageHeader({ title, showBackButton = true, onBack, actions }: PageHeaderProps) {
+export function PageHeader({
+  title,
+  showBackButton = true,
+  onBack,
+  leftSlot,
+  actions,
+}: PageHeaderProps) {
   const navigate = useNavigate();
 
   const handleBack = () => {
@@ -29,7 +36,7 @@ export function PageHeader({ title, showBackButton = true, onBack, actions }: Pa
 
   return (
     <header className="page-header">
-      <div className="page-header-left">
+      <div className="page-header-side page-header-left">
         {showBackButton && (
           <button
             type="button"
@@ -40,9 +47,16 @@ export function PageHeader({ title, showBackButton = true, onBack, actions }: Pa
             <ArrowLeft size={24} />
           </button>
         )}
+        {leftSlot}
       </div>
-      <h1 className="page-header-title">{title}</h1>
-      <div className="page-header-right">{actions}</div>
+      <div className="page-header-center">
+        {typeof title === "string" || typeof title === "number" ? (
+          <h1 className="page-header-title">{title}</h1>
+        ) : (
+          title
+        )}
+      </div>
+      <div className="page-header-side page-header-right">{actions}</div>
     </header>
   );
 }

@@ -37,6 +37,7 @@ import {
 } from "../utils/storage";
 
 import { SetRow } from "../components/SetRow";
+import { PageHeader } from "../components/PageHeader";
 import { WorkoutTimer } from "../components/WorkoutTimer";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 
@@ -793,9 +794,7 @@ export function WorkoutPage() {
   if (!activeWorkout) {
     return (
       <div className="page workout-page-idle">
-        <header className="page-header">
-          <h1 className="page-title">Workout</h1>
-        </header>
+        <PageHeader title="Workout" showBackButton={false} />
 
         <div className="start-workout-section">
           <div className="start-workout-card-compact">

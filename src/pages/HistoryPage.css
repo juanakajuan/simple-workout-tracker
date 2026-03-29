@@ -2,6 +2,7 @@
   font-size: 0.85rem;
   color: var(--text-secondary);
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .weekly-sets-button {

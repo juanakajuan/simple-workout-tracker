@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Search, Plus, Clock, Check, ArrowLeft } from "lucide-react";
+import { Search, Plus, Clock, Check } from "lucide-react";
 
 import type { Exercise, MuscleGroup } from "../types";
 import { muscleGroupLabels, exerciseTypeLabels, MUSCLE_GROUPS } from "../types";
 import { getLastPerformedDate, formatRelativeDate } from "../utils/storage";
+import { PageHeader } from "../components/PageHeader";
 
 import "./ExerciseSelectorPage.css";
 
@@ -149,21 +150,15 @@ export function ExerciseSelectorPage() {
 
   return (
     <div className="page">
-      <header className="page-header">
-        <button
-          type="button"
-          className="page-header-back"
-          onClick={() => navigate(-1)}
-          aria-label="Go back"
-        >
-          <ArrowLeft size={24} />
-        </button>
-        <h1 className="page-title">Select Exercise</h1>
-        <button className="btn btn-secondary btn-sm" onClick={handleCreateNew}>
-          <Plus size={16} />
-          NEW
-        </button>
-      </header>
+      <PageHeader
+        title="Select Exercise"
+        actions={
+          <button type="button" className="btn btn-secondary btn-sm" onClick={handleCreateNew}>
+            <Plus size={16} />
+            NEW
+          </button>
+        }
+      />
 
       <div className="exercise-selector-content">
         <div className="selector-filters">

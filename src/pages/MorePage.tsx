@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Settings, ChevronRight, Download, Upload } from "lucide-react";
 
+import { PageHeader } from "../components/PageHeader";
 import { useAppDialog } from "../hooks/useAppDialog";
 import {
   APP_RELEASE,
@@ -109,9 +110,7 @@ export function MorePage() {
 
   return (
     <div className="page">
-      <header className="page-header">
-        <h1 className="page-title">More</h1>
-      </header>
+      <PageHeader title="More" showBackButton={false} />
 
       <div className="more-content">
         <section className="more-section">

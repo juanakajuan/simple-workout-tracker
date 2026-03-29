@@ -15,6 +15,7 @@ import type { Exercise, MuscleGroup } from "../types";
 import { MUSCLE_GROUPS, muscleGroupLabels } from "../types";
 
 import { ExerciseCard } from "../components/ExerciseCard";
+import { PageHeader } from "../components/PageHeader";
 
 import "./ExercisesPage.css";
 
@@ -116,13 +117,16 @@ export function ExercisesPage() {
 
   return (
     <div className="page">
-      <header className="page-header">
-        <h1 className="page-title">Exercises</h1>
-        <button className="btn btn-secondary btn-sm" onClick={handleCreate}>
-          <Plus size={16} />
-          NEW
-        </button>
-      </header>
+      <PageHeader
+        title="Exercises"
+        showBackButton={false}
+        actions={
+          <button type="button" className="btn btn-secondary btn-sm" onClick={handleCreate}>
+            <Plus size={16} />
+            NEW
+          </button>
+        }
+      />
 
       <div className="filter-bar">
         <div className="search-bar">

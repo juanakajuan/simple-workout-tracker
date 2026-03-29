@@ -9,14 +9,6 @@
   padding-top: 0;
 }
 
-/* PageHeader on template page - match exercise page positioning */
-.templates-page-editor .page-header {
-  margin-left: -1.25rem;
-  margin-right: -1.25rem;
-  padding-left: 0;
-  padding-right: 0;
-}
-
 /* Header Name Input (styled like page-header-title but editable) */
 .templates-header-name-input {
   font-size: 1.1rem;

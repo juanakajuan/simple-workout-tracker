@@ -10,6 +10,7 @@ import type { Exercise, Workout, MuscleGroup } from "../types";
 import { muscleGroupLabels, getMuscleGroupClassName } from "../types";
 
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { PageHeader } from "../components/PageHeader";
 
 import "./HistoryPage.css";
 
@@ -160,10 +161,17 @@ export function HistoryPage() {
 
   return (
     <div className="page">
-      <header className="page-header">
-        <h1 className="page-title">History</h1>
-        {workouts.length > 0 && <span className="workout-count">{workouts.length} Workouts</span>}
-      </header>
+      <PageHeader
+        title="History"
+        showBackButton={false}
+        leftSlot={
+          workouts.length > 0 ? (
+            <span className="workout-count">
+              {workouts.length} Workout{workouts.length === 1 ? "" : "s"}
+            </span>
+          ) : undefined
+        }
+      />
 
       {workouts.length === 0 ? (
         <div className="empty-state">

@@ -18,6 +18,7 @@ import {
 
 import { DraftBanner } from "../components/DraftBanner";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { PageHeader } from "../components/PageHeader";
 
 import "./TemplatesPage.css";
 
@@ -160,13 +161,20 @@ export function TemplatesPage() {
 
   return (
     <div className="page templates-page" onClick={handleClickOutside}>
-      <header className="page-header">
-        <h1 className="page-title">Templates</h1>
-        <button className="btn btn-secondary btn-sm text-uppercase" onClick={handleCreateTemplate}>
-          <Plus size={16} />
-          New
-        </button>
-      </header>
+      <PageHeader
+        title="Templates"
+        showBackButton={false}
+        actions={
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm text-uppercase"
+            onClick={handleCreateTemplate}
+          >
+            <Plus size={16} />
+            New
+          </button>
+        }
+      />
 
       {hasDraft && <DraftBanner onContinue={handleContinueDraft} onDismiss={handleDismissDraft} />}
 

@@ -1,20 +1,3 @@
-.page-header-back {
-  background: none;
-  border: none;
-  color: var(--accent);
-  cursor: pointer;
-  padding: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-sm);
-  margin-left: -0.5rem;
-}
-
-.page-header-back:active {
-  background: var(--bg-hover);
-}
-
 .exercise-selector-content {
   flex: 1;
   overflow: hidden;

@@ -1,9 +1,3 @@
-.settings-page .page-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
 .settings-page {
   margin: 0;
 }

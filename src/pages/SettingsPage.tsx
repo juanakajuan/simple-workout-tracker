@@ -1,17 +1,14 @@
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
-
 import type { Settings } from "../types";
 
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { STORAGE_KEYS } from "../utils/storage";
 
+import { PageHeader } from "../components/PageHeader";
 import { ToggleSwitch } from "../components/ToggleSwitch";
 
 import "./SettingsPage.css";
 
 export function SettingsPage() {
-  const navigate = useNavigate();
   const [settings, setSettings] = useLocalStorage<Settings>(STORAGE_KEYS.SETTINGS, {
     autoMatchWeight: false,
   });
@@ -27,15 +24,7 @@ export function SettingsPage() {
 
   return (
     <div className="page settings-page">
-      <header className="page-header">
-        <button
-          className="btn btn-icon btn-ghost"
-          onClick={() => navigate(-1)}
-          aria-label="Go back"
-        >
-          <ArrowLeft size={24} />
-        </button>
-      </header>
+      <PageHeader title="Settings" />
 
       <div className="settings-content">
         <section className="settings-section">
