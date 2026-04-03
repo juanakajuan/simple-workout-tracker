@@ -13,10 +13,14 @@ import {
   StickyNote,
   ArrowLeftRight,
   SkipForward,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 
 import type {
   Exercise,
+  TemplateExercise,
+  TemplateMuscleGroup,
   Workout,
   WorkoutExercise,
   WorkoutSet,
@@ -112,6 +116,85 @@ export function WorkoutPage() {
       ...activeWorkout,
       exercises: [...activeWorkout.exercises, workoutExercise],
     });
+  };
+
+  const swapItems = <T,>(items: T[], fromIndex: number, toIndex: number) => {
+    const reordered = [...items];
+    [reordered[fromIndex], reordered[toIndex]] = [reordered[toIndex], reordered[fromIndex]];
+    return reordered;
+  };
+
+  const buildTemplateMuscleGroups = (
+    templateExercises: TemplateExercise[]
+  ): TemplateMuscleGroup[] => {
+    const exercisesById = new Map(allExercises.map((exercise) => [exercise.id, exercise]));
+    const muscleGroups: TemplateMuscleGroup[] = [];
+
+    templateExercises.forEach((templateExercise) => {
+      if (!templateExercise.exerciseId) return;
+
+      const exercise = exercisesById.get(templateExercise.exerciseId);
+      if (!exercise) return;
+
+      const previousGroup = muscleGroups[muscleGroups.length - 1];
+
+      if (previousGroup && previousGroup.muscleGroup === exercise.muscleGroup) {
+        previousGroup.exercises.push({ ...templateExercise });
+        return;
+      }
+
+      muscleGroups.push({
+        id: generateId(),
+        muscleGroup: exercise.muscleGroup,
+        exercises: [{ ...templateExercise }],
+      });
+    });
+
+    return muscleGroups;
+  };
+
+  const moveTemplateExercise = (templateId: string, fromIndex: number, toIndex: number) => {
+    const template = templates.find((item) => item.id === templateId);
+    if (!template) return;
+
+    const templateExercises = template.muscleGroups.flatMap((muscleGroup) =>
+      muscleGroup.exercises.map((exercise) => ({ ...exercise }))
+    );
+    if (fromIndex < 0 || toIndex < 0) return;
+    if (fromIndex >= templateExercises.length || toIndex >= templateExercises.length) return;
+
+    const reorderedExercises = swapItems(templateExercises, fromIndex, toIndex);
+
+    setTemplates(
+      templates.map((item) =>
+        item.id === templateId
+          ? { ...item, muscleGroups: buildTemplateMuscleGroups(reorderedExercises) }
+          : item
+      )
+    );
+  };
+
+  const moveWorkoutExercise = (workoutExerciseId: string, direction: "up" | "down") => {
+    if (!activeWorkout) return;
+
+    const currentIndex = activeWorkout.exercises.findIndex(
+      (exercise) => exercise.id === workoutExerciseId
+    );
+    if (currentIndex === -1) return;
+
+    const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= activeWorkout.exercises.length) return;
+
+    setActiveWorkout({
+      ...activeWorkout,
+      exercises: swapItems(activeWorkout.exercises, currentIndex, newIndex),
+    });
+
+    if (activeWorkout.templateId) {
+      moveTemplateExercise(activeWorkout.templateId, currentIndex, newIndex);
+    }
+
+    setOpenKebabMenu(null);
   };
 
   /**
@@ -851,9 +934,12 @@ export function WorkoutPage() {
             <p>No exercises added yet. Add your first exercise to get started!</p>
           </div>
         ) : (
-          activeWorkout.exercises.map((workoutExercise) => {
+          activeWorkout.exercises.map((workoutExercise, exerciseIndex) => {
             const exercise = getExerciseById(workoutExercise.exerciseId);
             if (!exercise) return null;
+
+            const canMoveUp = exerciseIndex > 0;
+            const canMoveDown = exerciseIndex < activeWorkout.exercises.length - 1;
 
             return (
               <div key={workoutExercise.id} className="workout-exercise-card card">
@@ -919,6 +1005,22 @@ export function WorkoutPage() {
                             Skip Remaining Sets
                           </button>
                         )}
+                        <button
+                          className="kebab-menu-item"
+                          onClick={() => moveWorkoutExercise(workoutExercise.id, "up")}
+                          disabled={!canMoveUp}
+                        >
+                          <ChevronUp size={16} />
+                          Move Up
+                        </button>
+                        <button
+                          className="kebab-menu-item"
+                          onClick={() => moveWorkoutExercise(workoutExercise.id, "down")}
+                          disabled={!canMoveDown}
+                        >
+                          <ChevronDown size={16} />
+                          Move Down
+                        </button>
                         <button
                           className="kebab-menu-item"
                           onClick={() => handleReplaceExercise(workoutExercise.id)}
