@@ -190,9 +190,10 @@ export function TemplatesPage() {
             const muscleGroups = getTemplateMuscleGroups(template);
 
             return (
-              <div key={template.id} className="template-row">
+              <div key={template.id} className="template-card card">
                 <button
-                  className="template-row-clickable"
+                  type="button"
+                  className="template-card-clickable"
                   onClick={() => {
                     showConfirm({
                       title: `Start "${template.name}"?`,
@@ -204,23 +205,25 @@ export function TemplatesPage() {
                     });
                   }}
                 >
-                  <div className="template-row-content">
-                    <div className="template-row-muscle-groups">
+                  <div className="template-card-content">
+                    <div className="template-card-meta">
                       {muscleGroups.map((mg) => (
                         <span key={mg} className={`tag ${getMuscleGroupClassName(mg)}`}>
                           {muscleGroupLabels[mg]}
                         </span>
                       ))}
                     </div>
-                    <span className="template-row-name">{template.name}</span>
-                    <div className="template-row-tags">
+                    <h2 className="template-card-name">{template.name}</h2>
+                    <div className="template-card-tags">
                       {stats.exerciseCount > 0 && (
-                        <span className="template-row-tag">
+                        <span className="template-card-tag tag tag-muted">
                           {stats.exerciseCount} EXERCISE{stats.exerciseCount !== 1 ? "S" : ""}
                         </span>
                       )}
                       {stats.setCount > 0 && (
-                        <span className="template-row-tag">{stats.setCount} SETS</span>
+                        <span className="template-card-tag tag tag-muted">
+                          {stats.setCount} SETS
+                        </span>
                       )}
                     </div>
                   </div>

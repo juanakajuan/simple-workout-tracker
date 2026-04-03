@@ -1,4 +1,3 @@
-/* Templates Page - List View */
 .templates-page {
   padding-bottom: calc(var(--bottom-tab-bar-height) + 0.5rem);
 }
@@ -23,29 +22,23 @@
   margin-top: 0.35rem;
 }
 
-/* List container */
 .templates-list {
   display: flex;
   flex-direction: column;
+  gap: 0.5rem;
   margin-top: 0.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
 
-/* Row */
-.template-row {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+.template-card.card {
+  position: relative;
+  padding: 0;
 }
 
-.template-row-clickable {
+.template-card-clickable {
   display: flex;
-  align-items: center;
-  flex: 1;
+  width: 100%;
   min-width: 0;
-  gap: 0.75rem;
-  padding: 0.875rem 0;
+  padding: 0.875rem;
   background: none;
   border: none;
   color: inherit;
@@ -54,67 +47,54 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-.template-row-clickable:active {
-  opacity: 0.7;
+.template-card-clickable:active {
+  opacity: 0.8;
 }
 
-.template-row-content {
+.template-card-content {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  flex: 1;
+  gap: 0.375rem;
+  width: 100%;
   min-width: 0;
 }
 
-.template-row-muscle-groups {
+.template-card-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.3rem;
+  gap: 0.5rem;
+  padding-right: 2rem;
 }
 
-.template-row-muscle-groups .tag {
-  font-size: 0.68rem;
-  padding: 0.15rem 0.45rem;
-}
-
-.template-row-name {
+.template-card-name {
   font-size: 1.05rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-weight: 600;
   color: var(--text-primary);
-  line-height: 1.2;
-  white-space: nowrap;
+  line-height: 1.3;
+  padding-right: 2rem;
+  margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding: 0.5rem 0 0.25rem 0;
 }
 
-.template-row-tags {
+.template-card-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem;
-  margin-top: 0.25rem;
+  gap: 0.5rem;
 }
 
-.template-row-tag {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.2rem 0.55rem;
+.template-card-tag {
   font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  color: var(--text-secondary);
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .template-row-menu-btn {
   color: rgba(255, 255, 255, 0.4);
 }
 
-/* Kebab dropdown */
 .template-kebab-menu {
-  position: relative;
+  position: absolute;
+  top: 0.625rem;
+  right: 0.625rem;
 }
 
 .template-kebab-dropdown {
