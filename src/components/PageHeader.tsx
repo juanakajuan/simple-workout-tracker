@@ -3,6 +3,8 @@ import { ArrowLeft } from "lucide-react";
 
 import type { ReactNode } from "react";
 
+import { useAutoFitText } from "../hooks/useAutoFitText";
+
 import "./PageHeader.css";
 
 interface PageHeaderProps {
@@ -25,6 +27,9 @@ export function PageHeader({
   actions,
 }: PageHeaderProps) {
   const navigate = useNavigate();
+  const titleRef = useAutoFitText<HTMLHeadingElement>(
+    typeof title === "string" || typeof title === "number" ? title : ""
+  );
 
   const handleBack = () => {
     if (onBack) {
@@ -51,7 +56,9 @@ export function PageHeader({
       </div>
       <div className="page-header-center">
         {typeof title === "string" || typeof title === "number" ? (
-          <h1 className="page-header-title">{title}</h1>
+          <h1 ref={titleRef} className="page-header-title">
+            {title}
+          </h1>
         ) : (
           title
         )}

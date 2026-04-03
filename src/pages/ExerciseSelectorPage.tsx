@@ -153,9 +153,13 @@ export function ExerciseSelectorPage() {
       <PageHeader
         title="Select Exercise"
         actions={
-          <button type="button" className="btn btn-secondary btn-sm" onClick={handleCreateNew}>
-            <Plus size={16} />
-            NEW
+          <button
+            type="button"
+            className="btn btn-icon page-header-action"
+            onClick={handleCreateNew}
+            aria-label="Create new exercise"
+          >
+            <Plus size={20} />
           </button>
         }
       />

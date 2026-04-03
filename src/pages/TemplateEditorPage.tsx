@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type CSSProperties } from "react";
+import { useState, useEffect, type CSSProperties } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Plus, Minus, ChevronUp, ChevronDown, Trash2 } from "lucide-react";
 
@@ -6,6 +6,7 @@ import type { Exercise, WorkoutTemplate, TemplateExercise, TemplateMuscleGroup }
 import { muscleGroupLabels, muscleGroupColors } from "../types";
 
 import { useLocalStorage } from "../hooks/useLocalStorage";
+import { useAutoFitText } from "../hooks/useAutoFitText";
 import { PageHeader } from "../components/PageHeader";
 import {
   STORAGE_KEYS,
@@ -74,7 +75,7 @@ export function TemplateEditorPage() {
   const [error, setError] = useState("");
   const [nameError, setNameError] = useState("");
   const [isInitialized, setIsInitialized] = useState(false);
-  const nameInputRef = useRef<HTMLInputElement>(null);
+  const nameInputRef = useAutoFitText<HTMLInputElement>(name || "Enter template name...");
 
   const allExercises = DEFAULT_EXERCISES.map((defaultExercise) => {
     const userOverride = exercises.find((exercise) => exercise.id === defaultExercise.id);

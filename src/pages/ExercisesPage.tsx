@@ -121,9 +121,13 @@ export function ExercisesPage() {
         title="Exercises"
         showBackButton={false}
         actions={
-          <button type="button" className="btn btn-secondary btn-sm" onClick={handleCreate}>
-            <Plus size={16} />
-            NEW
+          <button
+            type="button"
+            className="btn btn-icon page-header-action"
+            onClick={handleCreate}
+            aria-label="Create new exercise"
+          >
+            <Plus size={20} />
           </button>
         }
       />

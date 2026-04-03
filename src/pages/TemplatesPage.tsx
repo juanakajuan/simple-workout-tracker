@@ -167,11 +167,11 @@ export function TemplatesPage() {
         actions={
           <button
             type="button"
-            className="btn btn-secondary btn-sm text-uppercase"
+            className="btn btn-icon page-header-action"
             onClick={handleCreateTemplate}
+            aria-label="Create new template"
           >
-            <Plus size={16} />
-            New
+            <Plus size={20} />
           </button>
         }
       />

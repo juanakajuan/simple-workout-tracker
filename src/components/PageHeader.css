@@ -1,6 +1,6 @@
 .page-header {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr);
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
   align-items: center;
   gap: 0.75rem;
   padding: calc(0.6rem + var(--safe-area-top-compact)) var(--page-content-padding-x, 1.25rem)
@@ -38,6 +38,7 @@
 
 .page-header-center > * {
   min-width: 0;
+  width: 100%;
 }
 
 .page-header-back {
@@ -58,14 +59,26 @@
   background: var(--bg-hover);
 }
 
+.page-header-action {
+  background: transparent;
+  border: none;
+  color: var(--accent);
+  margin-right: -0.35rem;
+}
+
+.page-header-action:active {
+  background: var(--bg-hover);
+}
+
 .page-header-title {
   font-size: 1.1rem;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0;
+  width: 100%;
+  max-width: 100%;
   text-align: center;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
   letter-spacing: -0.01em;
 }
