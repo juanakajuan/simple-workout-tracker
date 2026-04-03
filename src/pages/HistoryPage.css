@@ -75,7 +75,6 @@
   gap: 0.5rem;
   font-size: 0.85rem;
   color: var(--text-secondary);
-  margin-bottom: 0.75rem;
 }
 
 .dot {
@@ -87,6 +86,7 @@
   flex-wrap: wrap;
   gap: 0.4rem;
   align-items: center;
+  margin-bottom: 0.75rem;
 }
 
 .history-card-exercises .tag {

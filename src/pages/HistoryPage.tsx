@@ -208,18 +208,6 @@ export function HistoryPage() {
                           {stats.totalVolume.toLocaleString()} lbs
                         </div>
                       </div>
-                      <h3 className="history-card-name">{workout.name}</h3>
-                      <div className="history-card-meta">
-                        <span>{workout.exercises.length} exercises</span>
-                        <span className="dot">•</span>
-                        <span>{stats.completedSets} sets</span>
-                        {workout.duration && (
-                          <>
-                            <span className="dot">•</span>
-                            <span>{formatDuration(workout.duration)}</span>
-                          </>
-                        )}
-                      </div>
                       <div className="history-card-exercises">
                         {(() => {
                           const muscleGroups = Array.from(
@@ -238,6 +226,18 @@ export function HistoryPage() {
                             </span>
                           ));
                         })()}
+                      </div>
+                      <h3 className="history-card-name">{workout.name}</h3>
+                      <div className="history-card-meta">
+                        <span>{workout.exercises.length} exercises</span>
+                        <span className="dot">•</span>
+                        <span>{stats.completedSets} sets</span>
+                        {workout.duration && (
+                          <>
+                            <span className="dot">•</span>
+                            <span>{formatDuration(workout.duration)}</span>
+                          </>
+                        )}
                       </div>
                     </button>
                   );
