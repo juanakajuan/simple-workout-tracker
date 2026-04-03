@@ -27,6 +27,9 @@ export function PageHeader({
   actions,
 }: PageHeaderProps) {
   const navigate = useNavigate();
+  const headerClassName = showBackButton
+    ? "page-header page-header--with-back"
+    : "page-header page-header--left-title";
   const titleRef = useAutoFitText<HTMLHeadingElement>(
     typeof title === "string" || typeof title === "number" ? title : ""
   );
@@ -40,7 +43,7 @@ export function PageHeader({
   };
 
   return (
-    <header className="page-header">
+    <header className={headerClassName}>
       <div className="page-header-side page-header-left">
         {showBackButton && (
           <button
