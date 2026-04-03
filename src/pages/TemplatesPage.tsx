@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, ChevronRight, Trash2, MoreVertical, Pencil } from "lucide-react";
+import { Plus, Trash2, MoreVertical, Pencil } from "lucide-react";
 
 import type { Workout, WorkoutTemplate, WorkoutExercise, MuscleGroup } from "../types";
 import { muscleGroupLabels, getMuscleGroupClassName } from "../types";
@@ -224,7 +224,6 @@ export function TemplatesPage() {
                       )}
                     </div>
                   </div>
-                  <ChevronRight size={18} className="template-row-chevron" />
                 </button>
 
                 <div className="template-kebab-menu">
