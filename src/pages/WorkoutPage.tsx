@@ -859,9 +859,14 @@ export function WorkoutPage() {
               <div key={workoutExercise.id} className="workout-exercise-card card">
                 <div className="workout-exercise-header">
                   <div>
-                    <span className={`tag ${getMuscleGroupClassName(exercise.muscleGroup)}`}>
-                      {muscleGroupLabels[exercise.muscleGroup]}
-                    </span>
+                    <div className="exercise-meta-row">
+                      <span className={`tag ${getMuscleGroupClassName(exercise.muscleGroup)}`}>
+                        {muscleGroupLabels[exercise.muscleGroup]}
+                      </span>
+                      <span className="tag tag-muted">
+                        {exerciseTypeLabels[exercise.exerciseType]}
+                      </span>
+                    </div>
                     <div className="exercise-name-row">
                       <h3
                         className="workout-exercise-name clickable"
@@ -869,9 +874,6 @@ export function WorkoutPage() {
                       >
                         {exercise.name}
                       </h3>
-                      <span className="tag tag-muted">
-                        {exerciseTypeLabels[exercise.exerciseType]}
-                      </span>
                     </div>
                   </div>
                   <div className="workout-exercise-actions">

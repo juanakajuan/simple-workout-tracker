@@ -1,4 +1,5 @@
-import { Clock, Edit3 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Clock, MoreVertical, Pencil } from "lucide-react";
 
 import type { Exercise } from "../types";
 import { exerciseTypeLabels, muscleGroupLabels, getMuscleGroupClassName } from "../types";
@@ -20,37 +21,69 @@ export function ExerciseCard({
   isDefault = false,
   lastPerformed,
 }: ExerciseCardProps) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isMenuOpen) return;
+
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isMenuOpen]);
+
   /**
-   * Handles edit button click. Stops propagation to prevent card's onClick
-   * from triggering when the edit button is clicked.
+   * Handles edit menu click. Stops propagation to prevent card's onClick
+   * from triggering when the menu action is clicked.
    *
    * @param event - The mouse event
    */
   const handleEditClick = (event: React.MouseEvent) => {
     event.stopPropagation();
+    setIsMenuOpen(false);
     onEdit?.();
   };
 
   return (
     <div className="exercise-card card" onClick={onClick}>
-      <div className="exercise-card-header">
-        <h3 className="exercise-name">{exercise.name}</h3>
-        {onEdit && (
+      {onEdit && (
+        <div className="exercise-card-menu" ref={menuRef}>
           <button
-            className="btn btn-icon btn-ghost exercise-edit-btn"
-            onClick={handleEditClick}
-            aria-label="Edit exercise"
+            type="button"
+            className="btn btn-ghost btn-icon exercise-menu-btn"
+            onClick={(event) => {
+              event.stopPropagation();
+              setIsMenuOpen((currentValue) => !currentValue);
+            }}
+            aria-label="Exercise options"
+            aria-expanded={isMenuOpen}
           >
-            <Edit3 size={16} />
+            <MoreVertical size={16} />
           </button>
-        )}
-      </div>
+          {isMenuOpen && (
+            <div className="exercise-menu-dropdown">
+              <button type="button" className="exercise-menu-item" onClick={handleEditClick}>
+                <Pencil size={16} />
+                Edit exercise
+              </button>
+            </div>
+          )}
+        </div>
+      )}
       <div className="exercise-card-meta">
         <span className={`tag ${getMuscleGroupClassName(exercise.muscleGroup)}`}>
           {muscleGroupLabels[exercise.muscleGroup]}
         </span>
         <span className="tag tag-muted">{exerciseTypeLabels[exercise.exerciseType]}</span>
         {isDefault && <span className="tag tag-default">Default</span>}
+      </div>
+      <div className="exercise-card-header">
+        <h3 className="exercise-name">{exercise.name}</h3>
       </div>
       {lastPerformed && (
         <div className="exercise-last-performed">
