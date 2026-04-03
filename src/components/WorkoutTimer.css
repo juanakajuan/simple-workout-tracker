@@ -21,7 +21,7 @@
   font-size: 1.5rem;
   font-weight: 600;
   color: var(--accent);
-  font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", "Courier New", monospace;
+  font-family: "IBM Plex Mono", "Courier New", monospace;
   letter-spacing: 0.04em;
   font-variant-numeric: tabular-nums;
 }
