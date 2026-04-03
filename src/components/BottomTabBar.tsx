@@ -74,46 +74,46 @@ export function BottomTabBar() {
       <NavLink
         to="/exercises"
         className={({ isActive }) => `tab ${isActive ? "active" : ""}`}
+        aria-label="Exercises"
         onClick={(e) => handleSimpleTabClick(e, location.pathname === "/exercises")}
       >
-        <Dumbbell size={24} />
-        <span>Exercises</span>
+        <Dumbbell size={28} />
       </NavLink>
 
       <NavLink
         to="/templates"
         className={`tab ${isTemplatesActive ? "active" : ""}`}
+        aria-label="Templates"
         onClick={(e) => handleTabClick(e, "/templates", lastTemplatesPath, isTemplatesActive)}
       >
-        <LayoutTemplate size={24} />
-        <span>Templates</span>
+        <LayoutTemplate size={28} />
       </NavLink>
 
       <NavLink
         to="/workout"
         className={({ isActive }) => `tab ${isActive ? "active" : ""}`}
+        aria-label="Workout"
         onClick={(e) => handleSimpleTabClick(e, location.pathname === "/workout")}
       >
-        <CirclePlay size={24} />
-        <span>Workout</span>
+        <CirclePlay size={28} />
       </NavLink>
 
       <NavLink
         to="/history"
         className={`tab ${isHistoryActive ? "active" : ""}`}
+        aria-label="History"
         onClick={(e) => handleTabClick(e, "/history", lastHistoryPath, isHistoryActive)}
       >
-        <History size={24} />
-        <span>History</span>
+        <History size={28} />
       </NavLink>
 
       <NavLink
         to="/more"
         className={`tab ${isMoreActive ? "active" : ""}`}
+        aria-label="More"
         onClick={(e) => handleTabClick(e, "/more", lastMorePath, isMoreActive)}
       >
-        <CircleEllipsis size={24} />
-        <span>More</span>
+        <CircleEllipsis size={28} />
       </NavLink>
     </nav>
   );
