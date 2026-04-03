@@ -14,7 +14,7 @@
 }
 
 .page-header--with-back {
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-columns: minmax(2.5rem, max-content) minmax(0, 1fr) minmax(2.5rem, max-content);
 }
 
 .page-header--left-title {

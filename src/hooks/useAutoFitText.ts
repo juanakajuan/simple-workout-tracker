@@ -33,11 +33,30 @@ export function useAutoFitText<T extends HTMLElement>(
       }
 
       const baseFontSize = baseFontSizeRef.current;
-      const minFontSize = options.minFontSizePx ?? Math.max(12, baseFontSize * 0.72);
-      const availableWidth =
-        element.clientWidth -
-        Number.parseFloat(style.paddingLeft) -
-        Number.parseFloat(style.paddingRight);
+
+      // Dynamic minimum font size based on text length
+      // Longer text gets a much lower minimum to fit better
+      const textLength = String(text).length;
+      let minSizeRatio = 0.65; // default ratio - lower than before
+
+      if (textLength > 30) {
+        minSizeRatio = 0.45; // Very long text can shrink significantly
+      } else if (textLength > 20) {
+        minSizeRatio = 0.55; // Medium-long text can shrink more
+      }
+
+      const minFontSize = options.minFontSizePx ?? Math.max(11, baseFontSize * minSizeRatio);
+
+      // Use parent element's width for more accurate measurement
+      // This accounts for the actual available space in the layout
+      const parentElement = element.parentElement;
+      const availableWidth = parentElement
+        ? parentElement.clientWidth -
+          Number.parseFloat(style.paddingLeft) -
+          Number.parseFloat(style.paddingRight)
+        : element.clientWidth -
+          Number.parseFloat(style.paddingLeft) -
+          Number.parseFloat(style.paddingRight);
 
       if (availableWidth <= 0) return;
 
