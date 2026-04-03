@@ -164,7 +164,29 @@
 }
 
 .workout-exercise-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
   position: relative;
+}
+
+.plate-calculator-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.plate-calculator-toggle:active,
+.plate-calculator-toggle.active {
+  background: var(--accent-dim);
+  color: var(--accent);
 }
 
 .exercise-meta-row {
@@ -240,6 +262,193 @@
 /* Sets table */
 .sets-container {
   margin-bottom: 0.75rem;
+}
+
+.plate-calculator-panel {
+  margin-bottom: 1rem;
+  padding: 0.9rem;
+  border: 1px solid rgba(129, 140, 248, 0.22);
+  background: linear-gradient(180deg, rgba(129, 140, 248, 0.08), rgba(129, 140, 248, 0.03));
+}
+
+.plate-calculator-topline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.plate-calculator-kicker {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--info-blue);
+}
+
+.plate-calculator-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.plate-calculator-state {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.plate-calculator-set-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 0.85rem;
+}
+
+.plate-calculator-set-button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  min-width: 82px;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(9, 9, 11, 0.18);
+  color: var(--text-secondary);
+  text-align: left;
+}
+
+.plate-calculator-set-button.active {
+  border-color: rgba(129, 140, 248, 0.45);
+  background: rgba(129, 140, 248, 0.14);
+  color: var(--text-primary);
+}
+
+.plate-calculator-set-button-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.plate-calculator-set-button-value {
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.plate-calculator-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.plate-calculator-stat {
+  padding: 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(9, 9, 11, 0.22);
+}
+
+.plate-calculator-stat-label {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.plate-calculator-stat strong {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.plate-visual {
+  display: grid;
+  grid-template-columns: minmax(20px, 1fr) max-content 7px 30px 7px max-content minmax(20px, 1fr);
+  align-items: center;
+  gap: 0.2rem;
+  min-height: 112px;
+  padding: 0.35rem 0;
+  overflow-x: auto;
+}
+
+.plate-visual-sleeve,
+.plate-visual-center {
+  height: 12px;
+  background: linear-gradient(180deg, #71717a, #a1a1aa);
+}
+
+.plate-visual-collar {
+  width: 7px;
+  height: 42px;
+  background: #d4d4d8;
+}
+
+.plate-stack {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 96px;
+}
+
+.plate-stack-left {
+  justify-content: flex-end;
+}
+
+.plate-stack-right {
+  justify-content: flex-start;
+}
+
+.plate-visual-plate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.plate-visual-label {
+  padding: 0.2rem;
+  color: #f4f4f5;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+}
+
+.plate-visual-label.compact {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+  font-size: 0.72rem;
+}
+
+.plate-visual-plate.plate-blue {
+  background: #3b82f6;
+}
+
+.plate-visual-plate.plate-indigo {
+  background: #6366f1;
+}
+
+.plate-visual-plate.plate-slate {
+  background: #52525b;
+}
+
+.plate-visual-plate.plate-dark {
+  background: #27272a;
+}
+
+.plate-visual-plate.plate-outline {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.plate-calculator-message {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
 }
 
 .sets-header {
@@ -355,4 +564,35 @@
 
 .workout-exercise-note-input:focus {
   border-color: rgba(245, 158, 11, 0.3);
+}
+
+@media (max-width: 520px) {
+  .workout-exercise-header {
+    gap: 0.75rem;
+  }
+
+  .workout-exercise-actions {
+    align-self: flex-start;
+  }
+
+  .plate-calculator-toggle {
+    padding-inline: 0.55rem;
+  }
+
+  .plate-calculator-panel {
+    padding: 0.8rem;
+  }
+
+  .plate-calculator-topline {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .plate-calculator-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .plate-visual {
+    grid-template-columns: minmax(8px, 1fr) max-content 6px 20px 6px max-content minmax(8px, 1fr);
+  }
 }

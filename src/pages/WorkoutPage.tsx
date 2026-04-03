@@ -15,6 +15,7 @@ import {
   SkipForward,
   ChevronUp,
   ChevronDown,
+  Dumbbell,
 } from "lucide-react";
 
 import type {
@@ -47,6 +48,157 @@ import { ConfirmDialog } from "../components/ConfirmDialog";
 
 import "./WorkoutPage.css";
 
+const STANDARD_BARBELL_WEIGHT = 45;
+const PLATE_CALCULATOR_EXERCISE_TYPES = new Set<Exercise["exerciseType"]>([
+  "barbell",
+  "machine",
+  "smith-machine",
+]);
+
+const STANDARD_PLATES = [
+  { weight: 45, width: 36, height: 96, className: "plate-blue" },
+  { weight: 35, width: 38, height: 90, className: "plate-indigo" },
+  { weight: 25, width: 32, height: 82, className: "plate-slate" },
+  { weight: 10, width: 24, height: 70, className: "plate-dark" },
+  { weight: 5, width: 18, height: 60, className: "plate-dark" },
+  { weight: 2.5, width: 14, height: 54, className: "plate-outline" },
+] as const;
+
+interface PlateCalculatorTarget {
+  set: WorkoutSet;
+  setIndex: number;
+}
+
+interface PlateLayout {
+  status: "bar-only" | "loadable" | "below-bar" | "unloadable";
+  nearestLoadableWeight: number;
+  perSideWeight: number;
+  plates: (typeof STANDARD_PLATES)[number][];
+}
+
+type PlateCalculatorSelections = Record<string, string>;
+
+function formatWeight(weight: number): string {
+  const roundedWeight = Math.round(weight * 10) / 10;
+  return Number.isInteger(roundedWeight) ? `${roundedWeight}` : roundedWeight.toFixed(1);
+}
+
+function getNearestLoadableWeight(totalWeight: number): number {
+  if (totalWeight <= STANDARD_BARBELL_WEIGHT) {
+    return STANDARD_BARBELL_WEIGHT;
+  }
+
+  const roundedOffset = Math.round((totalWeight - STANDARD_BARBELL_WEIGHT) / 5) * 5;
+  return STANDARD_BARBELL_WEIGHT + Math.max(0, roundedOffset);
+}
+
+function getPlateLayout(totalWeight: number): PlateLayout | null {
+  if (!Number.isFinite(totalWeight) || totalWeight <= 0) return null;
+
+  if (totalWeight < STANDARD_BARBELL_WEIGHT) {
+    return {
+      status: "below-bar",
+      nearestLoadableWeight: STANDARD_BARBELL_WEIGHT,
+      perSideWeight: 0,
+      plates: [],
+    };
+  }
+
+  const plateWeight = totalWeight - STANDARD_BARBELL_WEIGHT;
+
+  if (Math.abs(plateWeight) < 0.001) {
+    return {
+      status: "bar-only",
+      nearestLoadableWeight: STANDARD_BARBELL_WEIGHT,
+      perSideWeight: 0,
+      plates: [],
+    };
+  }
+
+  const loadableRemainder = ((plateWeight % 5) + 5) % 5;
+  if (loadableRemainder > 0.001 && Math.abs(loadableRemainder - 5) > 0.001) {
+    return {
+      status: "unloadable",
+      nearestLoadableWeight: getNearestLoadableWeight(totalWeight),
+      perSideWeight: plateWeight / 2,
+      plates: [],
+    };
+  }
+
+  let remainingPerSideWeight = plateWeight / 2;
+  const plates: (typeof STANDARD_PLATES)[number][] = [];
+
+  STANDARD_PLATES.forEach((plate) => {
+    while (remainingPerSideWeight + 0.001 >= plate.weight) {
+      plates.push(plate);
+      remainingPerSideWeight -= plate.weight;
+    }
+  });
+
+  return {
+    status: "loadable",
+    nearestLoadableWeight: totalWeight,
+    perSideWeight: plateWeight / 2,
+    plates,
+  };
+}
+
+function getPlateCalculatorTarget(
+  workoutExercise: WorkoutExercise,
+  preferredSetId?: string
+): PlateCalculatorTarget | null {
+  if (preferredSetId) {
+    const selectedSetIndex = workoutExercise.sets.findIndex((set) => set.id === preferredSetId);
+    if (selectedSetIndex !== -1) {
+      return {
+        set: workoutExercise.sets[selectedSetIndex],
+        setIndex: selectedSetIndex,
+      };
+    }
+  }
+
+  const activeSetIndex = workoutExercise.sets.findIndex((set) => !set.completed && !set.skipped);
+  if (activeSetIndex !== -1) {
+    return {
+      set: workoutExercise.sets[activeSetIndex],
+      setIndex: activeSetIndex,
+    };
+  }
+
+  const weightedSetIndex = workoutExercise.sets.findIndex((set) => set.weight > 0);
+  if (weightedSetIndex !== -1) {
+    return {
+      set: workoutExercise.sets[weightedSetIndex],
+      setIndex: weightedSetIndex,
+    };
+  }
+
+  if (workoutExercise.sets[0]) {
+    return {
+      set: workoutExercise.sets[0],
+      setIndex: 0,
+    };
+  }
+
+  return null;
+}
+
+function canUsePlateCalculator(exerciseType: Exercise["exerciseType"]): boolean {
+  return PLATE_CALCULATOR_EXERCISE_TYPES.has(exerciseType);
+}
+
+function getPlateCalculatorTitle(exerciseType: Exercise["exerciseType"]): string {
+  if (exerciseType === "machine") {
+    return "Machine plate estimate (45 lb baseline)";
+  }
+
+  if (exerciseType === "smith-machine") {
+    return "Smith machine plate estimate (45 lb baseline)";
+  }
+
+  return "Standard 45 lb barbell";
+}
+
 export function WorkoutPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -67,6 +219,9 @@ export function WorkoutPage() {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [openKebabMenu, setOpenKebabMenu] = useState<string | null>(null);
+  const [openPlateCalculatorId, setOpenPlateCalculatorId] = useState<string | null>(null);
+  const [plateCalculatorSelections, setPlateCalculatorSelections] =
+    useState<PlateCalculatorSelections>({});
   const [updateTemplateOnReplace, setUpdateTemplateOnReplace] = useState(true);
   const [updateTemplateOnAdd, setUpdateTemplateOnAdd] = useState(true);
   const { showConfirm, dialogProps } = useConfirmDialog();
@@ -940,6 +1095,16 @@ export function WorkoutPage() {
 
             const canMoveUp = exerciseIndex > 0;
             const canMoveDown = exerciseIndex < activeWorkout.exercises.length - 1;
+            const supportsPlateCalculator = canUsePlateCalculator(exercise.exerciseType);
+            const isPlateCalculatorOpen = openPlateCalculatorId === workoutExercise.id;
+            const defaultPlateCalculatorTarget = getPlateCalculatorTarget(workoutExercise);
+            const plateCalculatorTarget = getPlateCalculatorTarget(
+              workoutExercise,
+              plateCalculatorSelections[workoutExercise.id]
+            );
+            const plateLayout = plateCalculatorTarget
+              ? getPlateLayout(plateCalculatorTarget.set.weight)
+              : null;
 
             return (
               <div key={workoutExercise.id} className="workout-exercise-card card">
@@ -963,6 +1128,30 @@ export function WorkoutPage() {
                     </div>
                   </div>
                   <div className="workout-exercise-actions">
+                    {supportsPlateCalculator && (
+                      <button
+                        className={`plate-calculator-toggle ${isPlateCalculatorOpen ? "active" : ""}`}
+                        onClick={() => {
+                          if (!isPlateCalculatorOpen && defaultPlateCalculatorTarget) {
+                            setPlateCalculatorSelections((previous) => ({
+                              ...previous,
+                              [workoutExercise.id]:
+                                previous[workoutExercise.id] ?? defaultPlateCalculatorTarget.set.id,
+                            }));
+                          }
+
+                          setOpenPlateCalculatorId(
+                            isPlateCalculatorOpen ? null : workoutExercise.id
+                          );
+                          setOpenKebabMenu(null);
+                        }}
+                        aria-expanded={isPlateCalculatorOpen}
+                        aria-controls={`plate-calculator-${workoutExercise.id}`}
+                      >
+                        <Dumbbell size={15} />
+                        Plates
+                      </button>
+                    )}
                     <button
                       className="btn btn-icon btn-ghost"
                       onClick={() =>
@@ -1099,6 +1288,146 @@ export function WorkoutPage() {
                       </div>
                     )}
                   </div>
+                )}
+
+                {supportsPlateCalculator && isPlateCalculatorOpen && (
+                  <section
+                    id={`plate-calculator-${workoutExercise.id}`}
+                    className="plate-calculator-panel"
+                    aria-label={`${exercise.name} plate calculator`}
+                  >
+                    <div className="plate-calculator-topline">
+                      <div>
+                        <p className="plate-calculator-kicker">Plate Calculator</p>
+                        <h4 className="plate-calculator-title">
+                          {getPlateCalculatorTitle(exercise.exerciseType)}
+                        </h4>
+                      </div>
+                    </div>
+
+                    {workoutExercise.sets.length > 1 && (
+                      <div className="plate-calculator-set-picker" aria-label="Choose set">
+                        {workoutExercise.sets.map((set, index) => {
+                          const isSelected = plateCalculatorTarget?.set.id === set.id;
+
+                          return (
+                            <button
+                              key={set.id}
+                              type="button"
+                              className={`plate-calculator-set-button ${isSelected ? "active" : ""}`}
+                              onClick={() =>
+                                setPlateCalculatorSelections((previous) => ({
+                                  ...previous,
+                                  [workoutExercise.id]: set.id,
+                                }))
+                              }
+                            >
+                              <span className="plate-calculator-set-button-label">
+                                Set {index + 1}
+                              </span>
+                              <span className="plate-calculator-set-button-value">
+                                {set.weight > 0 ? `${formatWeight(set.weight)} lbs` : "No weight"}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {!plateCalculatorTarget || plateCalculatorTarget.set.weight <= 0 ? (
+                      <p className="plate-calculator-message">
+                        Enter a weight on the current set to see the plate stack.
+                      </p>
+                    ) : plateLayout?.status === "bar-only" ? (
+                      <div className="plate-calculator-state">
+                        <div className="plate-calculator-summary-grid">
+                          <div className="plate-calculator-stat">
+                            <span className="plate-calculator-stat-label">Target</span>
+                            <strong>{formatWeight(plateCalculatorTarget.set.weight)} lbs</strong>
+                          </div>
+                          <div className="plate-calculator-stat">
+                            <span className="plate-calculator-stat-label">Load</span>
+                            <strong>Bar only</strong>
+                          </div>
+                        </div>
+                        <p className="plate-calculator-message">
+                          No plates needed. Just use the empty bar.
+                        </p>
+                      </div>
+                    ) : plateLayout?.status === "below-bar" ? (
+                      <div className="plate-calculator-state">
+                        <div className="plate-calculator-summary-grid">
+                          <div className="plate-calculator-stat">
+                            <span className="plate-calculator-stat-label">Target</span>
+                            <strong>{formatWeight(plateCalculatorTarget.set.weight)} lbs</strong>
+                          </div>
+                          <div className="plate-calculator-stat">
+                            <span className="plate-calculator-stat-label">Closest</span>
+                            <strong>{STANDARD_BARBELL_WEIGHT} lbs</strong>
+                          </div>
+                        </div>
+                        <p className="plate-calculator-message">
+                          This is lighter than a standard barbell. The lowest load here is 45 lbs.
+                        </p>
+                      </div>
+                    ) : plateLayout?.status === "unloadable" ? (
+                      <div className="plate-calculator-state">
+                        <div className="plate-calculator-summary-grid">
+                          <div className="plate-calculator-stat">
+                            <span className="plate-calculator-stat-label">Target</span>
+                            <strong>{formatWeight(plateCalculatorTarget.set.weight)} lbs</strong>
+                          </div>
+                          <div className="plate-calculator-stat">
+                            <span className="plate-calculator-stat-label">Closest</span>
+                            <strong>{formatWeight(plateLayout.nearestLoadableWeight)} lbs</strong>
+                          </div>
+                        </div>
+                        <p className="plate-calculator-message">
+                          Standard plates load in 5 lb jumps. Round to the nearest loadable weight.
+                        </p>
+                      </div>
+                    ) : plateLayout ? (
+                      <div className="plate-calculator-state">
+                        <div className="plate-visual" aria-hidden="true">
+                          <div className="plate-visual-sleeve" />
+                          <div className="plate-stack plate-stack-left">
+                            {[...plateLayout.plates].reverse().map((plate, index) => (
+                              <div
+                                key={`left-${plate.weight}-${index}`}
+                                className={`plate-visual-plate ${plate.className}`}
+                                style={{ width: `${plate.width}px`, height: `${plate.height}px` }}
+                              >
+                                <span
+                                  className={`plate-visual-label ${plate.width <= 30 ? "compact" : ""}`}
+                                >
+                                  {formatWeight(plate.weight)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="plate-visual-collar" />
+                          <div className="plate-visual-center" />
+                          <div className="plate-visual-collar" />
+                          <div className="plate-stack plate-stack-right">
+                            {plateLayout.plates.map((plate, index) => (
+                              <div
+                                key={`right-${plate.weight}-${index}`}
+                                className={`plate-visual-plate ${plate.className}`}
+                                style={{ width: `${plate.width}px`, height: `${plate.height}px` }}
+                              >
+                                <span
+                                  className={`plate-visual-label ${plate.width <= 30 ? "compact" : ""}`}
+                                >
+                                  {formatWeight(plate.weight)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="plate-visual-sleeve" />
+                        </div>
+                      </div>
+                    ) : null}
+                  </section>
                 )}
 
                 <div className="sets-container">
