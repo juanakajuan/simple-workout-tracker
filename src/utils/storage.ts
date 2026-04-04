@@ -636,6 +636,30 @@ function normalizeStoredImportValue(key: string, value: string): string | null {
 }
 
 /**
+ * Reads the current Zenith-specific localStorage snapshot.
+ *
+ * @returns Map of persisted zenith_* keys to their raw stored values
+ */
+function getZenithStorageSnapshot(): Record<string, string> {
+  const snapshot: Record<string, string> = {};
+
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+
+    if (!key || !key.startsWith("zenith_")) {
+      continue;
+    }
+
+    const value = localStorage.getItem(key);
+    if (value !== null) {
+      snapshot[key] = value;
+    }
+  }
+
+  return snapshot;
+}
+
+/**
  * Exports all Zenith application data from localStorage.
  * Automatically discovers and exports all keys prefixed with "zenith_".
  * Includes metadata for version compatibility and future-proofing.
@@ -671,7 +695,8 @@ export function exportAllData(): string {
 
 /**
  * Imports application data from a JSON string and replaces all existing data.
- * Validates the data structure and clears all existing zenith_* keys before importing.
+ * Validates the payload before mutating storage and restores the previous snapshot
+ * if any import write fails.
  *
  * @param jsonString - JSON string containing exported data
  * @throws Error if JSON is invalid or data structure is incorrect
@@ -681,23 +706,36 @@ export function exportAllData(): string {
  * importAllData(fileContent);
  */
 export function importAllData(jsonString: string): void {
-  let importObject: {
-    version: string;
-    appName: string;
-    exportDate: string;
-    data: Record<string, string>;
-  };
+  let parsedImportObject: unknown;
 
   try {
-    importObject = JSON.parse(jsonString);
+    parsedImportObject = JSON.parse(jsonString);
   } catch (error) {
     console.error("Error parsing import file:", error);
     throw new Error("Invalid JSON file. Please select a valid Zenith backup file.");
   }
 
-  if (!importObject.version || !importObject.appName || !importObject.data) {
+  if (
+    !isRecord(parsedImportObject) ||
+    typeof parsedImportObject.version !== "string" ||
+    typeof parsedImportObject.appName !== "string" ||
+    !isRecord(parsedImportObject.data)
+  ) {
     throw new Error("Invalid backup file format. Missing required fields.");
   }
+
+  const importedEntries = Object.entries(parsedImportObject.data);
+  if (importedEntries.some(([, value]) => typeof value !== "string")) {
+    throw new Error("Invalid backup file format. Backup entries must be strings.");
+  }
+
+  const importObject = {
+    version: parsedImportObject.version,
+    appName: parsedImportObject.appName,
+    exportDate:
+      typeof parsedImportObject.exportDate === "string" ? parsedImportObject.exportDate : "",
+    data: Object.fromEntries(importedEntries) as Record<string, string>,
+  };
 
   if (importObject.appName !== "Zenith") {
     throw new Error("This file is not a valid Zenith backup.");
@@ -707,25 +745,36 @@ export function importAllData(jsonString: string): void {
     console.warn(`Importing data from version ${importObject.version}`);
   }
 
-  const keysToRemove: string[] = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key && key.startsWith("zenith_")) {
-      keysToRemove.push(key);
-    }
-  }
-  keysToRemove.forEach((key) => localStorage.removeItem(key));
+  const previousSnapshot = getZenithStorageSnapshot();
+  const importPlan = getImportStorageOrder(importObject.data).map(
+    (key) => [key, normalizeStoredImportValue(key, importObject.data[key])] as const
+  );
 
   try {
-    getImportStorageOrder(importObject.data).forEach((key) => {
-      const normalizedValue = normalizeStoredImportValue(key, importObject.data[key]);
+    Object.keys(previousSnapshot).forEach((key) => localStorage.removeItem(key));
 
+    importPlan.forEach(([key, normalizedValue]) => {
       if (normalizedValue !== null) {
         localStorage.setItem(key, normalizedValue);
       }
     });
   } catch (error) {
     console.error("Error writing imported data to localStorage:", error);
+
+    try {
+      new Set([...Object.keys(previousSnapshot), ...importPlan.map(([key]) => key)]).forEach(
+        (key) => {
+          localStorage.removeItem(key);
+        }
+      );
+
+      getImportStorageOrder(previousSnapshot).forEach((key) => {
+        localStorage.setItem(key, previousSnapshot[key]);
+      });
+    } catch (restoreError) {
+      console.error("Error restoring previous localStorage data:", restoreError);
+    }
+
     throw new Error(
       "Failed to import data. Your storage may be full or the data may be too large."
     );
