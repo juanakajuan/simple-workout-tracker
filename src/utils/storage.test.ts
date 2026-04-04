@@ -372,6 +372,8 @@ describe("storage utilities", () => {
   });
 
   it("rejects invalid backup payloads before mutating storage", () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify({ autoMatchWeight: false }));
 
     expect(() => importAllData("not json")).toThrow(
@@ -387,9 +389,16 @@ describe("storage utilities", () => {
     expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.SETTINGS) ?? "null")).toEqual({
       autoMatchWeight: false,
     });
+    expect(consoleError).toHaveBeenCalledTimes(1);
+    expect(consoleError).toHaveBeenCalledWith(
+      "Error parsing import file:",
+      expect.any(SyntaxError)
+    );
   });
 
   it("restores the previous snapshot when import writes fail", () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify({ autoMatchWeight: false }));
     localStorage.setItem(
       STORAGE_KEYS.TEMPLATES,
@@ -431,5 +440,10 @@ describe("storage utilities", () => {
       { id: "existing", name: "Keep", muscleGroups: [] },
     ]);
     expect(localStorage.getItem(STORAGE_KEYS.WORKOUTS)).toBeNull();
+    expect(consoleError).toHaveBeenCalledTimes(1);
+    expect(consoleError).toHaveBeenCalledWith(
+      "Error writing imported data to localStorage:",
+      expect.any(Error)
+    );
   });
 });
