@@ -28,7 +28,7 @@ import type {
   WorkoutTemplate,
   Settings,
 } from "../types";
-import { muscleGroupLabels, exerciseTypeLabels, getMuscleGroupClassName } from "../types";
+import { muscleGroupLabels, exerciseTypeLabels } from "../types";
 
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
@@ -45,6 +45,7 @@ import { SetRow } from "../components/SetRow";
 import { PageHeader } from "../components/PageHeader";
 import { WorkoutTimer } from "../components/WorkoutTimer";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { Tag } from "../components/Tag";
 
 import "./WorkoutPage.css";
 
@@ -1111,12 +1112,10 @@ export function WorkoutPage() {
                 <div className="workout-exercise-header">
                   <div>
                     <div className="exercise-meta-row">
-                      <span className={`tag ${getMuscleGroupClassName(exercise.muscleGroup)}`}>
+                      <Tag muscleGroup={exercise.muscleGroup}>
                         {muscleGroupLabels[exercise.muscleGroup]}
-                      </span>
-                      <span className="tag tag-muted">
-                        {exerciseTypeLabels[exercise.exerciseType]}
-                      </span>
+                      </Tag>
+                      <Tag>{exerciseTypeLabels[exercise.exerciseType]}</Tag>
                     </div>
                     <div className="exercise-name-row">
                       <h3

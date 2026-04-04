@@ -89,10 +89,6 @@
   margin-bottom: 0.75rem;
 }
 
-.history-card-exercises .tag {
-  font-size: 0.65rem;
-}
-
 .more-exercises {
   font-size: 0.75rem;
   color: var(--text-muted);

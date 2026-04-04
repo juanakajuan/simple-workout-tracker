@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Plus, Trash2, MoreVertical, Pencil } from "lucide-react";
 
 import type { Workout, WorkoutTemplate, WorkoutExercise, MuscleGroup } from "../types";
-import { muscleGroupLabels, getMuscleGroupClassName } from "../types";
+import { muscleGroupLabels } from "../types";
 
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
@@ -19,6 +19,7 @@ import {
 import { DraftBanner } from "../components/DraftBanner";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { PageHeader } from "../components/PageHeader";
+import { Tag } from "../components/Tag";
 
 import "./TemplatesPage.css";
 
@@ -208,23 +209,19 @@ export function TemplatesPage() {
                   <div className="template-card-content">
                     <div className="template-card-meta">
                       {muscleGroups.map((mg) => (
-                        <span key={mg} className={`tag ${getMuscleGroupClassName(mg)}`}>
+                        <Tag key={mg} muscleGroup={mg}>
                           {muscleGroupLabels[mg]}
-                        </span>
+                        </Tag>
                       ))}
                     </div>
                     <h2 className="template-card-name">{template.name}</h2>
                     <div className="template-card-tags">
                       {stats.exerciseCount > 0 && (
-                        <span className="template-card-tag tag tag-muted">
+                        <Tag>
                           {stats.exerciseCount} EXERCISE{stats.exerciseCount !== 1 ? "S" : ""}
-                        </span>
+                        </Tag>
                       )}
-                      {stats.setCount > 0 && (
-                        <span className="template-card-tag tag tag-muted">
-                          {stats.setCount} SETS
-                        </span>
-                      )}
+                      {stats.setCount > 0 && <Tag>{stats.setCount} SETS</Tag>}
                     </div>
                   </div>
                 </button>

@@ -1,12 +1,13 @@
 import { useMemo } from "react";
 
 import type { Exercise, MuscleGroup, Workout } from "../types";
-import { muscleGroupLabels, muscleGroupColors, getMuscleGroupClassName } from "../types";
+import { muscleGroupLabels, muscleGroupColors } from "../types";
 
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { STORAGE_KEYS, DEFAULT_EXERCISES } from "../utils/storage";
 
 import { PageHeader } from "../components/PageHeader";
+import { Tag } from "../components/Tag";
 
 import "./WeeklySetsTrackerPage.css";
 
@@ -215,9 +216,9 @@ export function WeeklySetsTrackerPage() {
               {weeklyMuscleGroupData.map((muscleGroupData) => (
                 <div key={muscleGroupData.muscleGroup} className="weekly-muscle-group-row">
                   <div className="weekly-muscle-group-header">
-                    <span className={`tag ${getMuscleGroupClassName(muscleGroupData.muscleGroup)}`}>
+                    <Tag muscleGroup={muscleGroupData.muscleGroup}>
                       {muscleGroupLabels[muscleGroupData.muscleGroup]}
-                    </span>
+                    </Tag>
                     <div className="weekly-muscle-group-stats">
                       <span className="weekly-current-sets">
                         {muscleGroupData.currentWeekSets} this week

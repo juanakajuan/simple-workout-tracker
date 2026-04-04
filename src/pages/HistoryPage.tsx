@@ -7,10 +7,11 @@ import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { STORAGE_KEYS, DEFAULT_EXERCISES } from "../utils/storage";
 
 import type { Exercise, Workout, MuscleGroup } from "../types";
-import { muscleGroupLabels, getMuscleGroupClassName } from "../types";
+import { muscleGroupLabels } from "../types";
 
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { PageHeader } from "../components/PageHeader";
+import { Tag } from "../components/Tag";
 
 import "./HistoryPage.css";
 
@@ -218,12 +219,9 @@ export function HistoryPage() {
                             )
                           );
                           return muscleGroups.map((muscleGroup) => (
-                            <span
-                              key={muscleGroup}
-                              className={`tag ${getMuscleGroupClassName(muscleGroup)}`}
-                            >
+                            <Tag key={muscleGroup} muscleGroup={muscleGroup}>
                               {muscleGroupLabels[muscleGroup]}
-                            </span>
+                            </Tag>
                           ));
                         })()}
                       </div>

@@ -3,12 +3,13 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Check, MoreVertical, Pencil, Trash2 } from "lucide-react";
 
 import type { Exercise, Workout } from "../types";
-import { muscleGroupLabels, exerciseTypeLabels, getMuscleGroupClassName } from "../types";
+import { muscleGroupLabels, exerciseTypeLabels } from "../types";
 
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { STORAGE_KEYS, DEFAULT_EXERCISES, getExercises } from "../utils/storage";
 
 import { PageHeader } from "../components/PageHeader";
+import { Tag } from "../components/Tag";
 
 import "./WorkoutDetailPage.css";
 
@@ -240,9 +241,9 @@ export function WorkoutDetailPage() {
             return (
               <div key={workoutExercise.id} className="detail-exercise">
                 <div className="detail-exercise-header">
-                  <span className={`tag ${getMuscleGroupClassName(exercise.muscleGroup)}`}>
+                  <Tag muscleGroup={exercise.muscleGroup}>
                     {muscleGroupLabels[exercise.muscleGroup]}
-                  </span>
+                  </Tag>
                   <h3
                     className="detail-exercise-name clickable"
                     onClick={() => handleExerciseClick(exercise)}

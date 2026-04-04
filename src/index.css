@@ -253,6 +253,11 @@ a {
   color: var(--text-secondary);
 }
 
+.tag-default {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
 /* Muscle group colors - organized by training categories */
 /* Upper Push - Pink */
 .tag-muscle-chest,

@@ -2,11 +2,12 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Check } from "lucide-react";
 
 import type { Workout } from "../types";
-import { muscleGroupLabels, exerciseTypeLabels, getMuscleGroupClassName } from "../types";
+import { muscleGroupLabels, exerciseTypeLabels } from "../types";
 
 import { getExercises, getExerciseHistory, DEFAULT_EXERCISES } from "../utils/storage";
 
 import { PageHeader } from "../components/PageHeader";
+import { Tag } from "../components/Tag";
 
 import "./ExerciseHistoryPage.css";
 
@@ -107,10 +108,8 @@ export function ExerciseHistoryPage() {
 
       <div className="exercise-history-content">
         <div className="exercise-history-meta">
-          <span className={`tag ${getMuscleGroupClassName(exercise.muscleGroup)}`}>
-            {muscleGroupLabels[exercise.muscleGroup]}
-          </span>
-          <span className="tag tag-muted">{exerciseTypeLabels[exercise.exerciseType]}</span>
+          <Tag muscleGroup={exercise.muscleGroup}>{muscleGroupLabels[exercise.muscleGroup]}</Tag>
+          <Tag>{exerciseTypeLabels[exercise.exerciseType]}</Tag>
         </div>
 
         {workoutHistory.length > 0 && (

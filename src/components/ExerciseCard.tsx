@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { Clock, MoreVertical, Pencil } from "lucide-react";
 
 import type { Exercise } from "../types";
-import { exerciseTypeLabels, muscleGroupLabels, getMuscleGroupClassName } from "../types";
+import { exerciseTypeLabels, muscleGroupLabels } from "../types";
+
+import { Tag } from "./Tag";
 
 import "./ExerciseCard.css";
 
@@ -76,11 +78,9 @@ export function ExerciseCard({
         </div>
       )}
       <div className="exercise-card-meta">
-        <span className={`tag ${getMuscleGroupClassName(exercise.muscleGroup)}`}>
-          {muscleGroupLabels[exercise.muscleGroup]}
-        </span>
-        <span className="tag tag-muted">{exerciseTypeLabels[exercise.exerciseType]}</span>
-        {isDefault && <span className="tag tag-default">Default</span>}
+        <Tag muscleGroup={exercise.muscleGroup}>{muscleGroupLabels[exercise.muscleGroup]}</Tag>
+        <Tag>{exerciseTypeLabels[exercise.exerciseType]}</Tag>
+        {isDefault && <Tag variant="default">Default</Tag>}
       </div>
       <div className="exercise-card-header">
         <h3 className="exercise-name">{exercise.name}</h3>
