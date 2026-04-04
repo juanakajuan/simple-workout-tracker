@@ -48,7 +48,10 @@ export function WorkoutDetailPage() {
 
   // Get all exercises
   const userExercises = getExercises();
-  const exercises = [...DEFAULT_EXERCISES, ...userExercises];
+  const exercises = DEFAULT_EXERCISES.map((defaultExercise) => {
+    const userOverride = userExercises.find((exercise) => exercise.id === defaultExercise.id);
+    return userOverride || defaultExercise;
+  }).concat(userExercises.filter((exercise) => !exercise.id.startsWith("default-")));
 
   /**
    * Retrieves an exercise by its unique identifier from the exercises list.

@@ -35,7 +35,10 @@ export function ExerciseFormPage() {
   let exerciseToEdit: Exercise | null = null;
   if (exerciseId) {
     const userExercises = getExercises();
-    const allExercises = [...DEFAULT_EXERCISES, ...userExercises];
+    const allExercises = DEFAULT_EXERCISES.map((defaultExercise) => {
+      const userOverride = userExercises.find((exercise) => exercise.id === defaultExercise.id);
+      return userOverride || defaultExercise;
+    }).concat(userExercises.filter((exercise) => !exercise.id.startsWith("default-")));
     exerciseToEdit = allExercises.find((ex) => ex.id === exerciseId) || null;
   } else if (location.state?.exercise) {
     exerciseToEdit = location.state.exercise as Exercise;

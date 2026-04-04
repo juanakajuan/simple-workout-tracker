@@ -22,7 +22,10 @@ export function ExerciseHistoryPage() {
 
   // Find exercise from user exercises or default exercises
   const userExercises = getExercises();
-  const allExercises = [...DEFAULT_EXERCISES, ...userExercises];
+  const allExercises = DEFAULT_EXERCISES.map((defaultExercise) => {
+    const userOverride = userExercises.find((exercise) => exercise.id === defaultExercise.id);
+    return userOverride || defaultExercise;
+  }).concat(userExercises.filter((exercise) => !exercise.id.startsWith("default-")));
   const exercise = allExercises.find((ex) => ex.id === exerciseId);
 
   if (!exercise) {
