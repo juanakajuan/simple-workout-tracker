@@ -17,18 +17,11 @@ export function WorkoutDetailPage() {
   const { workoutId } = useParams();
   const navigate = useNavigate();
   const [workouts, setWorkouts] = useLocalStorage<Workout[]>(STORAGE_KEYS.WORKOUTS, []);
+  const workout = workouts.find((w) => w.id === workoutId);
   const [isEditingName, setIsEditingName] = useState(false);
-  const [workoutName, setWorkoutName] = useState("");
+  const [workoutName, setWorkoutName] = useState(() => workout?.name ?? "");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  const workout = workouts.find((w) => w.id === workoutId);
-
-  useEffect(() => {
-    if (workout) {
-      setWorkoutName(workout.name);
-    }
-  }, [workout?.name]);
 
   useEffect(() => {
     if (!isMenuOpen) return;

@@ -40,5 +40,7 @@ export function markCurrentBuildAsSeen(): void {
 
   try {
     window.localStorage.setItem(APP_BUILD_SEEN_KEY, APP_RELEASE.buildId);
-  } catch {}
+  } catch {
+    return;
+  }
 }

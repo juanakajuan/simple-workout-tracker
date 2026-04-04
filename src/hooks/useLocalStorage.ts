@@ -1,5 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 
+function defaultDeserialize<T>(value: unknown): T {
+  return value as T;
+}
+
 interface UseLocalStorageOptions<T> {
   deserialize?: (value: unknown) => T;
 }
@@ -9,7 +13,7 @@ export function useLocalStorage<T>(
   initialValue: T,
   options?: UseLocalStorageOptions<T>
 ) {
-  const deserialize = options?.deserialize ?? ((value: unknown) => value as T);
+  const deserialize = options?.deserialize ?? defaultDeserialize<T>;
 
   const [storedValue, setStoredValue] = useState<T>(() => {
     try {

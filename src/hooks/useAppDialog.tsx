@@ -1,12 +1,6 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
+
+import { AppDialogContext } from "./appDialogContext";
 
 import { AlertDialog } from "../components/AlertDialog";
 import { ConfirmDialog } from "../components/ConfirmDialog";
@@ -33,12 +27,10 @@ export interface ConfirmResult {
   checkboxChecked?: boolean;
 }
 
-interface AppDialogContextValue {
+export interface AppDialogContextValue {
   showAlert: (options: AlertOptions) => Promise<void>;
   showConfirm: (options: ConfirmOptions) => Promise<ConfirmResult>;
 }
-
-const AppDialogContext = createContext<AppDialogContextValue | null>(null);
 
 export function AppDialogProvider({ children }: { children: ReactNode }) {
   const [alertOptions, setAlertOptions] = useState<AlertOptions | null>(null);
@@ -119,14 +111,4 @@ export function AppDialogProvider({ children }: { children: ReactNode }) {
       />
     </AppDialogContext.Provider>
   );
-}
-
-export function useAppDialog() {
-  const context = useContext(AppDialogContext);
-
-  if (!context) {
-    throw new Error("useAppDialog must be used within an AppDialogProvider");
-  }
-
-  return context;
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, type CSSProperties } from "react";
+import { useEffect, useReducer, useState, type CSSProperties } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Plus, Minus, ChevronUp, ChevronDown, Trash2 } from "lucide-react";
 
@@ -59,6 +59,77 @@ function buildTemplateMuscleGroups(
   return muscleGroups;
 }
 
+type TemplateExercisesAction =
+  | {
+      type: "replaceExercise";
+      templateExerciseId: string;
+      exerciseId: string;
+    }
+  | {
+      type: "appendExercise";
+      templateExercise: TemplateExercise;
+    }
+  | {
+      type: "removeExercise";
+      templateExerciseId: string;
+    }
+  | {
+      type: "moveExercise";
+      templateExerciseId: string;
+      direction: "up" | "down";
+    }
+  | {
+      type: "updateSetCount";
+      templateExerciseId: string;
+      delta: number;
+    };
+
+function templateExercisesReducer(
+  state: TemplateExercise[],
+  action: TemplateExercisesAction
+): TemplateExercise[] {
+  switch (action.type) {
+    case "replaceExercise":
+      return state.map((exercise) =>
+        exercise.id === action.templateExerciseId
+          ? { ...exercise, exerciseId: action.exerciseId }
+          : exercise
+      );
+
+    case "appendExercise":
+      return [...state, action.templateExercise];
+
+    case "removeExercise":
+      return state.filter((exercise) => exercise.id !== action.templateExerciseId);
+
+    case "moveExercise": {
+      const currentIndex = state.findIndex((exercise) => exercise.id === action.templateExerciseId);
+      if (currentIndex === -1) return state;
+
+      const newIndex = action.direction === "up" ? currentIndex - 1 : currentIndex + 1;
+      if (newIndex < 0 || newIndex >= state.length) return state;
+
+      const reordered = [...state];
+      [reordered[currentIndex], reordered[newIndex]] = [
+        reordered[newIndex],
+        reordered[currentIndex],
+      ];
+      return reordered;
+    }
+
+    case "updateSetCount":
+      return state.map((exercise) => {
+        if (exercise.id !== action.templateExerciseId) return exercise;
+
+        const setCount = Math.max(1, Math.min(20, exercise.setCount + action.delta));
+        return { ...exercise, setCount };
+      });
+
+    default:
+      return state;
+  }
+}
+
 export function TemplateEditorPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -70,11 +141,28 @@ export function TemplateEditorPage() {
     deserialize: normalizeTemplates,
   });
 
-  const [name, setName] = useState("");
-  const [templateExercises, setTemplateExercises] = useState<TemplateExercise[]>([]);
+  const template = isEditMode ? (templates.find((item) => item.id === id) ?? null) : null;
+
+  const [name, setName] = useState(() => {
+    if (template) {
+      return template.name;
+    }
+
+    return getDraftTemplate()?.name ?? "";
+  });
+  const [templateExercises, dispatchTemplateExercises] = useReducer(
+    templateExercisesReducer,
+    template,
+    (initialTemplate) => {
+      if (initialTemplate) {
+        return flattenTemplateMuscleGroups(initialTemplate.muscleGroups);
+      }
+
+      return getDraftTemplate()?.exercises ?? [];
+    }
+  );
   const [error, setError] = useState("");
   const [nameError, setNameError] = useState("");
-  const [isInitialized, setIsInitialized] = useState(false);
   const nameInputRef = useAutoFitText<HTMLInputElement>(name || "Enter template name...");
 
   const allExercises = DEFAULT_EXERCISES.map((defaultExercise) => {
@@ -83,30 +171,16 @@ export function TemplateEditorPage() {
   }).concat(exercises.filter((exercise) => !exercise.id.startsWith("default-")));
 
   useEffect(() => {
-    if (isEditMode) {
-      const template = templates.find((item) => item.id === id);
-      if (template) {
-        setName(template.name);
-        setTemplateExercises(flattenTemplateMuscleGroups(template.muscleGroups));
-      } else {
-        navigate("/templates", { replace: true });
-      }
-    } else {
-      const draft = getDraftTemplate();
-      if (draft) {
-        setName(draft.name);
-        setTemplateExercises(draft.exercises);
-      }
+    if (isEditMode && !template) {
+      navigate("/templates", { replace: true });
     }
-
-    setIsInitialized(true);
-  }, [id, isEditMode, navigate, templates]);
+  }, [isEditMode, navigate, template]);
 
   useEffect(() => {
-    if (!isEditMode && isInitialized) {
+    if (!isEditMode) {
       saveDraftTemplate({ name, exercises: templateExercises });
     }
-  }, [isEditMode, isInitialized, name, templateExercises]);
+  }, [isEditMode, name, templateExercises]);
 
   useEffect(() => {
     if (!location.state) return;
@@ -120,33 +194,25 @@ export function TemplateEditorPage() {
     if (state.selectedExerciseId && state.templateSelectionTarget) {
       navigate(location.pathname, { replace: true, state: {} });
 
-      const { templateExerciseId } = state.templateSelectionTarget;
-
-      setTemplateExercises((previous) =>
-        previous.map((exercise) =>
-          exercise.id === templateExerciseId
-            ? { ...exercise, exerciseId: state.selectedExerciseId! }
-            : exercise
-        )
-      );
-
-      setError("");
+      dispatchTemplateExercises({
+        type: "replaceExercise",
+        templateExerciseId: state.templateSelectionTarget.templateExerciseId,
+        exerciseId: state.selectedExerciseId,
+      });
       return;
     }
 
     if (state.selectedExerciseId && state.appendTemplateExercise) {
       navigate(location.pathname, { replace: true, state: {} });
 
-      setTemplateExercises((previous) => [
-        ...previous,
-        {
+      dispatchTemplateExercises({
+        type: "appendExercise",
+        templateExercise: {
           id: generateId(),
-          exerciseId: state.selectedExerciseId!,
+          exerciseId: state.selectedExerciseId,
           setCount: 3,
         },
-      ]);
-
-      setError("");
+      });
     }
   }, [location.pathname, location.state, navigate]);
 
@@ -193,6 +259,8 @@ export function TemplateEditorPage() {
   };
 
   const handleAddExercise = () => {
+    setError("");
+
     const path = isEditMode
       ? `/templates/edit/${id}/select-exercise`
       : "/templates/new/select-exercise";
@@ -205,29 +273,16 @@ export function TemplateEditorPage() {
   };
 
   const removeExercise = (templateExerciseId: string) => {
-    setTemplateExercises((previous) =>
-      previous.filter((exercise) => exercise.id !== templateExerciseId)
-    );
+    dispatchTemplateExercises({ type: "removeExercise", templateExerciseId });
   };
 
   const moveExercise = (templateExerciseId: string, direction: "up" | "down") => {
-    setTemplateExercises((previous) => {
-      const currentIndex = previous.findIndex((exercise) => exercise.id === templateExerciseId);
-      if (currentIndex === -1) return previous;
-
-      const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
-      if (newIndex < 0 || newIndex >= previous.length) return previous;
-
-      const reordered = [...previous];
-      [reordered[currentIndex], reordered[newIndex]] = [
-        reordered[newIndex],
-        reordered[currentIndex],
-      ];
-      return reordered;
-    });
+    dispatchTemplateExercises({ type: "moveExercise", templateExerciseId, direction });
   };
 
   const handleSelectExercise = (templateExerciseId: string) => {
+    setError("");
+
     const path = isEditMode
       ? `/templates/edit/${id}/select-exercise`
       : "/templates/new/select-exercise";
@@ -254,13 +309,7 @@ export function TemplateEditorPage() {
   };
 
   const updateSetCount = (templateExerciseId: string, delta: number) => {
-    setTemplateExercises((previous) =>
-      previous.map((exercise) => {
-        if (exercise.id !== templateExerciseId) return exercise;
-        const newCount = Math.max(1, Math.min(20, exercise.setCount + delta));
-        return { ...exercise, setCount: newCount };
-      })
-    );
+    dispatchTemplateExercises({ type: "updateSetCount", templateExerciseId, delta });
   };
 
   return (

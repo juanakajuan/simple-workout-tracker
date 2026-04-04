@@ -56,7 +56,8 @@ export function MuscleGroupSelectorPage() {
     });
   };
 
-  const hasRecentTouchInteraction = () => Date.now() - lastTouchInteractionRef.current < 500;
+  const hasRecentTouchInteraction = (timeStamp: number) =>
+    timeStamp - lastTouchInteractionRef.current < 500;
 
   const handleTouchPointerDown = (event: PointerEvent<HTMLButtonElement>) => {
     if (event.pointerType !== "touch") return;
@@ -98,13 +99,13 @@ export function MuscleGroupSelectorPage() {
     touchGestureRef.current = null;
     if (!gesture || gesture.pointerId !== event.pointerId || gesture.moved) return;
 
-    lastTouchInteractionRef.current = Date.now();
+    lastTouchInteractionRef.current = event.timeStamp;
     event.preventDefault();
     toggleSelection(group);
   };
 
   const handleOptionClick = (group: MuscleGroup, event: MouseEvent<HTMLButtonElement>) => {
-    if (event.detail !== 0 && hasRecentTouchInteraction()) return;
+    if (event.detail !== 0 && hasRecentTouchInteraction(event.timeStamp)) return;
     toggleSelection(group);
   };
 
@@ -140,7 +141,7 @@ export function MuscleGroupSelectorPage() {
     touchGestureRef.current = null;
     if (!gesture || gesture.pointerId !== event.pointerId || gesture.moved) return;
 
-    lastTouchInteractionRef.current = Date.now();
+    lastTouchInteractionRef.current = event.timeStamp;
     event.preventDefault();
     handleSelectAll(categoryGroups);
   };
@@ -149,7 +150,7 @@ export function MuscleGroupSelectorPage() {
     categoryGroups: MuscleGroup[],
     event: MouseEvent<HTMLButtonElement>
   ) => {
-    if (event.detail !== 0 && hasRecentTouchInteraction()) return;
+    if (event.detail !== 0 && hasRecentTouchInteraction(event.timeStamp)) return;
     handleSelectAll(categoryGroups);
   };
 

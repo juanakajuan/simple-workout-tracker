@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Settings, ChevronRight, Download, Upload } from "lucide-react";
 
 import { PageHeader } from "../components/PageHeader";
-import { useAppDialog } from "../hooks/useAppDialog";
+import { useAppDialog } from "../hooks/appDialogContext";
 import {
   APP_RELEASE,
   formatBuildTimestamp,
