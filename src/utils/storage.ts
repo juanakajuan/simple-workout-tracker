@@ -303,6 +303,37 @@ export function saveWorkouts(workouts: Workout[]): void {
   localStorage.setItem(STORAGE_KEYS.WORKOUTS, JSON.stringify(workouts));
 }
 
+function getMostRecentCompletedExerciseEntry(
+  workouts: Workout[],
+  exerciseId: string
+): { date: string; exercise: Workout["exercises"][number] } | null {
+  let mostRecentEntry: { date: string; exercise: Workout["exercises"][number] } | null = null;
+  let mostRecentTime = -Infinity;
+
+  for (const workout of workouts) {
+    if (!workout.completed) {
+      continue;
+    }
+
+    const exercise = workout.exercises.find((entry) => entry.exerciseId === exerciseId);
+
+    if (!exercise) {
+      continue;
+    }
+
+    const workoutTime = new Date(workout.date).getTime();
+
+    if (workoutTime <= mostRecentTime) {
+      continue;
+    }
+
+    mostRecentTime = workoutTime;
+    mostRecentEntry = { date: workout.date, exercise };
+  }
+
+  return mostRecentEntry;
+}
+
 /**
  * Retrieves the currently active (in-progress) workout from localStorage.
  * There can only be one active workout at a time.
@@ -419,23 +450,7 @@ export function saveDraftTemplate(draft: WorkoutTemplateDraft | null): void {
  * }
  */
 export function getLastPerformedDate(exerciseId: string): string | null {
-  const workouts = getWorkouts();
-
-  // Filter to completed workouts that contain this exercise
-  const workoutsWithExercise = workouts.filter(
-    (workout) => workout.completed && workout.exercises.some((ex) => ex.exerciseId === exerciseId)
-  );
-
-  if (workoutsWithExercise.length === 0) {
-    return null;
-  }
-
-  // Sort by date descending and get the most recent
-  const sortedWorkouts = workoutsWithExercise.sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
-
-  return sortedWorkouts[0].date;
+  return getMostRecentCompletedExerciseEntry(getWorkouts(), exerciseId)?.date ?? null;
 }
 
 /**
@@ -496,34 +511,13 @@ export function formatRelativeDate(dateString: string): string {
 export function getLastPerformedSets(
   exerciseId: string
 ): { weight: number; reps: number }[] | null {
-  const workouts = getWorkouts();
+  const mostRecentEntry = getMostRecentCompletedExerciseEntry(getWorkouts(), exerciseId);
 
-  // Filter to completed workouts that contain this exercise
-  const workoutsWithExercise = workouts.filter(
-    (workout) =>
-      workout.completed && workout.exercises.some((exercise) => exercise.exerciseId === exerciseId)
-  );
-
-  if (workoutsWithExercise.length === 0) {
+  if (!mostRecentEntry || mostRecentEntry.exercise.sets.length === 0) {
     return null;
   }
 
-  // Sort by date descending and get the most recent
-  const sortedWorkouts = workoutsWithExercise.sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
-
-  // Find the exercise in the most recent workout
-  const mostRecentWorkout = sortedWorkouts[0];
-  const workoutExercise = mostRecentWorkout.exercises.find(
-    (exercise) => exercise.exerciseId === exerciseId
-  );
-
-  if (!workoutExercise || workoutExercise.sets.length === 0) {
-    return null;
-  }
-
-  return workoutExercise.sets.map((set) => ({
+  return mostRecentEntry.exercise.sets.map((set) => ({
     weight: set.weight,
     reps: set.reps,
   }));

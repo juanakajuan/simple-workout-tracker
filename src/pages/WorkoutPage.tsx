@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   CirclePlay,
@@ -36,7 +36,6 @@ import {
   STORAGE_KEYS,
   generateId,
   DEFAULT_EXERCISES,
-  getLastPerformedSets,
   normalizeTemplates,
   normalizeActiveWorkout,
 } from "../utils/storage";
@@ -49,19 +48,17 @@ import { Tag } from "../components/Tag";
 
 import {
   STANDARD_BARBELL_WEIGHT,
-  STANDARD_PLATES,
   formatWeight,
-  getNearestLoadableWeight,
   getPlateLayout,
   getPlateCalculatorTarget,
   canUsePlateCalculator,
   getPlateCalculatorTitle,
 } from "../utils/workoutUtils";
-import type { PlateCalculatorTarget, PlateLayout } from "../utils/workoutUtils";
 
 import "./WorkoutPage.css";
 
 type PlateCalculatorSelections = Record<string, string>;
+type LastPerformedSet = { weight: number; reps: number };
 
 export function WorkoutPage() {
   const navigate = useNavigate();
@@ -880,6 +877,46 @@ export function WorkoutPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.state]);
 
+  const activeExerciseIdsKey =
+    activeWorkout?.exercises.map((exercise) => exercise.exerciseId).join("\u0000") ?? "";
+  const lastPerformedSetsByExerciseId = useMemo<Record<string, LastPerformedSet[] | null>>(() => {
+    if (!activeExerciseIdsKey) {
+      return {};
+    }
+
+    const exerciseIds = new Set(activeExerciseIdsKey.split("\u0000"));
+    const latestWorkoutTimes = new Map<string, number>();
+    const lastSetsByExerciseId: Record<string, LastPerformedSet[] | null> = {};
+
+    for (const workout of workouts) {
+      if (!workout.completed) {
+        continue;
+      }
+
+      const workoutTime = new Date(workout.date).getTime();
+
+      for (const workoutExercise of workout.exercises) {
+        if (!exerciseIds.has(workoutExercise.exerciseId)) {
+          continue;
+        }
+
+        const latestWorkoutTime = latestWorkoutTimes.get(workoutExercise.exerciseId) ?? -Infinity;
+
+        if (workoutTime <= latestWorkoutTime) {
+          continue;
+        }
+
+        latestWorkoutTimes.set(workoutExercise.exerciseId, workoutTime);
+        lastSetsByExerciseId[workoutExercise.exerciseId] =
+          workoutExercise.sets.length === 0
+            ? null
+            : workoutExercise.sets.map((set) => ({ weight: set.weight, reps: set.reps }));
+      }
+    }
+
+    return lastSetsByExerciseId;
+  }, [activeExerciseIdsKey, workouts]);
+
   // No active workout - show start screen
   if (!activeWorkout) {
     return (
@@ -957,6 +994,7 @@ export function WorkoutPage() {
             const plateLayout = plateCalculatorTarget
               ? getPlateLayout(plateCalculatorTarget.set.weight)
               : null;
+            const lastSets = lastPerformedSetsByExerciseId[workoutExercise.exerciseId];
 
             return (
               <div key={workoutExercise.id} className="workout-exercise-card card">
@@ -1292,9 +1330,7 @@ export function WorkoutPage() {
                     <span className="set-col-done text-uppercase">Log</span>
                   </div>
                   {workoutExercise.sets.map((set, setIndex) => {
-                    // Get last performed sets for placeholder values
-                    const lastSets = getLastPerformedSets(workoutExercise.exerciseId);
-                    const lastSet = lastSets && lastSets[setIndex];
+                    const lastSet = lastSets?.[setIndex];
 
                     return (
                       <SetRow

@@ -67,7 +67,15 @@ function uid() {
   return `test-id-${++idCounter}`;
 }
 
-function makeSet(overrides: Partial<{ id: string; weight: number; reps: number; completed: boolean; skipped: boolean }> = {}) {
+function makeSet(
+  overrides: Partial<{
+    id: string;
+    weight: number;
+    reps: number;
+    completed: boolean;
+    skipped: boolean;
+  }> = {}
+) {
   return {
     id: overrides.id ?? uid(),
     weight: overrides.weight ?? 0,
@@ -120,7 +128,6 @@ beforeEach(() => {
     writable: true,
     configurable: true,
   });
-  // @ts-expect-error — jsdom does not include ResizeObserver
   window.ResizeObserver = MockResizeObserver;
   // Silence console noise from useLocalStorage error paths
   vi.spyOn(console, "error").mockImplementation(() => {});
