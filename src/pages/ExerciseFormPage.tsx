@@ -5,7 +5,7 @@ import { Save, Trash2 } from "lucide-react";
 import type { Exercise, MuscleGroup, ExerciseType } from "../types";
 import { MUSCLE_GROUPS, EXERCISE_TYPES, muscleGroupLabels, exerciseTypeLabels } from "../types";
 
-import { getExercises, DEFAULT_EXERCISES } from "../utils/storage";
+import { getExercises, saveExercises, generateId, DEFAULT_EXERCISES } from "../utils/storage";
 
 import { PageHeader } from "../components/PageHeader";
 
@@ -15,6 +15,21 @@ export function ExerciseFormPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { exerciseId } = useParams();
+
+  const navigateBack = (state: Record<string, unknown>) => {
+    if (location.pathname.startsWith("/exercises/")) {
+      navigate("/exercises", { state });
+      return;
+    }
+
+    navigate("..", {
+      state: {
+        ...(location.state as Record<string, unknown> | null),
+        ...state,
+      },
+      relative: "path",
+    });
+  };
 
   // Get exercise to edit (either from URL param or location state)
   let exerciseToEdit: Exercise | null = null;
@@ -40,7 +55,7 @@ export function ExerciseFormPage() {
 
   /**
    * Handles form submission. Validates that the name is not empty,
-   * then navigates back with the exercise data.
+   * persists the exercise, then navigates back with the saved exercise ID.
    *
    * @param event - The form submit event
    */
@@ -55,22 +70,35 @@ export function ExerciseFormPage() {
       notes: notes.trim(),
     };
 
-    navigate("..", {
-      state: { savedExercise: exerciseData, exerciseId: exerciseToEdit?.id },
-      relative: "path",
-    });
+    const userExercises = getExercises();
+    const savedExerciseId = exerciseToEdit?.id ?? generateId();
+    const existingExerciseIndex = userExercises.findIndex(
+      (exercise) => exercise.id === savedExerciseId
+    );
+    const savedExercise = { ...exerciseData, id: savedExerciseId };
+
+    if (existingExerciseIndex >= 0) {
+      saveExercises(
+        userExercises.map((exercise) =>
+          exercise.id === savedExerciseId ? savedExercise : exercise
+        )
+      );
+    } else {
+      saveExercises([...userExercises, savedExercise]);
+    }
+
+    navigateBack({ savedExerciseId });
   };
 
   /**
-   * Handles deleting an exercise. Navigates back with the exercise ID
-   * to trigger deletion in the parent component.
+   * Handles deleting an exercise. Removes any user exercise or override,
+   * then navigates back with the deleted exercise ID.
    */
   const handleDelete = () => {
     if (!exerciseToEdit) return;
-    navigate("..", {
-      state: { deletedExerciseId: exerciseToEdit.id },
-      relative: "path",
-    });
+
+    saveExercises(getExercises().filter((exercise) => exercise.id !== exerciseToEdit.id));
+    navigateBack({ deletedExerciseId: exerciseToEdit.id });
   };
 
   const saveButton = (

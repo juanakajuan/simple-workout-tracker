@@ -1,11 +1,10 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Plus, Dumbbell, Search } from "lucide-react";
 
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import {
   STORAGE_KEYS,
-  generateId,
   DEFAULT_EXERCISES,
   getLastPerformedDate,
   formatRelativeDate,
@@ -21,8 +20,7 @@ import "./ExercisesPage.css";
 
 export function ExercisesPage() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const [exercises, setExercises] = useLocalStorage<Exercise[]>(STORAGE_KEYS.EXERCISES, []);
+  const [exercises] = useLocalStorage<Exercise[]>(STORAGE_KEYS.EXERCISES, []);
   const [filterMuscle, setFilterMuscle] = useState<MuscleGroup | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -53,42 +51,6 @@ export function ExercisesPage() {
   Object.keys(groupedExercises).forEach((group) => {
     groupedExercises[group as MuscleGroup].sort((a, b) => a.name.localeCompare(b.name));
   });
-
-  // Handle navigation returns with save/delete actions
-  useEffect(() => {
-    if (location.state?.action === "save") {
-      const { data, exerciseId } = location.state;
-
-      if (exerciseId) {
-        // Edit existing exercise
-        const existingUserExercise = exercises.find((exercise) => exercise.id === exerciseId);
-
-        if (existingUserExercise) {
-          // Update existing user exercise or override
-          setExercises(
-            exercises.map((exercise) =>
-              exercise.id === exerciseId ? { ...data, id: exercise.id } : exercise
-            )
-          );
-        } else {
-          // Create new override for default exercise
-          setExercises([...exercises, { ...data, id: exerciseId }]);
-        }
-      } else {
-        // Create new user exercise
-        setExercises([...exercises, { ...data, id: generateId() }]);
-      }
-
-      // Clear navigation state
-      navigate(location.pathname, { replace: true, state: {} });
-    } else if (location.state?.action === "delete") {
-      const { exerciseId } = location.state;
-      setExercises(exercises.filter((exercise) => exercise.id !== exerciseId));
-
-      // Clear navigation state
-      navigate(location.pathname, { replace: true, state: {} });
-    }
-  }, [location.state, exercises, setExercises, navigate, location.pathname]);
 
   /**
    * Opens the exercise creation page.

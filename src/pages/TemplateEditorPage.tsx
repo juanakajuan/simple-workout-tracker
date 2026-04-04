@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useState, type CSSProperties } from "react";
+import { useEffect, useReducer, useRef, useState, type CSSProperties } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Plus, Minus, ChevronUp, ChevronDown, Trash2 } from "lucide-react";
 
@@ -164,6 +164,7 @@ export function TemplateEditorPage() {
   const [error, setError] = useState("");
   const [nameError, setNameError] = useState("");
   const nameInputRef = useAutoFitText<HTMLInputElement>(name || "Enter template name...");
+  const handledSelectionRef = useRef<string | null>(null);
 
   const allExercises = DEFAULT_EXERCISES.map((defaultExercise) => {
     const userOverride = exercises.find((exercise) => exercise.id === defaultExercise.id);
@@ -191,6 +192,16 @@ export function TemplateEditorPage() {
       templateSelectionTarget?: TemplateSelectionTarget;
     };
 
+    const selectionKey = state.selectedExerciseId
+      ? `${location.key}:${state.selectedExerciseId}:${state.templateSelectionTarget?.templateExerciseId ?? "append"}`
+      : null;
+
+    if (!selectionKey || handledSelectionRef.current === selectionKey) {
+      return;
+    }
+
+    handledSelectionRef.current = selectionKey;
+
     if (state.selectedExerciseId && state.templateSelectionTarget) {
       navigate(location.pathname, { replace: true, state: {} });
 
@@ -213,8 +224,9 @@ export function TemplateEditorPage() {
           setCount: 3,
         },
       });
+      return;
     }
-  }, [location.pathname, location.state, navigate]);
+  }, [location.key, location.pathname, location.state, navigate]);
 
   const saveTemplate = () => {
     const trimmedName = name.trim();

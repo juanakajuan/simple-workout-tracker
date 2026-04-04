@@ -25,6 +25,7 @@ interface ExerciseSelectorState {
   isTemplateWorkout?: boolean;
   templateSelectionTarget?: TemplateSelectionTarget;
   appendTemplateExercise?: boolean;
+  savedExerciseId?: string;
 }
 
 export function ExerciseSelectorPage() {
@@ -41,20 +42,25 @@ export function ExerciseSelectorPage() {
   const exerciseRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   useEffect(() => {
-    // Listen for navigation events to handle exercise creation
-    const handleSavedExercise = () => {
-      if (location.state?.savedExercise) {
-        const { exerciseId } = location.state;
+    if (state) return;
 
-        // Auto-select the newly created exercise in replacement or template workout mode
-        if (state?.isReplacement || state?.isTemplateWorkout) {
-          setSelectedExerciseId(exerciseId || "new");
-        }
-      }
-    };
+    navigate(-1);
+  }, [navigate, state]);
 
-    handleSavedExercise();
-  }, [location.state, state?.isReplacement, state?.isTemplateWorkout]);
+  useEffect(() => {
+    if (!state?.savedExerciseId) return;
+
+    navigate("..", {
+      state: {
+        selectedExerciseId: state.savedExerciseId,
+        updateTemplate,
+        replacementWorkoutExerciseId: state.replacementWorkoutExerciseId,
+        templateSelectionTarget: state.templateSelectionTarget,
+        appendTemplateExercise: state.appendTemplateExercise,
+      },
+      relative: "path",
+    });
+  }, [navigate, state, updateTemplate]);
 
   useEffect(() => {
     if (selectedExerciseId && exerciseRefs.current[selectedExerciseId]) {
@@ -65,10 +71,7 @@ export function ExerciseSelectorPage() {
     }
   }, [selectedExerciseId]);
 
-  if (!state) {
-    navigate(-1);
-    return null;
-  }
+  if (!state) return null;
 
   const {
     exercises = [],
@@ -144,7 +147,11 @@ export function ExerciseSelectorPage() {
 
   const handleCreateNew = () => {
     navigate("new", {
-      state: { initialMuscleGroup: state.initialMuscleGroup },
+      state: {
+        ...state,
+        initialMuscleGroup: filterMuscle === "all" ? state.initialMuscleGroup : filterMuscle,
+        templateUpdateChecked: updateTemplate,
+      },
     });
   };
 

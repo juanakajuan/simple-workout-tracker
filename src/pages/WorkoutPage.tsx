@@ -980,16 +980,13 @@ export function WorkoutPage() {
   };
 
   /**
-   * Handles navigation state from exercise selector, day selector, and exercise creation
+   * Handles navigation state from exercise selector.
    */
   useEffect(() => {
     if (!location.state) return;
 
     const state = location.state as {
       selectedExerciseId?: string;
-      selectedDay?: string;
-      savedExercise?: boolean;
-      exerciseId?: string;
       updateTemplate?: boolean;
       replacementWorkoutExerciseId?: string;
     };
@@ -1013,15 +1010,6 @@ export function WorkoutPage() {
           }
         }
         setUpdateTemplateOnAdd(true);
-      }
-      // Clear navigation state
-      navigate(location.pathname, { replace: true, state: {} });
-    }
-
-    // Handle new exercise creation within selector flow
-    if (state.savedExercise && state.exerciseId) {
-      if (!state.replacementWorkoutExerciseId) {
-        addExerciseToWorkout(state.exerciseId);
       }
       // Clear navigation state
       navigate(location.pathname, { replace: true, state: {} });
