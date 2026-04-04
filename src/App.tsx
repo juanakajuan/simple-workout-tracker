@@ -1,3 +1,22 @@
+/**
+ * Root application component for Zenith.
+ *
+ * Sets up the main application structure including:
+ * - BrowserRouter for client-side routing
+ * - AppDialogProvider for global dialog state management
+ * - Route definitions for all application pages
+ * - BottomTabBar for primary navigation
+ *
+ * The routing structure supports the following URL patterns:
+ * - /exercises - Exercise library management
+ * - /templates - Workout template management
+ * - /workout - Active workout tracking
+ * - /history - Workout history and stats
+ * - /more - Settings and data management
+ *
+ * @module App
+ */
+
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { BottomTabBar } from "./components/BottomTabBar";
 import { ExercisesPage } from "./pages/ExercisesPage";
@@ -15,6 +34,12 @@ import { MuscleGroupSelectorPage } from "./pages/MuscleGroupSelectorPage";
 import { WorkoutDetailPage } from "./pages/WorkoutDetailPage";
 import { AppDialogProvider } from "./hooks/useAppDialog";
 
+/**
+ * Main application component that defines the routing structure
+ * and wraps the app with necessary providers.
+ *
+ * @returns The rendered application component
+ */
 export default function App() {
   return (
     <BrowserRouter>

@@ -61,6 +61,10 @@ export function ExerciseFormPage() {
     });
   };
 
+  /**
+   * Handles deleting an exercise. Navigates back with the exercise ID
+   * to trigger deletion in the parent component.
+   */
   const handleDelete = () => {
     if (!exerciseToEdit) return;
     navigate("..", {
