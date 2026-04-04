@@ -79,7 +79,12 @@ export function WorkoutDetailPage() {
   const totalVolume = workout.exercises.reduce(
     (accumulator, exercise) =>
       accumulator +
-      exercise.sets.reduce((setAccumulator, set) => setAccumulator + set.weight * set.reps, 0),
+      exercise.sets.reduce((setAccumulator, set) => {
+        if (set.completed) {
+          return setAccumulator + set.weight * set.reps;
+        }
+        return setAccumulator;
+      }, 0),
     0
   );
 

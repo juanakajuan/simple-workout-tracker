@@ -67,7 +67,7 @@ export function HistoryPage() {
 
   /**
    * Calculates statistics for a workout including total sets, completed sets,
-   * and total volume (weight x reps summed across all sets).
+   * and total volume (weight x reps summed across completed sets).
    *
    * @param workout - The workout to calculate statistics for
    * @returns Object containing totalSets, completedSets, and totalVolume (in lbs)
@@ -84,7 +84,12 @@ export function HistoryPage() {
     const totalVolume = workout.exercises.reduce(
       (accumulator, exercise) =>
         accumulator +
-        exercise.sets.reduce((setAccumulator, set) => setAccumulator + set.weight * set.reps, 0),
+        exercise.sets.reduce((setAccumulator, set) => {
+          if (set.completed) {
+            return setAccumulator + set.weight * set.reps;
+          }
+          return setAccumulator;
+        }, 0),
       0
     );
     return { totalSets, completedSets, totalVolume };
