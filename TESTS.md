@@ -4,7 +4,7 @@
 
 - [x] `src/pages/TemplateEditorPage.tsx`
       Reducer-driven template editing, draft persistence, selection return state, and template rebuild logic.
-- [ ] `src/pages/ExerciseSelectorPage.tsx`
+- [x] `src/pages/ExerciseSelectorPage.tsx`
       Search/filter/grouping plus replacement/template-update navigation flows.
 - [ ] `src/pages/MorePage.tsx`
       Destructive import/export flow, active-workout warning, file selection, and reload behavior.
