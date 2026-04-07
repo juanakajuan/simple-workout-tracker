@@ -229,6 +229,9 @@ describe("WorkoutPage – workout name editing", () => {
 
     // Heading should reflect the new name
     expect(screen.getByText(/Chest Day/)).toBeDefined();
+
+    const stored = getLS<Workout>(STORAGE_KEYS.ACTIVE_WORKOUT);
+    expect(stored?.name).toBe("Chest Day");
   });
 
   it("commits name on Enter key", () => {
@@ -241,6 +244,25 @@ describe("WorkoutPage – workout name editing", () => {
     fireEvent.keyDown(input, { key: "Enter" });
 
     expect(screen.getByText(/Pull Day/)).toBeDefined();
+
+    const stored = getLS<Workout>(STORAGE_KEYS.ACTIVE_WORKOUT);
+    expect(stored?.name).toBe("Pull Day");
+  });
+
+  it("restores the edited name after remounting", () => {
+    setLS(STORAGE_KEYS.ACTIVE_WORKOUT, makeWorkout({ name: "Template Push" }));
+    const view = renderWorkoutPage();
+
+    fireEvent.click(screen.getByText(/Template Push/));
+
+    const input = document.querySelector<HTMLInputElement>(".workout-name-input")!;
+    fireEvent.change(input, { target: { value: "Custom Push" } });
+    fireEvent.blur(input);
+
+    view.unmount();
+    renderWorkoutPage();
+
+    expect(screen.getByText(/Custom Push/)).toBeDefined();
   });
 });
 

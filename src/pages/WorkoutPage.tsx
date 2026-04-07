@@ -410,6 +410,34 @@ export function WorkoutPage() {
     }
   };
 
+  const startEditingWorkoutName = () => {
+    if (!activeWorkout) return;
+    setWorkoutName(activeWorkout.name);
+    setIsEditingName(true);
+  };
+
+  const saveWorkoutName = () => {
+    if (!activeWorkout) return;
+
+    const trimmedName = workoutName.trim();
+
+    if (!trimmedName) {
+      setWorkoutName(activeWorkout.name);
+      setIsEditingName(false);
+      return;
+    }
+
+    if (trimmedName !== activeWorkout.name) {
+      setActiveWorkout({
+        ...activeWorkout,
+        name: trimmedName,
+      });
+    }
+
+    setWorkoutName(trimmedName);
+    setIsEditingName(false);
+  };
+
   /**
    * Completes the active workout by calculating duration, marking it as completed,
    * and saving it to workout history. Clears the active workout state.
@@ -949,15 +977,24 @@ export function WorkoutPage() {
             <input
               className="workout-name-input"
               type="text"
-              value={workoutName || activeWorkout.name}
+              value={workoutName}
               onChange={(e) => setWorkoutName(e.target.value)}
-              onBlur={() => setIsEditingName(false)}
-              onKeyDown={(e) => e.key === "Enter" && setIsEditingName(false)}
+              onBlur={saveWorkoutName}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  saveWorkoutName();
+                }
+
+                if (e.key === "Escape") {
+                  setWorkoutName(activeWorkout.name);
+                  setIsEditingName(false);
+                }
+              }}
               autoFocus
             />
           ) : (
-            <h1 className="workout-name" onClick={() => setIsEditingName(true)}>
-              {workoutName || activeWorkout.name}
+            <h1 className="workout-name" onClick={startEditingWorkoutName}>
+              {activeWorkout.name}
               <Pencil size={16} />
             </h1>
           )}
