@@ -6,7 +6,7 @@
       Reducer-driven template editing, draft persistence, selection return state, and template rebuild logic.
 - [x] `src/pages/ExerciseSelectorPage.tsx`
       Search/filter/grouping plus replacement/template-update navigation flows.
-- [ ] `src/pages/MorePage.tsx`
+- [x] `src/pages/MorePage.tsx`
       Destructive import/export flow, active-workout warning, file selection, and reload behavior.
 - [ ] `src/pages/WeeklySetsTrackerPage.tsx`
       Week-boundary math, rolling 8-week aggregation, and ordering logic.
