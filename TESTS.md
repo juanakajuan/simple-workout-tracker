@@ -8,11 +8,11 @@
       Search/filter/grouping plus replacement/template-update navigation flows.
 - [x] `src/pages/MorePage.tsx`
       Destructive import/export flow, active-workout warning, file selection, and reload behavior.
-- [ ] `src/pages/WeeklySetsTrackerPage.tsx`
+- [x] `src/pages/WeeklySetsTrackerPage.tsx`
       Week-boundary math, rolling 8-week aggregation, and ordering logic.
-- [ ] `src/hooks/useLocalStorage.ts`
+- [x] `src/hooks/useLocalStorage.ts`
       Deserialization failures, functional updates, and cross-tab `storage` sync.
-- [ ] `src/components/SetRow.tsx`
+- [x] `src/components/SetRow.tsx`
       Completion rules, skip/unskip behavior, delete rules, and bodyweight vs weighted input states.
 
 ## High Priority
