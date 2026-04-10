@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
-import type { Workout, WorkoutTemplate } from "../types";
+import type { Exercise, Workout, WorkoutTemplate } from "../types";
 import { STORAGE_KEYS } from "../utils/storage";
 import { WorkoutPage } from "./WorkoutPage";
 
@@ -94,6 +94,18 @@ function makeWorkout(overrides: Partial<Workout> = {}): Workout {
     exercises: [],
     completed: false,
     ...overrides,
+  };
+}
+
+function makeExercise(
+  overrides: Partial<Exercise> & Pick<Exercise, "id" | "name" | "muscleGroup">
+): Exercise {
+  return {
+    id: overrides.id,
+    name: overrides.name,
+    muscleGroup: overrides.muscleGroup,
+    exerciseType: overrides.exerciseType ?? "machine",
+    notes: overrides.notes ?? "",
   };
 }
 
@@ -469,5 +481,378 @@ describe("WorkoutPage – selector return state", () => {
     const stored = getLS<Workout>(STORAGE_KEYS.ACTIVE_WORKOUT);
     expect(stored?.exercises).toHaveLength(1);
     expect(stored?.exercises[0].exerciseId).toBe("default-bench-press-medium-grip");
+  });
+
+  it("adds the selected exercise to both the workout and template when requested", () => {
+    const row = makeExercise({
+      id: "exercise-row",
+      name: "Chest-Supported Row",
+      muscleGroup: "back",
+    });
+    const template: WorkoutTemplate = {
+      id: "template-1",
+      name: "Upper",
+      muscleGroups: [
+        {
+          id: "group-1",
+          muscleGroup: "chest",
+          exercises: [
+            { id: "template-ex-1", exerciseId: "default-bench-press-medium-grip", setCount: 3 },
+          ],
+        },
+      ],
+    };
+
+    setLS(STORAGE_KEYS.EXERCISES, [row]);
+    setLS(
+      STORAGE_KEYS.ACTIVE_WORKOUT,
+      makeWorkout({
+        name: "Upper",
+        templateId: template.id,
+        exercises: [
+          { id: "we-1", exerciseId: "default-bench-press-medium-grip", sets: [makeSet()] },
+        ],
+      })
+    );
+    setLS(STORAGE_KEYS.TEMPLATES, [template]);
+
+    renderWorkoutPage("/workout", {
+      selectedExerciseId: row.id,
+      updateTemplate: true,
+    });
+
+    const storedWorkout = getLS<Workout>(STORAGE_KEYS.ACTIVE_WORKOUT);
+    expect(storedWorkout?.exercises.map((exercise) => exercise.exerciseId)).toEqual([
+      "default-bench-press-medium-grip",
+      row.id,
+    ]);
+    expect(storedWorkout?.exercises[1].sets).toHaveLength(1);
+
+    const storedTemplates = getLS<WorkoutTemplate[]>(STORAGE_KEYS.TEMPLATES);
+    expect(storedTemplates?.[0].muscleGroups).toEqual([
+      {
+        id: "group-1",
+        muscleGroup: "chest",
+        exercises: [
+          { id: "template-ex-1", exerciseId: "default-bench-press-medium-grip", setCount: 3 },
+        ],
+      },
+      {
+        id: expect.any(String),
+        muscleGroup: "back",
+        exercises: [{ id: expect.any(String), exerciseId: row.id, setCount: 3 }],
+      },
+    ]);
+  });
+
+  it("replaces the selected workout exercise, resets its sets, and leaves the template unchanged when unchecked", () => {
+    const fly = makeExercise({
+      id: "exercise-fly",
+      name: "Machine Fly",
+      muscleGroup: "chest",
+    });
+    const template: WorkoutTemplate = {
+      id: "template-1",
+      name: "Chest",
+      muscleGroups: [
+        {
+          id: "group-1",
+          muscleGroup: "chest",
+          exercises: [
+            { id: "template-ex-1", exerciseId: "default-bench-press-medium-grip", setCount: 2 },
+          ],
+        },
+      ],
+    };
+
+    setLS(STORAGE_KEYS.EXERCISES, [fly]);
+    setLS(STORAGE_KEYS.TEMPLATES, [template]);
+    setLS(
+      STORAGE_KEYS.ACTIVE_WORKOUT,
+      makeWorkout({
+        name: "Chest",
+        templateId: template.id,
+        exercises: [
+          {
+            id: "we-1",
+            exerciseId: "default-bench-press-medium-grip",
+            sets: [
+              makeSet({ id: "set-1", weight: 135, reps: 8, completed: true }),
+              makeSet({ id: "set-2", weight: 135, reps: 6, completed: false }),
+            ],
+          },
+        ],
+      })
+    );
+
+    renderWorkoutPage("/workout", {
+      selectedExerciseId: fly.id,
+      replacementWorkoutExerciseId: "we-1",
+      updateTemplate: false,
+    });
+
+    const storedWorkout = getLS<Workout>(STORAGE_KEYS.ACTIVE_WORKOUT);
+    expect(storedWorkout?.exercises[0]).toMatchObject({
+      id: "we-1",
+      exerciseId: fly.id,
+      sets: [
+        { id: "set-1", weight: 0, reps: 0, completed: false },
+        { id: "set-2", weight: 0, reps: 0, completed: false },
+      ],
+    });
+
+    const storedTemplates = getLS<WorkoutTemplate[]>(STORAGE_KEYS.TEMPLATES);
+    expect(storedTemplates?.[0].muscleGroups[0].exercises[0].exerciseId).toBe(
+      "default-bench-press-medium-grip"
+    );
+  });
+});
+
+describe("WorkoutPage – workout editing", () => {
+  it("reorders workout exercises and rebuilds template muscle groups to match", () => {
+    const row = makeExercise({ id: "exercise-row", name: "Seated Row", muscleGroup: "back" });
+    const template: WorkoutTemplate = {
+      id: "template-1",
+      name: "Upper",
+      muscleGroups: [
+        {
+          id: "group-1",
+          muscleGroup: "chest",
+          exercises: [
+            { id: "template-ex-1", exerciseId: "default-bench-press-medium-grip", setCount: 3 },
+          ],
+        },
+        {
+          id: "group-2",
+          muscleGroup: "back",
+          exercises: [{ id: "template-ex-2", exerciseId: row.id, setCount: 3 }],
+        },
+      ],
+    };
+
+    setLS(STORAGE_KEYS.EXERCISES, [row]);
+    setLS(STORAGE_KEYS.TEMPLATES, [template]);
+    setLS(
+      STORAGE_KEYS.ACTIVE_WORKOUT,
+      makeWorkout({
+        templateId: template.id,
+        exercises: [
+          { id: "we-1", exerciseId: "default-bench-press-medium-grip", sets: [makeSet()] },
+          { id: "we-2", exerciseId: row.id, sets: [makeSet()] },
+        ],
+      })
+    );
+
+    renderWorkoutPage();
+
+    fireEvent.click(screen.getAllByRole("button", { name: /more options/i })[0]);
+    fireEvent.click(screen.getByRole("button", { name: /move down/i }));
+
+    expect(
+      getLS<Workout>(STORAGE_KEYS.ACTIVE_WORKOUT)?.exercises.map((exercise) => exercise.id)
+    ).toEqual(["we-2", "we-1"]);
+    expect(getLS<WorkoutTemplate[]>(STORAGE_KEYS.TEMPLATES)?.[0].muscleGroups).toEqual([
+      {
+        id: expect.any(String),
+        muscleGroup: "back",
+        exercises: [{ id: "template-ex-2", exerciseId: row.id, setCount: 3 }],
+      },
+      {
+        id: expect.any(String),
+        muscleGroup: "chest",
+        exercises: [
+          { id: "template-ex-1", exerciseId: "default-bench-press-medium-grip", setCount: 3 },
+        ],
+      },
+    ]);
+  });
+
+  it("syncs template set count when a set is removed", () => {
+    const template: WorkoutTemplate = {
+      id: "template-1",
+      name: "Bench",
+      muscleGroups: [
+        {
+          id: "group-1",
+          muscleGroup: "chest",
+          exercises: [
+            { id: "template-ex-1", exerciseId: "default-bench-press-medium-grip", setCount: 3 },
+          ],
+        },
+      ],
+    };
+
+    setLS(STORAGE_KEYS.TEMPLATES, [template]);
+    setLS(
+      STORAGE_KEYS.ACTIVE_WORKOUT,
+      makeWorkout({
+        templateId: template.id,
+        exercises: [
+          {
+            id: "we-1",
+            exerciseId: "default-bench-press-medium-grip",
+            sets: [makeSet({ id: "set-1" }), makeSet({ id: "set-2" }), makeSet({ id: "set-3" })],
+          },
+        ],
+      })
+    );
+
+    renderWorkoutPage();
+
+    fireEvent.click(screen.getAllByRole("button", { name: /set options/i })[1]);
+    fireEvent.click(screen.getByRole("button", { name: /delete set/i }));
+
+    expect(getLS<Workout>(STORAGE_KEYS.ACTIVE_WORKOUT)?.exercises[0].sets).toHaveLength(2);
+    expect(
+      getLS<WorkoutTemplate[]>(STORAGE_KEYS.TEMPLATES)?.[0].muscleGroups[0].exercises[0].setCount
+    ).toBe(2);
+  });
+
+  it("auto-matches weight changes across all sets when the setting is enabled", () => {
+    const press = makeExercise({
+      id: "exercise-press",
+      name: "Machine Press",
+      muscleGroup: "chest",
+    });
+
+    setLS(STORAGE_KEYS.EXERCISES, [press]);
+    setLS(STORAGE_KEYS.SETTINGS, { autoMatchWeight: true });
+    setLS(
+      STORAGE_KEYS.ACTIVE_WORKOUT,
+      makeWorkout({
+        exercises: [
+          {
+            id: "we-1",
+            exerciseId: press.id,
+            sets: [makeSet({ id: "set-1", weight: 80 }), makeSet({ id: "set-2", weight: 90 })],
+          },
+        ],
+      })
+    );
+
+    renderWorkoutPage();
+
+    const weightInputs = document.querySelectorAll<HTMLInputElement>(".set-weight input");
+    fireEvent.change(weightInputs[0], { target: { value: "135" } });
+
+    expect(
+      getLS<Workout>(STORAGE_KEYS.ACTIVE_WORKOUT)?.exercises[0].sets.map((set) => set.weight)
+    ).toEqual([135, 135]);
+  });
+
+  it("creates a note override for default exercises and shows the saved note", () => {
+    setLS(
+      STORAGE_KEYS.ACTIVE_WORKOUT,
+      makeWorkout({
+        exercises: [
+          { id: "we-1", exerciseId: "default-bench-press-medium-grip", sets: [makeSet()] },
+        ],
+      })
+    );
+
+    renderWorkoutPage();
+
+    fireEvent.click(screen.getByRole("button", { name: /more options/i }));
+    fireEvent.click(screen.getByRole("button", { name: /add note/i }));
+
+    const noteInput = screen.getByPlaceholderText("Add notes...") as HTMLTextAreaElement;
+    fireEvent.change(noteInput, { target: { value: "Pause on the chest." } });
+    fireEvent.blur(noteInput);
+
+    expect(screen.getByText("Pause on the chest.")).toBeDefined();
+    expect(getLS<Exercise[]>(STORAGE_KEYS.EXERCISES)).toEqual([
+      expect.objectContaining({
+        id: "default-bench-press-medium-grip",
+        notes: "Pause on the chest.",
+      }),
+    ]);
+  });
+
+  it("deletes a workout exercise and removes it from the template when confirmed", () => {
+    const row = makeExercise({ id: "exercise-row", name: "Seated Row", muscleGroup: "back" });
+    const template: WorkoutTemplate = {
+      id: "template-1",
+      name: "Upper",
+      muscleGroups: [
+        {
+          id: "group-1",
+          muscleGroup: "chest",
+          exercises: [
+            { id: "template-ex-1", exerciseId: "default-bench-press-medium-grip", setCount: 3 },
+          ],
+        },
+        {
+          id: "group-2",
+          muscleGroup: "back",
+          exercises: [{ id: "template-ex-2", exerciseId: row.id, setCount: 3 }],
+        },
+      ],
+    };
+
+    setLS(STORAGE_KEYS.EXERCISES, [row]);
+    setLS(STORAGE_KEYS.TEMPLATES, [template]);
+    setLS(
+      STORAGE_KEYS.ACTIVE_WORKOUT,
+      makeWorkout({
+        templateId: template.id,
+        exercises: [
+          { id: "we-1", exerciseId: "default-bench-press-medium-grip", sets: [makeSet()] },
+          { id: "we-2", exerciseId: row.id, sets: [makeSet()] },
+        ],
+      })
+    );
+
+    renderWorkoutPage();
+
+    fireEvent.click(screen.getAllByRole("button", { name: /more options/i })[1]);
+    fireEvent.click(screen.getByRole("button", { name: /delete exercise/i }));
+    fireEvent.click(screen.getByRole("checkbox"));
+    fireEvent.click(screen.getByRole("button", { name: /send it to the shadow realm/i }));
+
+    expect(
+      getLS<Workout>(STORAGE_KEYS.ACTIVE_WORKOUT)?.exercises.map((exercise) => exercise.id)
+    ).toEqual(["we-1"]);
+    expect(getLS<WorkoutTemplate[]>(STORAGE_KEYS.TEMPLATES)?.[0].muscleGroups).toEqual([
+      {
+        id: "group-1",
+        muscleGroup: "chest",
+        exercises: [
+          { id: "template-ex-1", exerciseId: "default-bench-press-medium-grip", setCount: 3 },
+        ],
+      },
+    ]);
+  });
+});
+
+describe("WorkoutPage – plate calculator", () => {
+  it("shows below-bar and unloadable messages for edge-case target weights", () => {
+    setLS(
+      STORAGE_KEYS.ACTIVE_WORKOUT,
+      makeWorkout({
+        exercises: [
+          {
+            id: "we-1",
+            exerciseId: "default-bench-press-medium-grip",
+            sets: [
+              makeSet({ id: "set-1", weight: 30, reps: 10 }),
+              makeSet({ id: "set-2", weight: 137, reps: 8 }),
+            ],
+          },
+        ],
+      })
+    );
+
+    renderWorkoutPage();
+
+    fireEvent.click(screen.getByRole("button", { name: /plates/i }));
+    expect(
+      screen.getByText("This is lighter than a standard barbell. The lowest load here is 45 lbs.")
+    ).toBeDefined();
+
+    fireEvent.click(screen.getByRole("button", { name: /set 2.*137 lbs/i }));
+    expect(
+      screen.getByText("Standard plates load in 5 lb jumps. Round to the nearest loadable weight.")
+    ).toBeDefined();
+    expect(screen.getByText("135 lbs")).toBeDefined();
   });
 });

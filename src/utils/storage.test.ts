@@ -7,16 +7,22 @@ import {
   formatRelativeDate,
   getActiveWorkout,
   getDraftTemplate,
+  getExercises,
   getExerciseHistory,
   getLastPerformedDate,
   getLastPerformedSets,
+  getSettings,
   getTemplates,
+  getWorkouts,
   hasActiveWorkout,
   importAllData,
   normalizeTemplateDraft,
   normalizeTemplates,
   saveActiveWorkout,
+  saveExercises,
+  saveSettings,
   saveTemplates,
+  saveWorkouts,
 } from "./storage";
 
 class MockStorage implements Storage {
@@ -169,6 +175,40 @@ describe("storage utilities", () => {
     expect(getDraftTemplate()).toBeNull();
     expect(getActiveWorkout()).toBeNull();
     expect(hasActiveWorkout()).toBe(false);
+  });
+
+  it("reads and writes exercises, workouts, and settings with malformed-json fallbacks", () => {
+    localStorage.setItem(STORAGE_KEYS.EXERCISES, "{");
+    localStorage.setItem(STORAGE_KEYS.WORKOUTS, "{");
+    localStorage.setItem(STORAGE_KEYS.SETTINGS, "{");
+
+    expect(getExercises()).toEqual([]);
+    expect(getWorkouts()).toEqual([]);
+    expect(getSettings()).toEqual({ autoMatchWeight: false });
+
+    const exercises = [
+      {
+        id: "exercise-1",
+        name: "Lat Pulldown",
+        muscleGroup: "back",
+        exerciseType: "machine",
+        notes: "Use straps if grip fades.",
+      },
+    ] as const;
+    const workouts = [createWorkout({ id: "saved-workout" })];
+
+    saveExercises([...exercises]);
+    saveWorkouts(workouts);
+    saveSettings({ autoMatchWeight: true });
+
+    expect(getExercises()).toEqual(exercises);
+    expect(getWorkouts()).toEqual(workouts);
+    expect(getSettings()).toEqual({ autoMatchWeight: true });
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.EXERCISES) ?? "null")).toEqual(exercises);
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.WORKOUTS) ?? "null")).toEqual(workouts);
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.SETTINGS) ?? "null")).toEqual({
+      autoMatchWeight: true,
+    });
   });
 
   it("saves templates in normalized form", () => {

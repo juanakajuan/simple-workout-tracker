@@ -17,11 +17,11 @@
 
 ## High Priority
 
-- [ ] `src/pages/WorkoutPage.tsx`
+- [x] `src/pages/WorkoutPage.tsx`
       Starting workouts, adding/removing/reordering exercises, set count changes, auto-match weight, note editing, selector return-state handling, template updates, finish/cancel branches, and plate calculator edge cases.
-- [ ] `src/utils/storage.ts`
+- [x] `src/utils/storage.ts`
       Local storage reads/writes, malformed JSON handling, template normalization, draft normalization, active workout normalization, relative-date helpers, export/import validation, and rollback on failed import.
-- [ ] `src/pages/TemplatesPage.tsx`
+- [x] `src/pages/TemplatesPage.tsx`
       Draft banner behavior, discard-confirm flows, template stats, template start flow, and delete/edit kebab actions.
 - [ ] `src/pages/ExerciseFormPage.tsx`
       Create vs edit flows, default-exercise override behavior, delete behavior, and return-state navigation.
