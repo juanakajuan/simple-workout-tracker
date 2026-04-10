@@ -28,9 +28,13 @@ export function TemplatesPage() {
   const [templates, setTemplates] = useLocalStorage<WorkoutTemplate[]>(STORAGE_KEYS.TEMPLATES, [], {
     deserialize: normalizeTemplates,
   });
-  const [, setActiveWorkout] = useLocalStorage<Workout | null>(STORAGE_KEYS.ACTIVE_WORKOUT, null, {
-    deserialize: normalizeActiveWorkout,
-  });
+  const [activeWorkout, setActiveWorkout] = useLocalStorage<Workout | null>(
+    STORAGE_KEYS.ACTIVE_WORKOUT,
+    null,
+    {
+      deserialize: normalizeActiveWorkout,
+    }
+  );
 
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [hasDraft, setHasDraft] = useState(false);
@@ -130,6 +134,21 @@ export function TemplatesPage() {
     navigate("/workout");
   };
 
+  const confirmStartTemplate = (template: WorkoutTemplate) => {
+    const isReplacingActiveWorkout = activeWorkout !== null;
+
+    showConfirm({
+      title: isReplacingActiveWorkout ? "Replace active workout?" : `Start "${template.name}"?`,
+      message: isReplacingActiveWorkout
+        ? "You have an active workout in progress. Starting this template will replace it. Do you want to continue?"
+        : "This will begin a new workout from this template.",
+      confirmText: isReplacingActiveWorkout ? "Replace and start" : "Start",
+      cancelText: "Cancel",
+      variant: isReplacingActiveWorkout ? "danger" : "standard",
+      onConfirm: () => handleStartTemplate(template),
+    });
+  };
+
   const getTemplateMuscleGroups = (template: WorkoutTemplate): MuscleGroup[] => {
     return Array.from(new Set(template.muscleGroups.map((mg) => mg.muscleGroup)));
   };
@@ -195,16 +214,7 @@ export function TemplatesPage() {
                 <button
                   type="button"
                   className="template-card-clickable"
-                  onClick={() => {
-                    showConfirm({
-                      title: `Start "${template.name}"?`,
-                      message: "This will begin a new workout from this template.",
-                      confirmText: "Start",
-                      cancelText: "Cancel",
-                      variant: "standard",
-                      onConfirm: () => handleStartTemplate(template),
-                    });
-                  }}
+                  onClick={() => confirmStartTemplate(template)}
                 >
                   <div className="template-card-content">
                     <div className="template-card-meta">

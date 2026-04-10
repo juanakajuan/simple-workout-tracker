@@ -185,6 +185,62 @@ describe("TemplatesPage", () => {
     });
   });
 
+  it("warns before replacing an active workout when starting a template", async () => {
+    setLS(STORAGE_KEYS.TEMPLATES, [
+      {
+        id: "template-1",
+        name: "Upper A",
+        muscleGroups: [
+          {
+            id: "group-1",
+            muscleGroup: "chest",
+            exercises: [
+              { id: "template-ex-1", exerciseId: "default-bench-press-medium-grip", setCount: 3 },
+            ],
+          },
+        ],
+      },
+    ] satisfies WorkoutTemplate[]);
+    setLS(STORAGE_KEYS.ACTIVE_WORKOUT, {
+      id: "workout-1",
+      name: "Current Workout",
+      date: "2026-04-10T10:00:00.000Z",
+      startTime: "2026-04-10T10:00:00.000Z",
+      exercises: [],
+      completed: false,
+    } satisfies Workout);
+
+    renderTemplatesPage();
+
+    fireEvent.click(screen.getByRole("button", { name: /upper a/i }));
+
+    expect(screen.getByText("Replace active workout?")).toBeDefined();
+    expect(
+      screen.getByText(
+        "You have an active workout in progress. Starting this template will replace it. Do you want to continue?"
+      )
+    ).toBeDefined();
+
+    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
+
+    expect(getLS<Workout>(STORAGE_KEYS.ACTIVE_WORKOUT)).toMatchObject({
+      id: "workout-1",
+      name: "Current Workout",
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /upper a/i }));
+    fireEvent.click(screen.getByRole("button", { name: /replace and start/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Workout Page")).toBeDefined();
+    });
+
+    expect(getLS<Workout>(STORAGE_KEYS.ACTIVE_WORKOUT)).toMatchObject({
+      name: "Upper A",
+      templateId: "template-1",
+    });
+  });
+
   it("opens the kebab edit action and navigates to the template editor", async () => {
     setLS(STORAGE_KEYS.TEMPLATES, [
       {
