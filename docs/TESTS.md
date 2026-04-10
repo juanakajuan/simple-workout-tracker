@@ -50,7 +50,7 @@
       Initial elapsed-time calculation, ticking, formatting, and interval cleanup.
 - [x] `src/components/ExerciseCard.tsx`
       Edit menu open/close, click propagation rules, default badge, and last-performed rendering.
-- [ ] `src/pages/SettingsPage.tsx`
+- [x] `src/pages/SettingsPage.tsx`
       Settings persistence and toggle behavior.
 - [ ] `src/hooks/useConfirmDialog.ts`
       Local dialog open/close state and option forwarding.
