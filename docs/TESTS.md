@@ -64,9 +64,9 @@
       Route coverage for all page paths and redirect from `/`.
 - [x] `src/main.tsx`
       App bootstrap rendering.
-- [ ] `src/utils/appRelease.ts`
+- [x] `src/utils/appRelease.ts`
       Build timestamp formatting, unseen-build detection, and seen-build persistence.
-- [ ] `vite.config.ts`
+- [x] `vite.config.ts`
       Build ID generation and git SHA fallback behavior.
 
 ## Low Priority
