@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Search, Plus, Clock, Check } from "lucide-react";
 
-import type { Exercise, MuscleGroup } from "../types";
+import type { Exercise, MuscleGroup, WorkoutTemplateDraft } from "../types";
 import { muscleGroupLabels, exerciseTypeLabels, MUSCLE_GROUPS } from "../types";
 import { getLastPerformedDate, formatRelativeDate } from "../utils/storage";
 import { PageHeader } from "../components/PageHeader";
@@ -26,6 +26,7 @@ interface ExerciseSelectorState {
   templateSelectionTarget?: TemplateSelectionTarget;
   appendTemplateExercise?: boolean;
   savedExerciseId?: string;
+  templateDraft?: WorkoutTemplateDraft;
 }
 
 export function ExerciseSelectorPage() {
@@ -57,6 +58,7 @@ export function ExerciseSelectorPage() {
         replacementWorkoutExerciseId: state.replacementWorkoutExerciseId,
         templateSelectionTarget: state.templateSelectionTarget,
         appendTemplateExercise: state.appendTemplateExercise,
+        templateDraft: state.templateDraft,
       },
       relative: "path",
     });
@@ -72,6 +74,18 @@ export function ExerciseSelectorPage() {
   }, [selectedExerciseId]);
 
   if (!state) return null;
+
+  const handleBack = () => {
+    if (state.templateDraft) {
+      navigate("..", {
+        state: { templateDraft: state.templateDraft },
+        relative: "path",
+      });
+      return;
+    }
+
+    navigate(-1);
+  };
 
   const {
     exercises = [],
@@ -121,6 +135,7 @@ export function ExerciseSelectorPage() {
           replacementWorkoutExerciseId: state?.replacementWorkoutExerciseId,
           templateSelectionTarget: state?.templateSelectionTarget,
           appendTemplateExercise: state?.appendTemplateExercise,
+          templateDraft: state?.templateDraft,
         },
         relative: "path",
       });
@@ -139,6 +154,7 @@ export function ExerciseSelectorPage() {
           replacementWorkoutExerciseId: state?.replacementWorkoutExerciseId,
           templateSelectionTarget: state?.templateSelectionTarget,
           appendTemplateExercise: state?.appendTemplateExercise,
+          templateDraft: state?.templateDraft,
         },
         relative: "path",
       });
@@ -159,6 +175,7 @@ export function ExerciseSelectorPage() {
     <div className="page">
       <PageHeader
         title="Select Exercise"
+        onBack={handleBack}
         actions={
           <button
             type="button"

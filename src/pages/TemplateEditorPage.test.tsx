@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes, type InitialEntry } from "react-router-dom
 
 import type { Exercise, WorkoutTemplate, WorkoutTemplateDraft } from "../types";
 import { STORAGE_KEYS } from "../utils/storage";
+import { ExerciseSelectorPage } from "./ExerciseSelectorPage";
 import { TemplateEditorPage } from "./TemplateEditorPage";
 
 class MockStorage implements Storage {
@@ -69,9 +70,9 @@ function renderTemplateEditor(initialEntry: InitialEntry = "/templates/new") {
       <Routes>
         <Route path="/templates" element={<div>Templates List</div>} />
         <Route path="/templates/new" element={<TemplateEditorPage />} />
-        <Route path="/templates/new/select-exercise" element={<div>Select Exercise</div>} />
+        <Route path="/templates/new/select-exercise" element={<ExerciseSelectorPage />} />
         <Route path="/templates/edit/:id" element={<TemplateEditorPage />} />
-        <Route path="/templates/edit/:id/select-exercise" element={<div>Select Exercise</div>} />
+        <Route path="/templates/edit/:id/select-exercise" element={<ExerciseSelectorPage />} />
       </Routes>
     </MemoryRouter>
   );
@@ -301,5 +302,218 @@ describe("TemplateEditorPage", () => {
         ],
       },
     ]);
+  });
+
+  it("preserves edit-mode changes when adding an exercise through the selector", async () => {
+    const benchPress = createExercise({
+      id: "exercise-bench-press",
+      name: "Bench Press",
+      muscleGroup: "chest",
+    });
+    const seatedRow = createExercise({
+      id: "exercise-seated-row",
+      name: "Seated Row",
+      muscleGroup: "back",
+    });
+    const cableFly = createExercise({
+      id: "exercise-cable-fly",
+      name: "Cable Fly",
+      muscleGroup: "chest",
+    });
+
+    setLS(STORAGE_KEYS.EXERCISES, [benchPress, seatedRow, cableFly]);
+    setLS(STORAGE_KEYS.TEMPLATES, [
+      {
+        id: "template-1",
+        name: "Upper A",
+        muscleGroups: [
+          {
+            id: "group-1",
+            muscleGroup: "chest",
+            exercises: [{ id: "template-exercise-1", exerciseId: benchPress.id, setCount: 3 }],
+          },
+          {
+            id: "group-2",
+            muscleGroup: "back",
+            exercises: [{ id: "template-exercise-2", exerciseId: seatedRow.id, setCount: 4 }],
+          },
+        ],
+      } satisfies WorkoutTemplate,
+    ]);
+
+    const { container } = renderTemplateEditor("/templates/edit/template-1");
+
+    fireEvent.change(screen.getByPlaceholderText("Enter template name..."), {
+      target: { value: "Updated Upper A" },
+    });
+    fireEvent.click(screen.getAllByRole("button", { name: /increase sets/i })[1]);
+    fireEvent.click(screen.getAllByRole("button", { name: /move up/i })[1]);
+    fireEvent.click(screen.getByRole("button", { name: /add exercise/i }));
+
+    await screen.findByPlaceholderText("Search exercises...");
+
+    const cableFlyOption = (await screen.findByText("Cable Fly")).closest("button");
+    expect(cableFlyOption).not.toBeNull();
+    fireEvent.click(cableFlyOption!);
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("Updated Upper A")).toBeDefined();
+    });
+
+    expect(
+      Array.from(container.querySelectorAll<HTMLButtonElement>(".templates-exercise-btn")).map(
+        (button) => button.textContent
+      )
+    ).toEqual(["Seated Row", "Bench Press", "Cable Fly"]);
+    expect(
+      Array.from(container.querySelectorAll(".templates-set-count-value")).map(
+        (value) => value.textContent
+      )
+    ).toEqual(["5", "3", "3"]);
+  });
+
+  it("preserves edit-mode changes when backing out of the selector", async () => {
+    const inclinePress = createExercise({
+      id: "exercise-incline-press",
+      name: "Incline Press",
+      muscleGroup: "chest",
+    });
+    const chestSupportedRow = createExercise({
+      id: "exercise-chest-supported-row",
+      name: "Chest Supported Row",
+      muscleGroup: "back",
+    });
+
+    setLS(STORAGE_KEYS.EXERCISES, [inclinePress, chestSupportedRow]);
+    setLS(STORAGE_KEYS.TEMPLATES, [
+      {
+        id: "template-1",
+        name: "Upper B",
+        muscleGroups: [
+          {
+            id: "group-1",
+            muscleGroup: "chest",
+            exercises: [{ id: "template-exercise-1", exerciseId: inclinePress.id, setCount: 2 }],
+          },
+          {
+            id: "group-2",
+            muscleGroup: "back",
+            exercises: [
+              {
+                id: "template-exercise-2",
+                exerciseId: chestSupportedRow.id,
+                setCount: 3,
+              },
+            ],
+          },
+        ],
+      } satisfies WorkoutTemplate,
+    ]);
+
+    const { container } = renderTemplateEditor("/templates/edit/template-1");
+
+    fireEvent.change(screen.getByPlaceholderText("Enter template name..."), {
+      target: { value: "Upper B Updated" },
+    });
+    fireEvent.click(screen.getAllByRole("button", { name: /increase sets/i })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: /move up/i })[1]);
+    fireEvent.click(screen.getByRole("button", { name: "Incline Press" }));
+
+    await screen.findByPlaceholderText("Search exercises...");
+
+    fireEvent.click(await screen.findByRole("button", { name: /go back/i }));
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("Upper B Updated")).toBeDefined();
+    });
+
+    expect(
+      Array.from(container.querySelectorAll<HTMLButtonElement>(".templates-exercise-btn")).map(
+        (button) => button.textContent
+      )
+    ).toEqual(["Chest Supported Row", "Incline Press"]);
+    expect(
+      Array.from(container.querySelectorAll(".templates-set-count-value")).map(
+        (value) => value.textContent
+      )
+    ).toEqual(["3", "3"]);
+  });
+
+  it("restores an edit draft after leaving the template tab and coming back", async () => {
+    const benchPress = createExercise({
+      id: "exercise-bench-press",
+      name: "Bench Press",
+      muscleGroup: "chest",
+    });
+    const seatedRow = createExercise({
+      id: "exercise-seated-row",
+      name: "Seated Row",
+      muscleGroup: "back",
+    });
+    const pecDeck = createExercise({
+      id: "exercise-pec-deck",
+      name: "Pec Deck",
+      muscleGroup: "chest",
+    });
+
+    setLS(STORAGE_KEYS.EXERCISES, [benchPress, seatedRow, pecDeck]);
+    setLS(STORAGE_KEYS.TEMPLATES, [
+      {
+        id: "template-1",
+        name: "Upper A",
+        muscleGroups: [
+          {
+            id: "group-1",
+            muscleGroup: "chest",
+            exercises: [{ id: "template-exercise-1", exerciseId: benchPress.id, setCount: 3 }],
+          },
+          {
+            id: "group-2",
+            muscleGroup: "back",
+            exercises: [{ id: "template-exercise-2", exerciseId: seatedRow.id, setCount: 4 }],
+          },
+        ],
+      } satisfies WorkoutTemplate,
+    ]);
+
+    renderTemplateEditor("/templates/edit/template-1");
+
+    fireEvent.change(screen.getByPlaceholderText("Enter template name..."), {
+      target: { value: "Upper A Updated" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /add exercise/i }));
+
+    await screen.findByPlaceholderText("Search exercises...");
+
+    const pecDeckOption = (await screen.findByText("Pec Deck")).closest("button");
+    expect(pecDeckOption).not.toBeNull();
+    fireEvent.click(pecDeckOption!);
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("Upper A Updated")).toBeDefined();
+      expect(screen.getByRole("button", { name: "Pec Deck" })).toBeDefined();
+    });
+
+    expect(
+      getLS<Record<string, WorkoutTemplateDraft>>(STORAGE_KEYS.EDIT_TEMPLATE_DRAFTS)
+    ).toMatchObject({
+      "template-1": {
+        name: "Upper A Updated",
+        exercises: [
+          { exerciseId: benchPress.id, setCount: 3 },
+          { exerciseId: seatedRow.id, setCount: 4 },
+          { exerciseId: pecDeck.id, setCount: 3 },
+        ],
+      },
+    });
+
+    cleanup();
+
+    renderTemplateEditor("/templates/edit/template-1");
+
+    expect(screen.getByDisplayValue("Upper A Updated")).toBeDefined();
+    expect(screen.getByRole("button", { name: "Bench Press" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Seated Row" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Pec Deck" })).toBeDefined();
   });
 });

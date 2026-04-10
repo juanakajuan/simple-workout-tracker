@@ -2,7 +2,13 @@ import { useEffect, useReducer, useRef, useState, type CSSProperties } from "rea
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Plus, Minus, ChevronUp, ChevronDown, Trash2 } from "lucide-react";
 
-import type { Exercise, WorkoutTemplate, TemplateExercise, TemplateMuscleGroup } from "../types";
+import type {
+  Exercise,
+  WorkoutTemplate,
+  TemplateExercise,
+  TemplateMuscleGroup,
+  WorkoutTemplateDraft,
+} from "../types";
 import { muscleGroupLabels, muscleGroupColors } from "../types";
 
 import { useLocalStorage } from "../hooks/useLocalStorage";
@@ -14,13 +20,22 @@ import {
   DEFAULT_EXERCISES,
   normalizeTemplates,
   getDraftTemplate,
+  getEditTemplateDraft,
   saveDraftTemplate,
+  saveEditTemplateDraft,
 } from "../utils/storage";
 
 import "./TemplateEditorPage.css";
 
 interface TemplateSelectionTarget {
   templateExerciseId: string;
+}
+
+interface TemplateEditorLocationState {
+  selectedExerciseId?: string;
+  appendTemplateExercise?: boolean;
+  templateSelectionTarget?: TemplateSelectionTarget;
+  templateDraft?: WorkoutTemplateDraft;
 }
 
 function flattenTemplateMuscleGroups(muscleGroups: TemplateMuscleGroup[]): TemplateExercise[] {
@@ -135,6 +150,8 @@ export function TemplateEditorPage() {
   const location = useLocation();
   const { id } = useParams<{ id: string }>();
   const isEditMode = id !== undefined;
+  const locationState = (location.state as TemplateEditorLocationState | null) ?? null;
+  const routeDraft = locationState?.templateDraft ?? null;
 
   const [exercises] = useLocalStorage<Exercise[]>(STORAGE_KEYS.EXERCISES, []);
   const [templates, setTemplates] = useLocalStorage<WorkoutTemplate[]>(STORAGE_KEYS.TEMPLATES, [], {
@@ -142,8 +159,17 @@ export function TemplateEditorPage() {
   });
 
   const template = isEditMode ? (templates.find((item) => item.id === id) ?? null) : null;
+  const persistedEditDraft = isEditMode && id ? getEditTemplateDraft(id) : null;
 
   const [name, setName] = useState(() => {
+    if (routeDraft) {
+      return routeDraft.name;
+    }
+
+    if (persistedEditDraft) {
+      return persistedEditDraft.name;
+    }
+
     if (template) {
       return template.name;
     }
@@ -154,6 +180,14 @@ export function TemplateEditorPage() {
     templateExercisesReducer,
     template,
     (initialTemplate) => {
+      if (routeDraft) {
+        return routeDraft.exercises;
+      }
+
+      if (persistedEditDraft) {
+        return persistedEditDraft.exercises;
+      }
+
       if (initialTemplate) {
         return flattenTemplateMuscleGroups(initialTemplate.muscleGroups);
       }
@@ -178,19 +212,20 @@ export function TemplateEditorPage() {
   }, [isEditMode, navigate, template]);
 
   useEffect(() => {
+    if (isEditMode && id) {
+      saveEditTemplateDraft(id, { name, exercises: templateExercises });
+      return;
+    }
+
     if (!isEditMode) {
       saveDraftTemplate({ name, exercises: templateExercises });
     }
-  }, [isEditMode, name, templateExercises]);
+  }, [id, isEditMode, name, templateExercises]);
 
   useEffect(() => {
     if (!location.state) return;
 
-    const state = location.state as {
-      selectedExerciseId?: string;
-      appendTemplateExercise?: boolean;
-      templateSelectionTarget?: TemplateSelectionTarget;
-    };
+    const state = location.state as TemplateEditorLocationState;
 
     const selectionKey = state.selectedExerciseId
       ? `${location.key}:${state.selectedExerciseId}:${state.templateSelectionTarget?.templateExerciseId ?? "append"}`
@@ -227,6 +262,11 @@ export function TemplateEditorPage() {
       return;
     }
   }, [location.key, location.pathname, location.state, navigate]);
+
+  const createDraftSnapshot = (): WorkoutTemplateDraft => ({
+    name,
+    exercises: templateExercises.map((exercise) => ({ ...exercise })),
+  });
 
   const saveTemplate = () => {
     const trimmedName = name.trim();
@@ -265,6 +305,8 @@ export function TemplateEditorPage() {
 
     if (!isEditMode) {
       saveDraftTemplate(null);
+    } else {
+      saveEditTemplateDraft(id!, null);
     }
 
     navigate("/templates");
@@ -273,14 +315,24 @@ export function TemplateEditorPage() {
   const handleAddExercise = () => {
     setError("");
 
+    const draft = createDraftSnapshot();
+    navigate(location.pathname, {
+      replace: true,
+      state: { templateDraft: draft },
+      flushSync: true,
+    });
+
     const path = isEditMode
       ? `/templates/edit/${id}/select-exercise`
       : "/templates/new/select-exercise";
-    navigate(path, {
-      state: {
-        exercises: allExercises,
-        appendTemplateExercise: true,
-      },
+    queueMicrotask(() => {
+      navigate(path, {
+        state: {
+          exercises: allExercises,
+          appendTemplateExercise: true,
+          templateDraft: draft,
+        },
+      });
     });
   };
 
@@ -295,6 +347,13 @@ export function TemplateEditorPage() {
   const handleSelectExercise = (templateExerciseId: string) => {
     setError("");
 
+    const draft = createDraftSnapshot();
+    navigate(location.pathname, {
+      replace: true,
+      state: { templateDraft: draft },
+      flushSync: true,
+    });
+
     const path = isEditMode
       ? `/templates/edit/${id}/select-exercise`
       : "/templates/new/select-exercise";
@@ -303,15 +362,18 @@ export function TemplateEditorPage() {
     );
     const currentExercise = getExerciseById(templateExercise?.exerciseId ?? null);
 
-    navigate(path, {
-      state: {
-        exercises: allExercises,
-        initialMuscleGroup: currentExercise?.muscleGroup,
-        templateUpdateChecked: true,
-        templateSelectionTarget: {
-          templateExerciseId,
+    queueMicrotask(() => {
+      navigate(path, {
+        state: {
+          exercises: allExercises,
+          initialMuscleGroup: currentExercise?.muscleGroup,
+          templateUpdateChecked: true,
+          templateDraft: draft,
+          templateSelectionTarget: {
+            templateExerciseId,
+          },
         },
-      },
+      });
     });
   };
 

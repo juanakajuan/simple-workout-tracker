@@ -6,7 +6,7 @@
 
   `src/pages/TemplatesPage.tsx:98-130` always creates a new workout and writes it to `ACTIVE_WORKOUT`, and the start-confirm UI at `src/pages/TemplatesPage.tsx:199-206` does not check for an existing active session first. If the user already has a workout in progress, tapping Start replaces it with no warning.
 
-- [ ] High: Unsaved edits are lost when editing an existing template and hopping to the exercise picker.
+- [x] High: Unsaved edits are lost when editing an existing template and hopping to the exercise picker.
 
   In `src/pages/TemplateEditorPage.tsx:146-163`, edit mode initializes local state from the stored template; in `src/pages/TemplateEditorPage.tsx:180-184`, draft persistence only runs for new templates; and `src/pages/TemplateEditorPage.tsx:273-315` navigates away to child routes for add/replace flows. Result: name/order/set-count edits made in edit mode disappear after returning from `/select-exercise`.
 

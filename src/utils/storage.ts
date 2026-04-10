@@ -18,6 +18,7 @@ export const STORAGE_KEYS = {
   ACTIVE_WORKOUT: "zenith_active_workout",
   TEMPLATES: "zenith_templates",
   DRAFT_TEMPLATE: "zenith_draft_template",
+  EDIT_TEMPLATE_DRAFTS: "zenith_edit_template_drafts",
   SETTINGS: "zenith_settings",
 } as const;
 
@@ -223,6 +224,29 @@ export function normalizeTemplateDraft(value: unknown): WorkoutTemplateDraft | n
       muscleGroup.exercises.map((exercise) => ({ ...exercise }))
     ),
   };
+}
+
+/**
+ * Normalizes stored edit-template drafts keyed by template id.
+ *
+ * @param value - Raw stored draft map
+ * @returns Normalized draft map keyed by template id
+ */
+function normalizeEditTemplateDrafts(value: unknown): Record<string, WorkoutTemplateDraft> {
+  if (!isRecord(value)) return {};
+
+  const drafts: Record<string, WorkoutTemplateDraft> = {};
+
+  Object.entries(value).forEach(([templateId, draftValue]) => {
+    if (!templateId) return;
+
+    const draft = normalizeTemplateDraft(draftValue);
+    if (draft) {
+      drafts[templateId] = draft;
+    }
+  });
+
+  return drafts;
 }
 
 /**
@@ -437,6 +461,43 @@ export function saveDraftTemplate(draft: WorkoutTemplateDraft | null): void {
 }
 
 /**
+ * Retrieves an unsaved edit draft for a specific template.
+ *
+ * @param templateId - Template identifier
+ * @returns Normalized edit draft, or null when none exists
+ */
+export function getEditTemplateDraft(templateId: string): WorkoutTemplateDraft | null {
+  const drafts = normalizeEditTemplateDrafts(parseStoredValue(STORAGE_KEYS.EDIT_TEMPLATE_DRAFTS));
+  return drafts[templateId] ?? null;
+}
+
+/**
+ * Saves or clears an unsaved edit draft for a specific template.
+ *
+ * @param templateId - Template identifier
+ * @param draft - Draft to persist, or null to clear it
+ */
+export function saveEditTemplateDraft(
+  templateId: string,
+  draft: WorkoutTemplateDraft | null
+): void {
+  const drafts = normalizeEditTemplateDrafts(parseStoredValue(STORAGE_KEYS.EDIT_TEMPLATE_DRAFTS));
+
+  if (draft) {
+    drafts[templateId] = normalizeTemplateDraft(draft) ?? draft;
+  } else {
+    delete drafts[templateId];
+  }
+
+  if (Object.keys(drafts).length === 0) {
+    localStorage.removeItem(STORAGE_KEYS.EDIT_TEMPLATE_DRAFTS);
+    return;
+  }
+
+  localStorage.setItem(STORAGE_KEYS.EDIT_TEMPLATE_DRAFTS, JSON.stringify(drafts));
+}
+
+/**
  * Gets the last performed date for a specific exercise.
  * Searches through completed workouts to find the most recent workout containing the exercise.
  *
@@ -579,6 +640,8 @@ function normalizeStoredExportValue(key: string, value: string): string {
       const draft = normalizeTemplateDraft(parsedValue);
       return JSON.stringify(draft);
     }
+    case STORAGE_KEYS.EDIT_TEMPLATE_DRAFTS:
+      return JSON.stringify(normalizeEditTemplateDrafts(parsedValue));
     case STORAGE_KEYS.ACTIVE_WORKOUT: {
       const workout = normalizeActiveWorkout(parsedValue);
       return JSON.stringify(workout);
@@ -598,6 +661,7 @@ function getImportStorageOrder(data: Record<string, string>): string[] {
   const prioritizedKeys = [
     STORAGE_KEYS.TEMPLATES,
     STORAGE_KEYS.DRAFT_TEMPLATE,
+    STORAGE_KEYS.EDIT_TEMPLATE_DRAFTS,
     STORAGE_KEYS.ACTIVE_WORKOUT,
   ];
 
