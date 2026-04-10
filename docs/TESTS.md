@@ -58,11 +58,11 @@
       Font shrinking, resize behavior, minimum font-size rules, and empty-text handling.
 - [x] `src/hooks/appDialogContext.ts`
       Guard that throws when used outside the provider.
-- [ ] `src/components/PageHeader.tsx`
+- [x] `src/components/PageHeader.tsx`
       Back navigation, optional custom back handler, and string vs custom-node title rendering.
-- [ ] `src/App.tsx`
+- [x] `src/App.tsx`
       Route coverage for all page paths and redirect from `/`.
-- [ ] `src/main.tsx`
+- [x] `src/main.tsx`
       App bootstrap rendering.
 - [ ] `src/utils/appRelease.ts`
       Build timestamp formatting, unseen-build detection, and seen-build persistence.
