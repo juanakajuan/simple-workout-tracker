@@ -23,11 +23,11 @@
       Local storage reads/writes, malformed JSON handling, template normalization, draft normalization, active workout normalization, relative-date helpers, export/import validation, and rollback on failed import.
 - [x] `src/pages/TemplatesPage.tsx`
       Draft banner behavior, discard-confirm flows, template stats, template start flow, and delete/edit kebab actions.
-- [ ] `src/pages/ExerciseFormPage.tsx`
+- [x] `src/pages/ExerciseFormPage.tsx`
       Create vs edit flows, default-exercise override behavior, delete behavior, and return-state navigation.
-- [ ] `src/pages/ExercisesPage.tsx`
+- [x] `src/pages/ExercisesPage.tsx`
       Default-plus-user exercise merge, search, muscle filtering, grouping, and navigation to create/edit/history.
-- [ ] `src/pages/HistoryPage.tsx`
+- [x] `src/pages/HistoryPage.tsx`
       Grouping by month, workout stats, duration formatting, delete flow from location state, and navigation to detail/tracker pages.
 - [ ] `src/pages/WorkoutDetailPage.tsx`
       Missing-workout fallback, rename flow, delete handoff back to history, outside-click menu close, and exercise detail navigation.
