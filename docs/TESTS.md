@@ -29,17 +29,17 @@
       Default-plus-user exercise merge, search, muscle filtering, grouping, and navigation to create/edit/history.
 - [x] `src/pages/HistoryPage.tsx`
       Grouping by month, workout stats, duration formatting, delete flow from location state, and navigation to detail/tracker pages.
-- [ ] `src/pages/WorkoutDetailPage.tsx`
+- [x] `src/pages/WorkoutDetailPage.tsx`
       Missing-workout fallback, rename flow, delete handoff back to history, outside-click menu close, and exercise detail navigation.
-- [ ] `src/pages/ExerciseHistoryPage.tsx`
+- [x] `src/pages/ExerciseHistoryPage.tsx`
       Missing-exercise fallback, per-workout volume math, total sets/volume, and date labels.
-- [ ] `src/hooks/useAppDialog.tsx`
+- [x] `src/hooks/useAppDialog.tsx`
       Promise-based alert/confirm flow, replacement of an already-open dialog, and resolve behavior.
-- [ ] `src/components/ConfirmDialog.tsx`
+- [x] `src/components/ConfirmDialog.tsx`
       Escape handling, overlay click cancel, checkbox handling, confirm/cancel sequencing, and body-scroll lock cleanup.
-- [ ] `src/components/AlertDialog.tsx`
+- [x] `src/components/AlertDialog.tsx`
       Escape/Enter handling, overlay close, variant rendering, and body-scroll lock cleanup.
-- [ ] `src/components/BottomTabBar.tsx`
+- [x] `src/components/BottomTabBar.tsx`
       Last-subroute restore behavior, active-tab navigation, and scroll-to-top behavior.
 
 ## Medium Priority

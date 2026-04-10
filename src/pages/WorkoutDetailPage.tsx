@@ -36,13 +36,15 @@ export function WorkoutDetailPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isMenuOpen]);
 
-  if (!workoutId) {
-    navigate(-1);
-    return null;
-  }
+  const shouldNavigateBack = !workoutId || !workout;
 
-  if (!workout) {
-    navigate(-1);
+  useEffect(() => {
+    if (shouldNavigateBack) {
+      navigate(-1);
+    }
+  }, [navigate, shouldNavigateBack]);
+
+  if (shouldNavigateBack) {
     return null;
   }
 

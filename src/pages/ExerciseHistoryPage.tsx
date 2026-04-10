@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Check } from "lucide-react";
 
@@ -15,11 +16,6 @@ export function ExerciseHistoryPage() {
   const { exerciseId } = useParams();
   const navigate = useNavigate();
 
-  if (!exerciseId) {
-    navigate(-1);
-    return null;
-  }
-
   // Find exercise from user exercises or default exercises
   const userExercises = getExercises();
   const allExercises = DEFAULT_EXERCISES.map((defaultExercise) => {
@@ -28,8 +24,15 @@ export function ExerciseHistoryPage() {
   }).concat(userExercises.filter((exercise) => !exercise.id.startsWith("default-")));
   const exercise = allExercises.find((ex) => ex.id === exerciseId);
 
-  if (!exercise) {
-    navigate(-1);
+  const shouldNavigateBack = !exerciseId || !exercise;
+
+  useEffect(() => {
+    if (shouldNavigateBack) {
+      navigate(-1);
+    }
+  }, [navigate, shouldNavigateBack]);
+
+  if (shouldNavigateBack) {
     return null;
   }
 
