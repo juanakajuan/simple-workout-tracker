@@ -44,11 +44,11 @@
 
 ## Medium Priority
 
-- [ ] `src/pages/MuscleGroupSelectorPage.tsx`
+- [x] `src/pages/MuscleGroupSelectorPage.tsx`
       Toggle selection, select-all/deselect-all, touch vs click deduplication, already-added badge, and confirm navigation state.
-- [ ] `src/components/WorkoutTimer.tsx`
+- [x] `src/components/WorkoutTimer.tsx`
       Initial elapsed-time calculation, ticking, formatting, and interval cleanup.
-- [ ] `src/components/ExerciseCard.tsx`
+- [x] `src/components/ExerciseCard.tsx`
       Edit menu open/close, click propagation rules, default badge, and last-performed rendering.
 - [ ] `src/pages/SettingsPage.tsx`
       Settings persistence and toggle behavior.
