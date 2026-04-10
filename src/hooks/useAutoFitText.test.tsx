@@ -6,7 +6,10 @@ import { useAutoFitText } from "./useAutoFitText";
 class MockResizeObserver {
   static instances: MockResizeObserver[] = [];
 
-  constructor(private readonly callback: ResizeObserverCallback) {
+  private readonly callback: ResizeObserverCallback;
+
+  constructor(callback: ResizeObserverCallback) {
+    this.callback = callback;
     MockResizeObserver.instances.push(this);
   }
 
