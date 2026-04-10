@@ -52,11 +52,11 @@
       Edit menu open/close, click propagation rules, default badge, and last-performed rendering.
 - [x] `src/pages/SettingsPage.tsx`
       Settings persistence and toggle behavior.
-- [ ] `src/hooks/useConfirmDialog.ts`
+- [x] `src/hooks/useConfirmDialog.ts`
       Local dialog open/close state and option forwarding.
-- [ ] `src/hooks/useAutoFitText.ts`
+- [x] `src/hooks/useAutoFitText.ts`
       Font shrinking, resize behavior, minimum font-size rules, and empty-text handling.
-- [ ] `src/hooks/appDialogContext.ts`
+- [x] `src/hooks/appDialogContext.ts`
       Guard that throws when used outside the provider.
 - [ ] `src/components/PageHeader.tsx`
       Back navigation, optional custom back handler, and string vs custom-node title rendering.
