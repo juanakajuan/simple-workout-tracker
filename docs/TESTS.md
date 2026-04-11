@@ -101,7 +101,7 @@
       Static fixture sanity checks: valid shape, expected IDs, and correct muscle group.
 - [x] `src/data/exercises/shoulders.ts`
       Static fixture sanity checks: valid shape, expected IDs, and correct muscle group.
-- [ ] `src/data/exercises/traps.ts`
+- [x] `src/data/exercises/traps.ts`
       Static fixture sanity checks: valid shape, expected IDs, and correct muscle group.
-- [ ] `src/data/exercises/triceps.ts`
+- [x] `src/data/exercises/triceps.ts`
       Static fixture sanity checks: valid shape, expected IDs, and correct muscle group.
