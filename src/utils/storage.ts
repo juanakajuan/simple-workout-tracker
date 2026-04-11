@@ -3,6 +3,8 @@ import type {
   TemplateExercise,
   TemplateMuscleGroup,
   Workout,
+  WorkoutExercise,
+  WorkoutSet,
   WorkoutTemplate,
   WorkoutTemplateDraft,
   Settings,
@@ -249,6 +251,70 @@ function normalizeEditTemplateDrafts(value: unknown): Record<string, WorkoutTemp
   return drafts;
 }
 
+function isValidDateString(value: unknown): value is string {
+  return typeof value === "string" && Number.isFinite(new Date(value).getTime());
+}
+
+function normalizeWorkoutSet(value: unknown): WorkoutSet | null {
+  if (!isRecord(value)) return null;
+
+  const id = typeof value.id === "string" ? value.id : "";
+
+  if (
+    !id ||
+    typeof value.weight !== "number" ||
+    !Number.isFinite(value.weight) ||
+    typeof value.reps !== "number" ||
+    !Number.isFinite(value.reps) ||
+    typeof value.completed !== "boolean"
+  ) {
+    return null;
+  }
+
+  return {
+    id,
+    weight: value.weight,
+    reps: value.reps,
+    completed: value.completed,
+    ...(typeof value.skipped === "boolean" ? { skipped: value.skipped } : {}),
+  };
+}
+
+function normalizeWorkoutSets(value: unknown): WorkoutSet[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((set) => {
+    const normalizedSet = normalizeWorkoutSet(set);
+    return normalizedSet ? [normalizedSet] : [];
+  });
+}
+
+function normalizeWorkoutExercise(value: unknown): WorkoutExercise | null {
+  if (!isRecord(value)) return null;
+
+  const id = typeof value.id === "string" ? value.id : "";
+  const exerciseId = typeof value.exerciseId === "string" ? value.exerciseId : "";
+
+  if (!id || !exerciseId || !Array.isArray(value.sets)) {
+    return null;
+  }
+
+  return {
+    id,
+    exerciseId,
+    sets: normalizeWorkoutSets(value.sets),
+  };
+}
+
+function normalizeWorkoutExercises(value: unknown): WorkoutExercise[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((exercise) => {
+    const normalizedExercise = normalizeWorkoutExercise(exercise);
+    return normalizedExercise ? [normalizedExercise] : [];
+  });
+}
+
 /**
  * Normalizes stored active workout data.
  *
@@ -258,7 +324,33 @@ function normalizeEditTemplateDrafts(value: unknown): Record<string, WorkoutTemp
 export function normalizeActiveWorkout(value: unknown): Workout | null {
   if (!isRecord(value)) return null;
 
-  return value as unknown as Workout;
+  const id = typeof value.id === "string" ? value.id : "";
+  const name = typeof value.name === "string" ? value.name : "";
+
+  if (
+    !id ||
+    !isValidDateString(value.date) ||
+    !isValidDateString(value.startTime) ||
+    !Array.isArray(value.exercises) ||
+    typeof value.completed !== "boolean"
+  ) {
+    return null;
+  }
+
+  return {
+    id,
+    name,
+    date: value.date,
+    startTime: value.startTime,
+    exercises: normalizeWorkoutExercises(value.exercises),
+    completed: value.completed,
+    ...(typeof value.duration === "number" && Number.isFinite(value.duration)
+      ? { duration: value.duration }
+      : {}),
+    ...(typeof value.templateId === "string" && value.templateId
+      ? { templateId: value.templateId }
+      : {}),
+  };
 }
 
 /**

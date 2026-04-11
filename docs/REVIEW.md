@@ -18,7 +18,7 @@
 
   `src/components/ConfirmDialog.tsx:31` seeds `checkboxChecked` from `checkboxDefaultChecked` only once, and the state is never reset when a new dialog opens. The checkbox rendered at `src/components/ConfirmDialog.tsx:67-73` can therefore retain a previous user toggle and submit the wrong value for later confirmations.
 
-- [ ] Medium: Active-workout validation is effectively disabled.
+- [x] Medium: Active-workout validation is effectively disabled.
 
   `src/utils/storage.ts:234-238` returns `value as Workout` with no shape checks, and that same no-op normalization is used when reading storage/import data at `src/utils/storage.ts:349-355` and `src/utils/storage.ts:582-585`. A malformed backup or corrupted localStorage entry can pass through as a "valid" workout and then break consumers that assume `exercises`, `date`, and `startTime` exist.
 

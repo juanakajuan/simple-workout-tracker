@@ -16,6 +16,7 @@ import {
   getWorkouts,
   hasActiveWorkout,
   importAllData,
+  normalizeActiveWorkout,
   normalizeTemplateDraft,
   normalizeTemplates,
   saveActiveWorkout,
@@ -166,6 +167,59 @@ describe("storage utilities", () => {
     });
   });
 
+  it("normalizes active workouts and rejects unusable values", () => {
+    expect(
+      normalizeActiveWorkout({
+        id: "workout-1",
+        name: "Push Day",
+        date: "2026-04-04T09:00:00.000Z",
+        startTime: "2026-04-04T08:00:00.000Z",
+        exercises: [
+          {
+            id: "entry-1",
+            exerciseId: "exercise-1",
+            sets: [
+              { id: "set-1", weight: 100, reps: 8, completed: true },
+              { id: "", weight: 95, reps: 10, completed: true },
+            ],
+          },
+          {
+            id: "",
+            exerciseId: "exercise-2",
+            sets: [],
+          },
+        ],
+        completed: false,
+        duration: Number.NaN,
+        templateId: 123,
+      })
+    ).toEqual({
+      id: "workout-1",
+      name: "Push Day",
+      date: "2026-04-04T09:00:00.000Z",
+      startTime: "2026-04-04T08:00:00.000Z",
+      exercises: [
+        {
+          id: "entry-1",
+          exerciseId: "exercise-1",
+          sets: [{ id: "set-1", weight: 100, reps: 8, completed: true }],
+        },
+      ],
+      completed: false,
+    });
+
+    expect(
+      normalizeActiveWorkout({
+        id: "broken-workout",
+        name: "Broken",
+        date: "not-a-date",
+        startTime: "2026-04-04T08:00:00.000Z",
+        exercises: [],
+        completed: false,
+      })
+    ).toBeNull();
+  });
+
   it("returns safe fallbacks for malformed stored JSON", () => {
     localStorage.setItem(STORAGE_KEYS.TEMPLATES, "{");
     localStorage.setItem(STORAGE_KEYS.DRAFT_TEMPLATE, "{");
@@ -173,6 +227,16 @@ describe("storage utilities", () => {
 
     expect(getTemplates()).toEqual([]);
     expect(getDraftTemplate()).toBeNull();
+    expect(getActiveWorkout()).toBeNull();
+    expect(hasActiveWorkout()).toBe(false);
+  });
+
+  it("drops corrupted active workouts with the wrong shape", () => {
+    localStorage.setItem(
+      STORAGE_KEYS.ACTIVE_WORKOUT,
+      JSON.stringify({ id: "broken-workout", name: "Broken", completed: false })
+    );
+
     expect(getActiveWorkout()).toBeNull();
     expect(hasActiveWorkout()).toBe(false);
   });
@@ -406,6 +470,29 @@ describe("storage utilities", () => {
     expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.ACTIVE_WORKOUT) ?? "null")).toMatchObject({
       id: "active-1",
     });
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.SETTINGS) ?? "null")).toEqual({
+      autoMatchWeight: true,
+    });
+  });
+
+  it("omits invalid active workouts during import", () => {
+    importAllData(
+      JSON.stringify({
+        version: "1.0",
+        appName: "Zenith",
+        data: {
+          [STORAGE_KEYS.ACTIVE_WORKOUT]: JSON.stringify({
+            id: "broken-workout",
+            name: "Broken",
+            completed: false,
+          }),
+          [STORAGE_KEYS.SETTINGS]: JSON.stringify({ autoMatchWeight: true }),
+        },
+      })
+    );
+
+    expect(localStorage.getItem(STORAGE_KEYS.ACTIVE_WORKOUT)).toBeNull();
+    expect(getActiveWorkout()).toBeNull();
     expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.SETTINGS) ?? "null")).toEqual({
       autoMatchWeight: true,
     });
