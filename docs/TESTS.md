@@ -71,11 +71,11 @@
 
 ## Low Priority
 
-- [ ] `src/components/ToggleSwitch.tsx`
+- [x] `src/components/ToggleSwitch.tsx`
       Click and keyboard toggling plus disabled behavior.
-- [ ] `src/components/DraftBanner.tsx`
+- [x] `src/components/DraftBanner.tsx`
       Continue vs dismiss click propagation.
-- [ ] `src/components/Tag.tsx`
+- [x] `src/components/Tag.tsx`
       Variant and muscle-group class selection.
 - [ ] `src/types/index.ts`
       Label/color lookup consistency and `getMuscleGroupClassName` output.
