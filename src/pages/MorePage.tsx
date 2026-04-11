@@ -11,6 +11,7 @@ import {
   markCurrentBuildAsSeen,
 } from "../utils/appRelease";
 import { exportAllData, importAllData, downloadDataFile, hasActiveWorkout } from "../utils/storage";
+import { reloadPage } from "../utils/browser";
 
 import "./MorePage.css";
 
@@ -92,7 +93,7 @@ export function MorePage() {
           message: "Data imported successfully. The page will reload to reflect the changes.",
           buttonText: "Reload now",
         });
-        window.location.reload();
+        reloadPage();
       } catch (error) {
         console.error("Error importing data:", error);
         const errorMessage =

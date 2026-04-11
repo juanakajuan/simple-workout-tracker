@@ -16,7 +16,13 @@ import {
 // ---------------------------------------------------------------------------
 
 function makeSet(
-  overrides: Partial<{ id: string; weight: number; reps: number; completed: boolean; skipped: boolean }>
+  overrides: Partial<{
+    id: string;
+    weight: number;
+    reps: number;
+    completed: boolean;
+    skipped: boolean;
+  }>
 ) {
   return {
     id: overrides.id ?? "set-1",

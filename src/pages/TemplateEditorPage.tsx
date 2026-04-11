@@ -4,12 +4,18 @@ import { Plus, Minus, ChevronUp, ChevronDown, Trash2 } from "lucide-react";
 
 import type {
   Exercise,
+  IntensityTechnique,
   WorkoutTemplate,
   TemplateExercise,
   TemplateMuscleGroup,
   WorkoutTemplateDraft,
 } from "../types";
-import { muscleGroupLabels, muscleGroupColors } from "../types";
+import {
+  INTENSITY_TECHNIQUES,
+  intensityTechniqueLabels,
+  muscleGroupLabels,
+  muscleGroupColors,
+} from "../types";
 
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { useAutoFitText } from "../hooks/useAutoFitText";
@@ -24,6 +30,14 @@ import {
   saveDraftTemplate,
   saveEditTemplateDraft,
 } from "../utils/storage";
+import {
+  getSupersetDisplayLabels,
+  getSupersetPartnerId,
+  pairExercisesAsSuperset,
+  removeExerciseWithIntensityCleanup,
+  setExerciseIntensityTechnique,
+  unpairSupersetExercise,
+} from "../utils/intensityTechniques";
 
 import "./TemplateEditorPage.css";
 
@@ -97,7 +111,45 @@ type TemplateExercisesAction =
       type: "updateSetCount";
       templateExerciseId: string;
       delta: number;
+    }
+  | {
+      type: "updateIntensityTechnique";
+      templateExerciseId: string;
+      intensityTechnique: IntensityTechnique | null;
+    }
+  | {
+      type: "pairSuperset";
+      templateExerciseId: string;
+      partnerTemplateExerciseId: string;
+    }
+  | {
+      type: "unpairSuperset";
+      templateExerciseId: string;
     };
+
+function getSupersetValidationError(templateExercises: TemplateExercise[]): string {
+  const supersetCounts = templateExercises.reduce((counts, exercise) => {
+    if (exercise.intensityTechnique === "super-set" && exercise.supersetGroupId) {
+      counts.set(exercise.supersetGroupId, (counts.get(exercise.supersetGroupId) ?? 0) + 1);
+    }
+
+    return counts;
+  }, new Map<string, number>());
+
+  const hasIncompleteSuperset = templateExercises.some((exercise) => {
+    if (exercise.intensityTechnique !== "super-set") {
+      return false;
+    }
+
+    if (!exercise.supersetGroupId) {
+      return true;
+    }
+
+    return supersetCounts.get(exercise.supersetGroupId) !== 2;
+  });
+
+  return hasIncompleteSuperset ? "Please pair every superset exercise before saving" : "";
+}
 
 function templateExercisesReducer(
   state: TemplateExercise[],
@@ -115,7 +167,7 @@ function templateExercisesReducer(
       return [...state, action.templateExercise];
 
     case "removeExercise":
-      return state.filter((exercise) => exercise.id !== action.templateExerciseId);
+      return removeExerciseWithIntensityCleanup(state, action.templateExerciseId);
 
     case "moveExercise": {
       const currentIndex = state.findIndex((exercise) => exercise.id === action.templateExerciseId);
@@ -139,6 +191,37 @@ function templateExercisesReducer(
         const setCount = Math.max(1, Math.min(20, exercise.setCount + action.delta));
         return { ...exercise, setCount };
       });
+
+    case "updateIntensityTechnique":
+      return setExerciseIntensityTechnique(
+        state,
+        action.templateExerciseId,
+        action.intensityTechnique
+      );
+
+    case "pairSuperset": {
+      const currentExercise = state.find((exercise) => exercise.id === action.templateExerciseId);
+      const partnerExercise = state.find(
+        (exercise) => exercise.id === action.partnerTemplateExerciseId
+      );
+
+      if (!currentExercise || !partnerExercise) {
+        return state;
+      }
+
+      const supersetGroupId =
+        currentExercise.supersetGroupId ?? partnerExercise.supersetGroupId ?? generateId();
+
+      return pairExercisesAsSuperset(
+        state,
+        action.templateExerciseId,
+        action.partnerTemplateExerciseId,
+        supersetGroupId
+      );
+    }
+
+    case "unpairSuperset":
+      return unpairSupersetExercise(state, action.templateExerciseId);
 
     default:
       return state;
@@ -287,6 +370,12 @@ export function TemplateEditorPage() {
     }
 
     const cleanedExercises = templateExercises.filter((exercise) => exercise.exerciseId !== null);
+    const supersetValidationError = getSupersetValidationError(cleanedExercises);
+
+    if (supersetValidationError) {
+      setError(supersetValidationError);
+      return;
+    }
 
     const savedTemplate: WorkoutTemplate = {
       id: isEditMode ? id! : generateId(),
@@ -382,6 +471,44 @@ export function TemplateEditorPage() {
     return allExercises.find((exercise) => exercise.id === exerciseId) ?? null;
   };
 
+  const supersetDisplayLabels = getSupersetDisplayLabels(templateExercises);
+
+  const getSupersetPartnerOptions = (templateExerciseId: string) => {
+    return templateExercises.filter(
+      (exercise) => exercise.id !== templateExerciseId && exercise.exerciseId !== null
+    );
+  };
+
+  const updateIntensityTechnique = (
+    templateExerciseId: string,
+    intensityTechnique: IntensityTechnique | null
+  ) => {
+    setError("");
+    dispatchTemplateExercises({
+      type: "updateIntensityTechnique",
+      templateExerciseId,
+      intensityTechnique,
+    });
+  };
+
+  const updateSupersetPair = (templateExerciseId: string, partnerTemplateExerciseId: string) => {
+    setError("");
+
+    if (!partnerTemplateExerciseId) {
+      dispatchTemplateExercises({
+        type: "unpairSuperset",
+        templateExerciseId,
+      });
+      return;
+    }
+
+    dispatchTemplateExercises({
+      type: "pairSuperset",
+      templateExerciseId,
+      partnerTemplateExerciseId,
+    });
+  };
+
   const updateSetCount = (templateExerciseId: string, delta: number) => {
     dispatchTemplateExercises({ type: "updateSetCount", templateExerciseId, delta });
   };
@@ -422,6 +549,16 @@ export function TemplateEditorPage() {
           <div className="templates-exercises-list">
             {templateExercises.map((templateExercise, exerciseIndex) => {
               const exercise = getExerciseById(templateExercise.exerciseId);
+              const supersetPartnerId = getSupersetPartnerId(
+                templateExercises,
+                templateExercise.id
+              );
+              const supersetPartnerExercise = templateExercises.find(
+                (item) => item.id === supersetPartnerId
+              );
+              const supersetLabel = templateExercise.supersetGroupId
+                ? supersetDisplayLabels[templateExercise.supersetGroupId]
+                : null;
 
               return (
                 <div key={templateExercise.id} className="templates-exercise-item">
@@ -457,6 +594,13 @@ export function TemplateEditorPage() {
                         >
                           {muscleGroupLabels[exercise.muscleGroup]}
                         </span>
+                        {templateExercise.intensityTechnique && (
+                          <span className="templates-exercise-intensity-chip">
+                            {templateExercise.intensityTechnique === "super-set" && supersetLabel
+                              ? supersetLabel
+                              : intensityTechniqueLabels[templateExercise.intensityTechnique]}
+                          </span>
+                        )}
                       </div>
                     )}
 
@@ -495,6 +639,67 @@ export function TemplateEditorPage() {
                         </div>
                       )}
                     </div>
+
+                    {exercise && (
+                      <div className="templates-intensity-controls">
+                        <label className="templates-intensity-field">
+                          <span className="templates-intensity-label">Technique</span>
+                          <select
+                            aria-label={`Intensity technique for ${exercise.name}`}
+                            value={templateExercise.intensityTechnique ?? ""}
+                            onChange={(event) =>
+                              updateIntensityTechnique(
+                                templateExercise.id,
+                                (event.target.value || null) as IntensityTechnique | null
+                              )
+                            }
+                          >
+                            <option value="">Standard</option>
+                            {INTENSITY_TECHNIQUES.map((technique) => (
+                              <option key={technique} value={technique}>
+                                {intensityTechniqueLabels[technique]}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+
+                        {templateExercise.intensityTechnique === "super-set" && (
+                          <label className="templates-intensity-field">
+                            <span className="templates-intensity-label">Paired with</span>
+                            <select
+                              aria-label={`Superset pair for ${exercise.name}`}
+                              value={supersetPartnerId ?? ""}
+                              onChange={(event) =>
+                                updateSupersetPair(templateExercise.id, event.target.value)
+                              }
+                            >
+                              <option value="">Select exercise</option>
+                              {getSupersetPartnerOptions(templateExercise.id).map((partner) => {
+                                const partnerExercise = getExerciseById(partner.exerciseId);
+
+                                if (!partnerExercise) {
+                                  return null;
+                                }
+
+                                return (
+                                  <option key={partner.id} value={partner.id}>
+                                    {partnerExercise.name}
+                                  </option>
+                                );
+                              })}
+                            </select>
+                          </label>
+                        )}
+
+                        {templateExercise.intensityTechnique === "super-set" &&
+                          supersetPartnerExercise && (
+                            <p className="templates-intensity-hint">
+                              Paired with{" "}
+                              {getExerciseById(supersetPartnerExercise.exerciseId)?.name}
+                            </p>
+                          )}
+                      </div>
+                    )}
                   </div>
 
                   <button

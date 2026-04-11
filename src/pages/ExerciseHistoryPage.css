@@ -117,6 +117,13 @@
   border-radius: var(--radius-sm);
 }
 
+.history-workout-techniques {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
 .history-sets {
   display: flex;
   flex-direction: column;

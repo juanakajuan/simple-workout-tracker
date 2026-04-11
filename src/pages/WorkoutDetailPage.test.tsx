@@ -189,6 +189,39 @@ describe("WorkoutDetailPage", () => {
     });
   });
 
+  it("renders intensity tags for logged exercises", () => {
+    setLS(STORAGE_KEYS.EXERCISES, [
+      createExercise({ id: "exercise-row", name: "Cable Row", muscleGroup: "back" }),
+      createExercise({ id: "exercise-press", name: "Machine Press", muscleGroup: "chest" }),
+    ]);
+    setLS(STORAGE_KEYS.WORKOUTS, [
+      createWorkout({
+        id: "workout-1",
+        name: "Upper A",
+        exercises: [
+          {
+            id: "workout-exercise-1",
+            exerciseId: "exercise-row",
+            intensityTechnique: "drop-set",
+            sets: [{ id: "set-1", weight: 100, reps: 8, completed: true }],
+          },
+          {
+            id: "workout-exercise-2",
+            exerciseId: "exercise-press",
+            intensityTechnique: "super-set",
+            supersetGroupId: "superset-1",
+            sets: [{ id: "set-2", weight: 80, reps: 10, completed: true }],
+          },
+        ],
+      }),
+    ]);
+
+    renderWorkoutDetailPage(["/history", "/history/workout/workout-1"]);
+
+    expect(screen.getByText("Drop Set")).toBeDefined();
+    expect(screen.getByText("Superset 1")).toBeDefined();
+  });
+
   it("closes the menu when clicking outside of it", async () => {
     setLS(STORAGE_KEYS.WORKOUTS, [createWorkout({ id: "workout-1", name: "Upper A" })]);
 

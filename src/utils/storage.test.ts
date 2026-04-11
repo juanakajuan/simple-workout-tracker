@@ -167,6 +167,85 @@ describe("storage utilities", () => {
     });
   });
 
+  it("preserves intensity metadata while normalizing templates and active workouts", () => {
+    expect(
+      normalizeTemplates([
+        {
+          id: "template-1",
+          name: "Upper",
+          muscleGroups: [
+            {
+              id: "group-1",
+              muscleGroup: "chest",
+              exercises: [
+                {
+                  id: "exercise-1",
+                  exerciseId: "bench",
+                  setCount: 3,
+                  intensityTechnique: "super-set",
+                  supersetGroupId: "pair-1",
+                },
+              ],
+            },
+          ],
+        },
+      ])
+    ).toEqual<WorkoutTemplate[]>([
+      {
+        id: "template-1",
+        name: "Upper",
+        muscleGroups: [
+          {
+            id: "group-1",
+            muscleGroup: "chest",
+            exercises: [
+              {
+                id: "exercise-1",
+                exerciseId: "bench",
+                setCount: 3,
+                intensityTechnique: "super-set",
+                supersetGroupId: "pair-1",
+              },
+            ],
+          },
+        ],
+      },
+    ]);
+
+    expect(
+      normalizeActiveWorkout({
+        id: "workout-1",
+        name: "Push Day",
+        date: "2026-04-04T09:00:00.000Z",
+        startTime: "2026-04-04T08:00:00.000Z",
+        exercises: [
+          {
+            id: "entry-1",
+            exerciseId: "exercise-1",
+            intensityTechnique: "drop-set",
+            supersetGroupId: 123,
+            sets: [{ id: "set-1", weight: 100, reps: 8, completed: true }],
+          },
+        ],
+        completed: false,
+      })
+    ).toEqual({
+      id: "workout-1",
+      name: "Push Day",
+      date: "2026-04-04T09:00:00.000Z",
+      startTime: "2026-04-04T08:00:00.000Z",
+      exercises: [
+        {
+          id: "entry-1",
+          exerciseId: "exercise-1",
+          intensityTechnique: "drop-set",
+          sets: [{ id: "set-1", weight: 100, reps: 8, completed: true }],
+        },
+      ],
+      completed: false,
+    });
+  });
+
   it("normalizes active workouts and rejects unusable values", () => {
     expect(
       normalizeActiveWorkout({
@@ -393,10 +472,34 @@ describe("storage utilities", () => {
           {
             id: "group-1",
             muscleGroup: "back",
-            exercises: [{ id: "exercise-1", exerciseId: "row", setCount: 4 }],
+            exercises: [
+              {
+                id: "exercise-1",
+                exerciseId: "row",
+                setCount: 4,
+                intensityTechnique: "super-set",
+                supersetGroupId: "pair-1",
+              },
+            ],
           },
         ],
       })
+    );
+    localStorage.setItem(
+      STORAGE_KEYS.WORKOUTS,
+      JSON.stringify([
+        createWorkout({
+          id: "workout-export",
+          exercises: [
+            {
+              id: "entry-export",
+              exerciseId: "exercise-1",
+              intensityTechnique: "drop-set",
+              sets: [{ id: "set-export", weight: 100, reps: 8, completed: true }],
+            },
+          ],
+        }),
+      ])
     );
     localStorage.setItem(STORAGE_KEYS.ACTIVE_WORKOUT, JSON.stringify(createWorkout()));
     localStorage.setItem("not_zenith", JSON.stringify({ ignore: true }));
@@ -416,6 +519,7 @@ describe("storage utilities", () => {
         STORAGE_KEYS.TEMPLATES,
         STORAGE_KEYS.DRAFT_TEMPLATE,
         STORAGE_KEYS.ACTIVE_WORKOUT,
+        STORAGE_KEYS.WORKOUTS,
       ])
     );
     expect(exported.data.not_zenith).toBeUndefined();
@@ -428,8 +532,188 @@ describe("storage utilities", () => {
     ]);
     expect(JSON.parse(exported.data[STORAGE_KEYS.DRAFT_TEMPLATE])).toEqual({
       name: "Legacy Draft",
-      exercises: [{ id: "exercise-1", exerciseId: "row", setCount: 4 }],
+      exercises: [
+        {
+          id: "exercise-1",
+          exerciseId: "row",
+          setCount: 4,
+          intensityTechnique: "super-set",
+          supersetGroupId: "pair-1",
+        },
+      ],
     });
+    expect(JSON.parse(exported.data[STORAGE_KEYS.WORKOUTS])).toEqual([
+      {
+        id: "workout-export",
+        name: "Push Day",
+        date: "2026-04-04T09:00:00.000Z",
+        startTime: "2026-04-04T08:00:00.000Z",
+        exercises: [
+          {
+            id: "entry-export",
+            exerciseId: "exercise-1",
+            intensityTechnique: "drop-set",
+            sets: [{ id: "set-export", weight: 100, reps: 8, completed: true }],
+          },
+        ],
+        completed: true,
+      },
+    ]);
+  });
+
+  it("round-trips intensity metadata through backup import", () => {
+    importAllData(
+      JSON.stringify({
+        version: "1.0",
+        appName: "Zenith",
+        exportDate: "2026-04-04T12:00:00.000Z",
+        data: {
+          [STORAGE_KEYS.TEMPLATES]: JSON.stringify([
+            {
+              id: "template-1",
+              name: "Upper",
+              muscleGroups: [
+                {
+                  id: "group-1",
+                  muscleGroup: "chest",
+                  exercises: [
+                    {
+                      id: "template-ex-1",
+                      exerciseId: "bench",
+                      setCount: 3,
+                      intensityTechnique: "super-set",
+                      supersetGroupId: "pair-1",
+                    },
+                    {
+                      id: "template-ex-2",
+                      exerciseId: "row",
+                      setCount: 3,
+                      intensityTechnique: "super-set",
+                      supersetGroupId: "pair-1",
+                    },
+                  ],
+                },
+              ],
+            },
+          ]),
+          [STORAGE_KEYS.DRAFT_TEMPLATE]: JSON.stringify({
+            name: "Draft Upper",
+            exercises: [
+              {
+                id: "draft-ex-1",
+                exerciseId: "curl",
+                setCount: 2,
+                intensityTechnique: "myoreps",
+              },
+            ],
+          }),
+          [STORAGE_KEYS.ACTIVE_WORKOUT]: JSON.stringify({
+            id: "active-1",
+            name: "Upper",
+            date: "2026-04-04T09:00:00.000Z",
+            startTime: "2026-04-04T08:00:00.000Z",
+            exercises: [
+              {
+                id: "active-entry-1",
+                exerciseId: "bench",
+                intensityTechnique: "drop-set",
+                sets: [{ id: "set-1", weight: 100, reps: 8, completed: false }],
+              },
+            ],
+            completed: false,
+          }),
+          [STORAGE_KEYS.WORKOUTS]: JSON.stringify([
+            {
+              id: "workout-1",
+              name: "History Upper",
+              date: "2026-04-03T09:00:00.000Z",
+              startTime: "2026-04-03T08:00:00.000Z",
+              exercises: [
+                {
+                  id: "history-entry-1",
+                  exerciseId: "bench",
+                  intensityTechnique: "myorep-match",
+                  sets: [{ id: "set-2", weight: 105, reps: 6, completed: true }],
+                },
+              ],
+              completed: true,
+            },
+          ]),
+        },
+      })
+    );
+
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.TEMPLATES) ?? "null")).toEqual([
+      {
+        id: "template-1",
+        name: "Upper",
+        muscleGroups: [
+          {
+            id: "group-1",
+            muscleGroup: "chest",
+            exercises: [
+              {
+                id: "template-ex-1",
+                exerciseId: "bench",
+                setCount: 3,
+                intensityTechnique: "super-set",
+                supersetGroupId: "pair-1",
+              },
+              {
+                id: "template-ex-2",
+                exerciseId: "row",
+                setCount: 3,
+                intensityTechnique: "super-set",
+                supersetGroupId: "pair-1",
+              },
+            ],
+          },
+        ],
+      },
+    ]);
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.DRAFT_TEMPLATE) ?? "null")).toEqual({
+      name: "Draft Upper",
+      exercises: [
+        {
+          id: "draft-ex-1",
+          exerciseId: "curl",
+          setCount: 2,
+          intensityTechnique: "myoreps",
+        },
+      ],
+    });
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.ACTIVE_WORKOUT) ?? "null")).toEqual({
+      id: "active-1",
+      name: "Upper",
+      date: "2026-04-04T09:00:00.000Z",
+      startTime: "2026-04-04T08:00:00.000Z",
+      exercises: [
+        {
+          id: "active-entry-1",
+          exerciseId: "bench",
+          intensityTechnique: "drop-set",
+          sets: [{ id: "set-1", weight: 100, reps: 8, completed: false }],
+        },
+      ],
+      completed: false,
+    });
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.WORKOUTS) ?? "null")).toEqual([
+      {
+        id: "workout-1",
+        name: "History Upper",
+        date: "2026-04-03T09:00:00.000Z",
+        startTime: "2026-04-03T08:00:00.000Z",
+        exercises: [
+          {
+            id: "history-entry-1",
+            exerciseId: "bench",
+            intensityTechnique: "myorep-match",
+            sets: [{ id: "set-2", weight: 105, reps: 6, completed: true }],
+          },
+        ],
+        completed: true,
+      },
+    ]);
   });
 
   it("imports valid backups, normalizes values, and omits null transient keys", () => {

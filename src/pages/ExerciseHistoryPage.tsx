@@ -3,9 +3,10 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Check } from "lucide-react";
 
 import type { Workout } from "../types";
-import { muscleGroupLabels, exerciseTypeLabels } from "../types";
+import { exerciseTypeLabels, intensityTechniqueLabels, muscleGroupLabels } from "../types";
 
 import { getExercises, getExerciseHistory, DEFAULT_EXERCISES } from "../utils/storage";
+import { getSupersetDisplayLabels } from "../utils/intensityTechniques";
 
 import { PageHeader } from "../components/PageHeader";
 import { Tag } from "../components/Tag";
@@ -154,6 +155,7 @@ export function ExerciseHistoryPage() {
                 if (!workoutExercise) return null;
 
                 const workoutVolume = getExerciseVolume(workout);
+                const supersetLabels = getSupersetDisplayLabels(workout.exercises);
 
                 return (
                   <div key={workout.id} className="history-workout-entry">
@@ -168,6 +170,16 @@ export function ExerciseHistoryPage() {
                         </div>
                       )}
                     </div>
+                    {workoutExercise.intensityTechnique && (
+                      <div className="history-workout-techniques">
+                        <Tag>
+                          {workoutExercise.intensityTechnique === "super-set" &&
+                          workoutExercise.supersetGroupId
+                            ? supersetLabels[workoutExercise.supersetGroupId]
+                            : intensityTechniqueLabels[workoutExercise.intensityTechnique]}
+                        </Tag>
+                      </div>
+                    )}
                     <div className="history-sets">
                       {workoutExercise.sets.map((set, index) => (
                         <div

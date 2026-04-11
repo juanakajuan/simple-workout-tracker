@@ -115,6 +115,8 @@ export function TemplatesPage() {
               reps: 0,
               completed: false,
             })),
+            intensityTechnique: templateExercise.intensityTechnique ?? null,
+            supersetGroupId: templateExercise.supersetGroupId ?? null,
           });
         }
       });

@@ -196,6 +196,36 @@
   flex-wrap: wrap;
 }
 
+.workout-intensity-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.workout-intensity-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.workout-intensity-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.workout-intensity-field select {
+  width: 100%;
+}
+
+.workout-intensity-hint {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
 /* Kebab menu */
 .kebab-menu {
   position: absolute;

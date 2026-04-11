@@ -142,14 +142,26 @@ describe("TemplatesPage", () => {
             id: "group-1",
             muscleGroup: "chest",
             exercises: [
-              { id: "template-ex-1", exerciseId: "default-bench-press-medium-grip", setCount: 3 },
+              {
+                id: "template-ex-1",
+                exerciseId: "default-bench-press-medium-grip",
+                setCount: 3,
+                intensityTechnique: "super-set",
+                supersetGroupId: "superset-1",
+              },
             ],
           },
           {
             id: "group-2",
             muscleGroup: "back",
             exercises: [
-              { id: "template-ex-2", exerciseId: "default-barbell-bent-over-row", setCount: 2 },
+              {
+                id: "template-ex-2",
+                exerciseId: "default-barbell-bent-over-row",
+                setCount: 2,
+                intensityTechnique: "super-set",
+                supersetGroupId: "superset-1",
+              },
               { id: "template-ex-3", exerciseId: null, setCount: 4 },
             ],
           },
@@ -179,8 +191,18 @@ describe("TemplatesPage", () => {
       templateId: "template-1",
       completed: false,
       exercises: [
-        { exerciseId: "default-bench-press-medium-grip", sets: [{}, {}, {}] },
-        { exerciseId: "default-barbell-bent-over-row", sets: [{}, {}] },
+        {
+          exerciseId: "default-bench-press-medium-grip",
+          sets: [{}, {}, {}],
+          intensityTechnique: "super-set",
+          supersetGroupId: "superset-1",
+        },
+        {
+          exerciseId: "default-barbell-bent-over-row",
+          sets: [{}, {}],
+          intensityTechnique: "super-set",
+          supersetGroupId: "superset-1",
+        },
       ],
     });
   });

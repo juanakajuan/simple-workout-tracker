@@ -191,6 +191,51 @@ describe("TemplateEditorPage", () => {
     });
   });
 
+  it("pairs exercises into a superset and persists the shared draft metadata", async () => {
+    const inclinePress = createExercise({
+      id: "exercise-incline-press",
+      name: "Incline Press",
+      muscleGroup: "chest",
+    });
+    const cableRow = createExercise({
+      id: "exercise-cable-row",
+      name: "Cable Row",
+      muscleGroup: "back",
+    });
+
+    setLS(STORAGE_KEYS.EXERCISES, [inclinePress, cableRow]);
+    setLS(STORAGE_KEYS.DRAFT_TEMPLATE, {
+      name: "Upper",
+      exercises: [
+        { id: "draft-1", exerciseId: inclinePress.id, setCount: 3 },
+        { id: "draft-2", exerciseId: cableRow.id, setCount: 3 },
+      ],
+    } satisfies WorkoutTemplateDraft);
+
+    renderTemplateEditor();
+
+    fireEvent.change(screen.getByLabelText(`Intensity technique for ${inclinePress.name}`), {
+      target: { value: "super-set" },
+    });
+    fireEvent.change(screen.getByLabelText(`Superset pair for ${inclinePress.name}`), {
+      target: { value: "draft-2" },
+    });
+
+    await waitFor(() => {
+      const draft = getLS<WorkoutTemplateDraft>(STORAGE_KEYS.DRAFT_TEMPLATE);
+
+      expect(draft?.exercises[0]).toMatchObject({
+        id: "draft-1",
+        intensityTechnique: "super-set",
+      });
+      expect(draft?.exercises[1]).toMatchObject({
+        id: "draft-2",
+        intensityTechnique: "super-set",
+      });
+      expect(draft?.exercises[0].supersetGroupId).toBe(draft?.exercises[1].supersetGroupId);
+    });
+  });
+
   it("replaces the targeted template exercise when returning from the selector", async () => {
     const inclinePress = createExercise({
       id: "exercise-incline-press",

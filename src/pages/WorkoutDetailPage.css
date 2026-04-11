@@ -149,6 +149,12 @@
   margin-bottom: 0.75rem;
 }
 
+.detail-exercise-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
 .detail-exercise-name {
   font-size: 1rem;
   font-weight: 600;

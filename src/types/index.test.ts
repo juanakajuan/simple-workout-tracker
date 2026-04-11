@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   EXERCISE_TYPES,
+  INTENSITY_TECHNIQUES,
   MUSCLE_GROUPS,
   exerciseTypeLabels,
   getMuscleGroupClassName,
+  intensityTechniqueLabels,
   muscleGroupColors,
   muscleGroupLabels,
 } from "./index";
@@ -22,6 +24,7 @@ describe("types metadata", () => {
 
   it("keeps exercise-type labels and generated muscle-group classes in sync", () => {
     expect(Object.keys(exerciseTypeLabels)).toEqual(EXERCISE_TYPES);
+    expect(Object.keys(intensityTechniqueLabels)).toEqual(INTENSITY_TECHNIQUES);
 
     for (const muscleGroup of MUSCLE_GROUPS) {
       expect(getMuscleGroupClassName(muscleGroup)).toBe(`tag-muscle-${muscleGroup}`);

@@ -10,6 +10,8 @@ import type {
   Settings,
 } from "../types";
 
+const VALID_INTENSITY_TECHNIQUES = new Set(["myoreps", "myorep-match", "drop-set", "super-set"]);
+
 /**
  * localStorage keys used throughout the application.
  * All keys are prefixed with "zenith_" to avoid conflicts with other applications.
@@ -97,6 +99,14 @@ function parseJsonString(value: string): unknown {
   }
 }
 
+function normalizeIntensityTechnique(value: unknown): TemplateExercise["intensityTechnique"] {
+  return typeof value === "string" && VALID_INTENSITY_TECHNIQUES.has(value) ? value : null;
+}
+
+function normalizeSupersetGroupId(value: unknown): string | null {
+  return typeof value === "string" && value ? value : null;
+}
+
 /**
  * Normalizes a potential template exercise into a typed object.
  *
@@ -109,6 +119,9 @@ function normalizeTemplateExercise(value: unknown): TemplateExercise | null {
   const id = typeof value.id === "string" ? value.id : "";
   if (!id) return null;
 
+  const intensityTechnique = normalizeIntensityTechnique(value.intensityTechnique);
+  const supersetGroupId = normalizeSupersetGroupId(value.supersetGroupId);
+
   return {
     id,
     exerciseId:
@@ -117,6 +130,8 @@ function normalizeTemplateExercise(value: unknown): TemplateExercise | null {
       typeof value.setCount === "number" && Number.isFinite(value.setCount) && value.setCount > 0
         ? value.setCount
         : 1,
+    ...(intensityTechnique ? { intensityTechnique } : {}),
+    ...(supersetGroupId ? { supersetGroupId } : {}),
   };
 }
 
@@ -294,6 +309,8 @@ function normalizeWorkoutExercise(value: unknown): WorkoutExercise | null {
 
   const id = typeof value.id === "string" ? value.id : "";
   const exerciseId = typeof value.exerciseId === "string" ? value.exerciseId : "";
+  const intensityTechnique = normalizeIntensityTechnique(value.intensityTechnique);
+  const supersetGroupId = normalizeSupersetGroupId(value.supersetGroupId);
 
   if (!id || !exerciseId || !Array.isArray(value.sets)) {
     return null;
@@ -303,6 +320,8 @@ function normalizeWorkoutExercise(value: unknown): WorkoutExercise | null {
     id,
     exerciseId,
     sets: normalizeWorkoutSets(value.sets),
+    ...(intensityTechnique ? { intensityTechnique } : {}),
+    ...(supersetGroupId ? { supersetGroupId } : {}),
   };
 }
 
@@ -315,13 +334,7 @@ function normalizeWorkoutExercises(value: unknown): WorkoutExercise[] {
   });
 }
 
-/**
- * Normalizes stored active workout data.
- *
- * @param value - Raw stored active workout value
- * @returns Normalized active workout, or null when the input is unusable
- */
-export function normalizeActiveWorkout(value: unknown): Workout | null {
+function normalizeWorkout(value: unknown): Workout | null {
   if (!isRecord(value)) return null;
 
   const id = typeof value.id === "string" ? value.id : "";
@@ -351,6 +364,25 @@ export function normalizeActiveWorkout(value: unknown): Workout | null {
       ? { templateId: value.templateId }
       : {}),
   };
+}
+
+function normalizeWorkouts(value: unknown): Workout[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((workout) => {
+    const normalizedWorkout = normalizeWorkout(workout);
+    return normalizedWorkout ? [normalizedWorkout] : [];
+  });
+}
+
+/**
+ * Normalizes stored active workout data.
+ *
+ * @param value - Raw stored active workout value
+ * @returns Normalized active workout, or null when the input is unusable
+ */
+export function normalizeActiveWorkout(value: unknown): Workout | null {
+  return normalizeWorkout(value);
 }
 
 /**
@@ -399,7 +431,7 @@ export function saveExercises(exercises: Exercise[]): void {
 export function getWorkouts(): Workout[] {
   try {
     const data = localStorage.getItem(STORAGE_KEYS.WORKOUTS);
-    return data ? JSON.parse(data) : [];
+    return data ? normalizeWorkouts(JSON.parse(data)) : [];
   } catch {
     return [];
   }
@@ -416,7 +448,7 @@ export function getWorkouts(): Workout[] {
  * saveWorkouts(workouts);
  */
 export function saveWorkouts(workouts: Workout[]): void {
-  localStorage.setItem(STORAGE_KEYS.WORKOUTS, JSON.stringify(workouts));
+  localStorage.setItem(STORAGE_KEYS.WORKOUTS, JSON.stringify(normalizeWorkouts(workouts)));
 }
 
 function getMostRecentCompletedExerciseEntry(
@@ -738,6 +770,8 @@ function normalizeStoredExportValue(key: string, value: string): string {
       const workout = normalizeActiveWorkout(parsedValue);
       return JSON.stringify(workout);
     }
+    case STORAGE_KEYS.WORKOUTS:
+      return JSON.stringify(normalizeWorkouts(parsedValue));
     default:
       return value;
   }

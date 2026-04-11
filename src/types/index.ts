@@ -31,6 +31,8 @@ export type ExerciseType =
   | "bodyweight"
   | "loaded-bodyweight";
 
+export type IntensityTechnique = "myoreps" | "myorep-match" | "drop-set" | "super-set";
+
 export interface Exercise {
   id: string;
   name: string;
@@ -51,6 +53,8 @@ export interface WorkoutExercise {
   id: string;
   exerciseId: string;
   sets: WorkoutSet[];
+  intensityTechnique?: IntensityTechnique | null;
+  supersetGroupId?: string | null;
 }
 
 export interface Workout {
@@ -68,6 +72,8 @@ export interface TemplateExercise {
   id: string;
   exerciseId: string | null;
   setCount: number;
+  intensityTechnique?: IntensityTechnique | null;
+  supersetGroupId?: string | null;
 }
 
 export interface TemplateMuscleGroup {
@@ -126,6 +132,13 @@ export const EXERCISE_TYPES: ExerciseType[] = [
   "loaded-bodyweight",
 ];
 
+export const INTENSITY_TECHNIQUES: IntensityTechnique[] = [
+  "myoreps",
+  "myorep-match",
+  "drop-set",
+  "super-set",
+];
+
 /**
  * Human-readable labels for muscle groups.
  * Maps muscle group keys to display names for UI rendering.
@@ -159,6 +172,13 @@ export const exerciseTypeLabels: Record<ExerciseType, string> = {
   freemotion: "Freemotion",
   bodyweight: "Bodyweight",
   "loaded-bodyweight": "Loaded Bodyweight",
+};
+
+export const intensityTechniqueLabels: Record<IntensityTechnique, string> = {
+  myoreps: "Myoreps",
+  "myorep-match": "Myorep Match",
+  "drop-set": "Drop Set",
+  "super-set": "Superset",
 };
 
 /**

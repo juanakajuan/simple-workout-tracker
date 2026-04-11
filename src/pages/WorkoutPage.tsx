@@ -20,6 +20,7 @@ import {
 
 import type {
   Exercise,
+  IntensityTechnique,
   TemplateExercise,
   TemplateMuscleGroup,
   Workout,
@@ -28,7 +29,12 @@ import type {
   WorkoutTemplate,
   Settings,
 } from "../types";
-import { muscleGroupLabels, exerciseTypeLabels } from "../types";
+import {
+  INTENSITY_TECHNIQUES,
+  exerciseTypeLabels,
+  intensityTechniqueLabels,
+  muscleGroupLabels,
+} from "../types";
 
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
@@ -54,6 +60,14 @@ import {
   canUsePlateCalculator,
   getPlateCalculatorTitle,
 } from "../utils/workoutUtils";
+import {
+  getSupersetDisplayLabels,
+  getSupersetPartnerId,
+  pairExercisesAsSuperset,
+  removeExerciseWithIntensityCleanup,
+  setExerciseIntensityTechnique,
+  unpairSupersetExercise,
+} from "../utils/intensityTechniques";
 
 import "./WorkoutPage.css";
 
@@ -126,6 +140,8 @@ export function WorkoutPage() {
       id: generateId(),
       exerciseId,
       sets: [{ id: generateId(), weight: 0, reps: 0, completed: false }],
+      intensityTechnique: null,
+      supersetGroupId: null,
     };
 
     setActiveWorkout({
@@ -169,25 +185,39 @@ export function WorkoutPage() {
     return muscleGroups;
   };
 
-  const moveTemplateExercise = (templateId: string, fromIndex: number, toIndex: number) => {
+  const flattenTemplateExercises = (template: WorkoutTemplate): TemplateExercise[] => {
+    return template.muscleGroups.flatMap((muscleGroup) =>
+      muscleGroup.exercises.map((exercise) => ({ ...exercise }))
+    );
+  };
+
+  const updateFlattenedTemplateExercises = (
+    templateId: string,
+    updater: (templateExercises: TemplateExercise[]) => TemplateExercise[]
+  ) => {
     const template = templates.find((item) => item.id === templateId);
     if (!template) return;
 
-    const templateExercises = template.muscleGroups.flatMap((muscleGroup) =>
-      muscleGroup.exercises.map((exercise) => ({ ...exercise }))
-    );
-    if (fromIndex < 0 || toIndex < 0) return;
-    if (fromIndex >= templateExercises.length || toIndex >= templateExercises.length) return;
-
-    const reorderedExercises = swapItems(templateExercises, fromIndex, toIndex);
+    const updatedTemplateExercises = updater(flattenTemplateExercises(template));
 
     setTemplates(
       templates.map((item) =>
         item.id === templateId
-          ? { ...item, muscleGroups: buildTemplateMuscleGroups(reorderedExercises) }
+          ? { ...item, muscleGroups: buildTemplateMuscleGroups(updatedTemplateExercises) }
           : item
       )
     );
+  };
+
+  const moveTemplateExercise = (templateId: string, fromIndex: number, toIndex: number) => {
+    updateFlattenedTemplateExercises(templateId, (templateExercises) => {
+      if (fromIndex < 0 || toIndex < 0) return templateExercises;
+      if (fromIndex >= templateExercises.length || toIndex >= templateExercises.length) {
+        return templateExercises;
+      }
+
+      return swapItems(templateExercises, fromIndex, toIndex);
+    });
   };
 
   const moveWorkoutExercise = (workoutExerciseId: string, direction: "up" | "down") => {
@@ -222,29 +252,8 @@ export function WorkoutPage() {
     if (!activeWorkout) return;
     setActiveWorkout({
       ...activeWorkout,
-      exercises: activeWorkout.exercises.filter((exercise) => exercise.id !== workoutExerciseId),
+      exercises: removeExerciseWithIntensityCleanup(activeWorkout.exercises, workoutExerciseId),
     });
-  };
-
-  const getTemplateExerciseLocation = (
-    template: WorkoutTemplate,
-    exercisePositionInWorkout: number
-  ) => {
-    let currentPosition = 0;
-
-    for (const muscleGroup of template.muscleGroups) {
-      for (const exercise of muscleGroup.exercises) {
-        if (currentPosition === exercisePositionInWorkout) {
-          return {
-            muscleGroupId: muscleGroup.id,
-            exerciseId: exercise.id,
-          };
-        }
-        currentPosition++;
-      }
-    }
-
-    return null;
   };
 
   /**
@@ -260,32 +269,13 @@ export function WorkoutPage() {
     exercisePositionInWorkout: number,
     newSetCount: number
   ) => {
-    const template = templates.find((template) => template.id === templateId);
-    if (!template) return;
-
-    const target = getTemplateExerciseLocation(template, exercisePositionInWorkout);
-    if (!target) return;
-
-    const updatedTemplates = templates.map((template) => {
-      if (template.id !== templateId) return template;
-
-      return {
-        ...template,
-        muscleGroups: template.muscleGroups.map((muscleGroup) => {
-          if (muscleGroup.id !== target.muscleGroupId) return muscleGroup;
-
-          return {
-            ...muscleGroup,
-            exercises: muscleGroup.exercises.map((exercise) => {
-              if (exercise.id !== target.exerciseId) return exercise;
-              return { ...exercise, setCount: newSetCount };
-            }),
-          };
-        }),
-      };
-    });
-
-    setTemplates(updatedTemplates);
+    updateFlattenedTemplateExercises(templateId, (templateExercises) =>
+      templateExercises.map((exercise, exerciseIndex) =>
+        exerciseIndex === exercisePositionInWorkout
+          ? { ...exercise, setCount: newSetCount }
+          : exercise
+      )
+    );
   };
 
   /**
@@ -616,32 +606,13 @@ export function WorkoutPage() {
     exercisePositionInWorkout: number,
     newExerciseId: string
   ) => {
-    const template = templates.find((template) => template.id === templateId);
-    if (!template) return;
-
-    const target = getTemplateExerciseLocation(template, exercisePositionInWorkout);
-    if (!target) return;
-
-    const updatedTemplates = templates.map((template) => {
-      if (template.id !== templateId) return template;
-
-      return {
-        ...template,
-        muscleGroups: template.muscleGroups.map((muscleGroup) => {
-          if (muscleGroup.id !== target.muscleGroupId) return muscleGroup;
-
-          return {
-            ...muscleGroup,
-            exercises: muscleGroup.exercises.map((exercise) => {
-              if (exercise.id !== target.exerciseId) return exercise;
-              return { ...exercise, exerciseId: newExerciseId };
-            }),
-          };
-        }),
-      };
-    });
-
-    setTemplates(updatedTemplates);
+    updateFlattenedTemplateExercises(templateId, (templateExercises) =>
+      templateExercises.map((exercise, exerciseIndex) =>
+        exerciseIndex === exercisePositionInWorkout
+          ? { ...exercise, exerciseId: newExerciseId }
+          : exercise
+      )
+    );
   };
 
   /**
@@ -653,33 +624,14 @@ export function WorkoutPage() {
    * @param exercisePositionInWorkout - The zero-based position of the exercise in the workout
    */
   const removeExerciseFromTemplate = (templateId: string, exercisePositionInWorkout: number) => {
-    const template = templates.find((template) => template.id === templateId);
-    if (!template) return;
+    updateFlattenedTemplateExercises(templateId, (templateExercises) => {
+      const targetExercise = templateExercises[exercisePositionInWorkout];
+      if (!targetExercise) {
+        return templateExercises;
+      }
 
-    const target = getTemplateExerciseLocation(template, exercisePositionInWorkout);
-    if (!target) return;
-
-    const updatedTemplates = templates.map((template) => {
-      if (template.id !== templateId) return template;
-
-      return {
-        ...template,
-        muscleGroups: template.muscleGroups
-          .map((muscleGroup) => {
-            if (muscleGroup.id !== target.muscleGroupId) return muscleGroup;
-
-            return {
-              ...muscleGroup,
-              exercises: muscleGroup.exercises.filter(
-                (exercise) => exercise.id !== target.exerciseId
-              ),
-            };
-          })
-          .filter((muscleGroup) => muscleGroup.exercises.length > 0),
-      };
+      return removeExerciseWithIntensityCleanup(templateExercises, targetExercise.id);
     });
-
-    setTemplates(updatedTemplates);
   };
 
   /**
@@ -695,31 +647,202 @@ export function WorkoutPage() {
     exercise: Exercise,
     exercisePositionInWorkout: number
   ) => {
-    const template = templates.find((template) => template.id === templateId);
-    if (!template) return;
+    updateFlattenedTemplateExercises(templateId, (templateExercises) => {
+      const insertionIndex = Math.min(
+        Math.max(exercisePositionInWorkout, 0),
+        templateExercises.length
+      );
+      const insertedExercise = {
+        id: generateId(),
+        exerciseId: exercise.id,
+        setCount: 3,
+        intensityTechnique: null,
+        supersetGroupId: null,
+      };
+      const nextExercises = [...templateExercises];
 
-    const templateExercises = template.muscleGroups.flatMap((muscleGroup) =>
-      muscleGroup.exercises.map((templateExercise) => ({ ...templateExercise }))
+      nextExercises.splice(insertionIndex, 0, insertedExercise);
+
+      return nextExercises;
+    });
+  };
+
+  const updateTemplateExerciseIntensity = (
+    templateId: string,
+    exercisePositionInWorkout: number,
+    intensityTechnique: IntensityTechnique | null
+  ) => {
+    updateFlattenedTemplateExercises(templateId, (templateExercises) => {
+      const targetExercise = templateExercises[exercisePositionInWorkout];
+      if (!targetExercise) {
+        return templateExercises;
+      }
+
+      return setExerciseIntensityTechnique(
+        templateExercises,
+        targetExercise.id,
+        intensityTechnique
+      );
+    });
+  };
+
+  const pairTemplateSuperset = (
+    templateId: string,
+    firstExercisePosition: number,
+    secondExercisePosition: number,
+    supersetGroupId: string
+  ) => {
+    updateFlattenedTemplateExercises(templateId, (templateExercises) => {
+      const firstExercise = templateExercises[firstExercisePosition];
+      const secondExercise = templateExercises[secondExercisePosition];
+
+      if (!firstExercise || !secondExercise) {
+        return templateExercises;
+      }
+
+      return pairExercisesAsSuperset(
+        templateExercises,
+        firstExercise.id,
+        secondExercise.id,
+        supersetGroupId
+      );
+    });
+  };
+
+  const unpairTemplateSuperset = (templateId: string, exercisePositionInWorkout: number) => {
+    updateFlattenedTemplateExercises(templateId, (templateExercises) => {
+      const targetExercise = templateExercises[exercisePositionInWorkout];
+      if (!targetExercise) {
+        return templateExercises;
+      }
+
+      return unpairSupersetExercise(templateExercises, targetExercise.id);
+    });
+  };
+
+  const applyWorkoutIntensityChange = (
+    applyWorkoutChange: () => void,
+    applyTemplateChange?: () => void
+  ) => {
+    if (!activeWorkout?.templateId || !applyTemplateChange) {
+      applyWorkoutChange();
+      return;
+    }
+
+    showConfirm({
+      title: "Apply intensity change?",
+      message: "Choose whether this change should also update the template.",
+      confirmText: "Apply",
+      cancelText: "Cancel",
+      variant: "standard",
+      checkboxLabel: "Update template",
+      checkboxDefaultChecked: false,
+      onConfirm: (shouldUpdateTemplate) => {
+        applyWorkoutChange();
+
+        if (shouldUpdateTemplate) {
+          applyTemplateChange();
+        }
+      },
+    });
+  };
+
+  const updateWorkoutIntensityTechnique = (
+    workoutExerciseId: string,
+    intensityTechnique: IntensityTechnique | null
+  ) => {
+    if (!activeWorkout) return;
+
+    const workoutExerciseIndex = activeWorkout.exercises.findIndex(
+      (exercise) => exercise.id === workoutExerciseId
     );
-    const insertedExercise = {
-      id: generateId(),
-      exerciseId: exercise.id,
-      setCount: 3,
-    };
-    const insertionIndex = Math.min(
-      Math.max(exercisePositionInWorkout, 0),
-      templateExercises.length
+    if (workoutExerciseIndex === -1) return;
+
+    applyWorkoutIntensityChange(
+      () => {
+        setActiveWorkout({
+          ...activeWorkout,
+          exercises: setExerciseIntensityTechnique(
+            activeWorkout.exercises,
+            workoutExerciseId,
+            intensityTechnique
+          ),
+        });
+      },
+      activeWorkout.templateId
+        ? () =>
+            updateTemplateExerciseIntensity(
+              activeWorkout.templateId!,
+              workoutExerciseIndex,
+              intensityTechnique
+            )
+        : undefined
+    );
+  };
+
+  const updateWorkoutSupersetPair = (
+    workoutExerciseId: string,
+    partnerWorkoutExerciseId: string
+  ) => {
+    if (!activeWorkout) return;
+
+    const workoutExerciseIndex = activeWorkout.exercises.findIndex(
+      (exercise) => exercise.id === workoutExerciseId
+    );
+    if (workoutExerciseIndex === -1) return;
+
+    if (!partnerWorkoutExerciseId) {
+      applyWorkoutIntensityChange(
+        () => {
+          setActiveWorkout({
+            ...activeWorkout,
+            exercises: unpairSupersetExercise(activeWorkout.exercises, workoutExerciseId),
+          });
+        },
+        activeWorkout.templateId
+          ? () => unpairTemplateSuperset(activeWorkout.templateId!, workoutExerciseIndex)
+          : undefined
+      );
+      return;
+    }
+
+    const partnerExercise = activeWorkout.exercises.find(
+      (exercise) => exercise.id === partnerWorkoutExerciseId
+    );
+    const partnerExerciseIndex = activeWorkout.exercises.findIndex(
+      (exercise) => exercise.id === partnerWorkoutExerciseId
     );
 
-    templateExercises.splice(insertionIndex, 0, insertedExercise);
+    if (!partnerExercise || partnerExerciseIndex === -1) {
+      return;
+    }
 
-    const updatedTemplates = templates.map((template) =>
-      template.id === templateId
-        ? { ...template, muscleGroups: buildTemplateMuscleGroups(templateExercises) }
-        : template
+    const currentExercise = activeWorkout.exercises[workoutExerciseIndex];
+    const supersetGroupId =
+      currentExercise.supersetGroupId ?? partnerExercise.supersetGroupId ?? generateId();
+
+    applyWorkoutIntensityChange(
+      () => {
+        setActiveWorkout({
+          ...activeWorkout,
+          exercises: pairExercisesAsSuperset(
+            activeWorkout.exercises,
+            workoutExerciseId,
+            partnerWorkoutExerciseId,
+            supersetGroupId
+          ),
+        });
+      },
+      activeWorkout.templateId
+        ? () =>
+            pairTemplateSuperset(
+              activeWorkout.templateId!,
+              workoutExerciseIndex,
+              partnerExerciseIndex,
+              supersetGroupId
+            )
+        : undefined
     );
-
-    setTemplates(updatedTemplates);
   };
 
   /**
@@ -929,6 +1052,14 @@ export function WorkoutPage() {
     return lastSetsByExerciseId;
   }, [activeExerciseIdsKey, workouts]);
 
+  const supersetDisplayLabels = activeWorkout
+    ? getSupersetDisplayLabels(activeWorkout.exercises)
+    : {};
+
+  const getWorkoutSupersetPartnerOptions = (workoutExerciseId: string) => {
+    return activeWorkout?.exercises.filter((exercise) => exercise.id !== workoutExerciseId) ?? [];
+  };
+
   // No active workout - show start screen
   if (!activeWorkout) {
     return (
@@ -1016,6 +1147,16 @@ export function WorkoutPage() {
               ? getPlateLayout(plateCalculatorTarget.set.weight)
               : null;
             const lastSets = lastPerformedSetsByExerciseId[workoutExercise.exerciseId];
+            const supersetPartnerId = getSupersetPartnerId(
+              activeWorkout.exercises,
+              workoutExercise.id
+            );
+            const supersetPartnerExercise = activeWorkout.exercises.find(
+              (item) => item.id === supersetPartnerId
+            );
+            const supersetLabel = workoutExercise.supersetGroupId
+              ? supersetDisplayLabels[workoutExercise.supersetGroupId]
+              : null;
 
             return (
               <div key={workoutExercise.id} className="workout-exercise-card card">
@@ -1026,6 +1167,13 @@ export function WorkoutPage() {
                         {muscleGroupLabels[exercise.muscleGroup]}
                       </Tag>
                       <Tag>{exerciseTypeLabels[exercise.exerciseType]}</Tag>
+                      {workoutExercise.intensityTechnique && (
+                        <Tag>
+                          {workoutExercise.intensityTechnique === "super-set" && supersetLabel
+                            ? supersetLabel
+                            : intensityTechniqueLabels[workoutExercise.intensityTechnique]}
+                        </Tag>
+                      )}
                     </div>
                     <div className="exercise-name-row">
                       <h3
@@ -1198,6 +1346,64 @@ export function WorkoutPage() {
                     )}
                   </div>
                 )}
+
+                <div className="workout-intensity-controls">
+                  <label className="workout-intensity-field">
+                    <span className="workout-intensity-label">Technique</span>
+                    <select
+                      aria-label={`Intensity technique for ${exercise.name}`}
+                      value={workoutExercise.intensityTechnique ?? ""}
+                      onChange={(event) =>
+                        updateWorkoutIntensityTechnique(
+                          workoutExercise.id,
+                          (event.target.value || null) as IntensityTechnique | null
+                        )
+                      }
+                    >
+                      <option value="">Standard</option>
+                      {INTENSITY_TECHNIQUES.map((technique) => (
+                        <option key={technique} value={technique}>
+                          {intensityTechniqueLabels[technique]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  {workoutExercise.intensityTechnique === "super-set" && (
+                    <label className="workout-intensity-field">
+                      <span className="workout-intensity-label">Paired with</span>
+                      <select
+                        aria-label={`Superset pair for ${exercise.name}`}
+                        value={supersetPartnerId ?? ""}
+                        onChange={(event) =>
+                          updateWorkoutSupersetPair(workoutExercise.id, event.target.value)
+                        }
+                      >
+                        <option value="">Select exercise</option>
+                        {getWorkoutSupersetPartnerOptions(workoutExercise.id).map((partner) => {
+                          const partnerExercise = getExerciseById(partner.exerciseId);
+
+                          if (!partnerExercise) {
+                            return null;
+                          }
+
+                          return (
+                            <option key={partner.id} value={partner.id}>
+                              {partnerExercise.name}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </label>
+                  )}
+
+                  {workoutExercise.intensityTechnique === "super-set" &&
+                    supersetPartnerExercise && (
+                      <p className="workout-intensity-hint">
+                        Paired with {getExerciseById(supersetPartnerExercise.exerciseId)?.name}
+                      </p>
+                    )}
+                </div>
 
                 {supportsPlateCalculator && isPlateCalculatorOpen && (
                   <section

@@ -3,10 +3,11 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Check, MoreVertical, Pencil, Trash2 } from "lucide-react";
 
 import type { Exercise, Workout } from "../types";
-import { muscleGroupLabels, exerciseTypeLabels } from "../types";
+import { exerciseTypeLabels, intensityTechniqueLabels, muscleGroupLabels } from "../types";
 
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { STORAGE_KEYS, DEFAULT_EXERCISES, getExercises } from "../utils/storage";
+import { getSupersetDisplayLabels } from "../utils/intensityTechniques";
 
 import { PageHeader } from "../components/PageHeader";
 import { Tag } from "../components/Tag";
@@ -89,6 +90,7 @@ export function WorkoutDetailPage() {
       }, 0),
     0
   );
+  const supersetLabels = getSupersetDisplayLabels(workout.exercises);
 
   const handleDelete = () => {
     setIsMenuOpen(false);
@@ -244,9 +246,19 @@ export function WorkoutDetailPage() {
             return (
               <div key={workoutExercise.id} className="detail-exercise">
                 <div className="detail-exercise-header">
-                  <Tag muscleGroup={exercise.muscleGroup}>
-                    {muscleGroupLabels[exercise.muscleGroup]}
-                  </Tag>
+                  <div className="detail-exercise-tags">
+                    <Tag muscleGroup={exercise.muscleGroup}>
+                      {muscleGroupLabels[exercise.muscleGroup]}
+                    </Tag>
+                    {workoutExercise.intensityTechnique && (
+                      <Tag>
+                        {workoutExercise.intensityTechnique === "super-set" &&
+                        workoutExercise.supersetGroupId
+                          ? supersetLabels[workoutExercise.supersetGroupId]
+                          : intensityTechniqueLabels[workoutExercise.intensityTechnique]}
+                      </Tag>
+                    )}
+                  </div>
                   <h3
                     className="detail-exercise-name clickable"
                     onClick={() => handleExerciseClick(exercise)}

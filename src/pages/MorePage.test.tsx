@@ -14,6 +14,7 @@ const {
   mockExportAllData,
   mockImportAllData,
   mockDownloadDataFile,
+  mockReloadPage,
   mockHasActiveWorkout,
   mockHasUnseenAppUpdate,
   mockMarkCurrentBuildAsSeen,
@@ -24,6 +25,7 @@ const {
   mockExportAllData: vi.fn(),
   mockImportAllData: vi.fn(),
   mockDownloadDataFile: vi.fn(),
+  mockReloadPage: vi.fn(),
   mockHasActiveWorkout: vi.fn(),
   mockHasUnseenAppUpdate: vi.fn(),
   mockMarkCurrentBuildAsSeen: vi.fn(),
@@ -42,6 +44,10 @@ vi.mock("../utils/storage", () => ({
   importAllData: mockImportAllData,
   downloadDataFile: mockDownloadDataFile,
   hasActiveWorkout: mockHasActiveWorkout,
+}));
+
+vi.mock("../utils/browser", () => ({
+  reloadPage: mockReloadPage,
 }));
 
 vi.mock("../utils/appRelease", () => ({
@@ -100,6 +106,7 @@ describe("MorePage", () => {
     mockExportAllData.mockReset().mockReturnValue('{"data":{}}');
     mockImportAllData.mockReset();
     mockDownloadDataFile.mockReset();
+    mockReloadPage.mockReset();
     mockHasActiveWorkout.mockReset().mockReturnValue(false);
     mockHasUnseenAppUpdate.mockReset().mockReturnValue(false);
     mockMarkCurrentBuildAsSeen.mockReset();
@@ -201,6 +208,7 @@ describe("MorePage", () => {
         buttonText: "Reload now",
       })
     );
+    expect(mockReloadPage).toHaveBeenCalledTimes(1);
   });
 
   it("shows the import error message without reloading when the backup is invalid", async () => {
@@ -237,5 +245,6 @@ describe("MorePage", () => {
         variant: "danger",
       })
     );
+    expect(mockReloadPage).not.toHaveBeenCalled();
   });
 });

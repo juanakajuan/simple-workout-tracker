@@ -5,9 +5,10 @@ import { History, ChartColumnBig } from "lucide-react";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { useConfirmDialog } from "../hooks/useConfirmDialog";
 import { STORAGE_KEYS, DEFAULT_EXERCISES } from "../utils/storage";
+import { getSupersetDisplayLabels } from "../utils/intensityTechniques";
 
 import type { Exercise, Workout, MuscleGroup } from "../types";
-import { muscleGroupLabels } from "../types";
+import { intensityTechniqueLabels, muscleGroupLabels } from "../types";
 
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { PageHeader } from "../components/PageHeader";
@@ -202,6 +203,24 @@ export function HistoryPage() {
               <div className="month-workouts">
                 {monthWorkouts.map((workout) => {
                   const stats = getWorkoutStats(workout);
+                  const supersetLabels = getSupersetDisplayLabels(workout.exercises);
+                  const intensityTags = workout.exercises.reduce<string[]>((labels, exercise) => {
+                    if (!exercise.intensityTechnique) {
+                      return labels;
+                    }
+
+                    const label =
+                      exercise.intensityTechnique === "super-set" && exercise.supersetGroupId
+                        ? supersetLabels[exercise.supersetGroupId]
+                        : intensityTechniqueLabels[exercise.intensityTechnique];
+
+                    if (label && !labels.includes(label)) {
+                      labels.push(label);
+                    }
+
+                    return labels;
+                  }, []);
+
                   return (
                     <button
                       key={workout.id}
@@ -229,6 +248,9 @@ export function HistoryPage() {
                             </Tag>
                           ));
                         })()}
+                        {intensityTags.map((label) => (
+                          <Tag key={label}>{label}</Tag>
+                        ))}
                       </div>
                       <h3 className="history-card-name">{workout.name}</h3>
                       <div className="history-card-meta">

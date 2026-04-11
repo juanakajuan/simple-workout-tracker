@@ -143,6 +143,8 @@ describe("HistoryPage", () => {
           {
             id: "workout-exercise-1",
             exerciseId: "exercise-chest",
+            intensityTechnique: "super-set",
+            supersetGroupId: "superset-1",
             sets: [
               { id: "set-1", weight: 100, reps: 5, completed: true },
               { id: "set-2", weight: 110, reps: 5, completed: true },
@@ -152,6 +154,8 @@ describe("HistoryPage", () => {
           {
             id: "workout-exercise-2",
             exerciseId: "exercise-back",
+            intensityTechnique: "super-set",
+            supersetGroupId: "superset-1",
             sets: [{ id: "set-4", weight: 80, reps: 4, completed: true }],
           },
         ],
@@ -191,6 +195,7 @@ describe("HistoryPage", () => {
     expect(screen.getByText("45 min")).toBeDefined();
     expect(screen.getByText("Chest")).toBeDefined();
     expect(screen.getAllByText("Back").length).toBeGreaterThan(0);
+    expect(screen.getByText("Superset 1")).toBeDefined();
   });
 
   it("opens delete confirmation from location state, clears the state, and removes the workout", async () => {

@@ -566,13 +566,25 @@ describe("WorkoutPage – selector return state", () => {
         id: expect.any(String),
         muscleGroup: "chest",
         exercises: [
-          { id: "template-ex-1", exerciseId: "default-bench-press-medium-grip", setCount: 3 },
+          {
+            id: "template-ex-1",
+            exerciseId: "default-bench-press-medium-grip",
+            setCount: 3,
+          },
         ],
       },
       {
         id: expect.any(String),
         muscleGroup: "back",
-        exercises: [{ id: expect.any(String), exerciseId: row.id, setCount: 3 }],
+        exercises: [
+          {
+            id: expect.any(String),
+            exerciseId: row.id,
+            setCount: 3,
+            intensityTechnique: null,
+            supersetGroupId: null,
+          },
+        ],
       },
     ]);
   });
@@ -631,7 +643,11 @@ describe("WorkoutPage – selector return state", () => {
         id: expect.any(String),
         muscleGroup: "chest",
         exercises: [
-          { id: "template-ex-1", exerciseId: "default-bench-press-medium-grip", setCount: 3 },
+          {
+            id: "template-ex-1",
+            exerciseId: "default-bench-press-medium-grip",
+            setCount: 3,
+          },
         ],
       },
       {
@@ -642,7 +658,15 @@ describe("WorkoutPage – selector return state", () => {
       {
         id: expect.any(String),
         muscleGroup: "chest",
-        exercises: [{ id: expect.any(String), exerciseId: incline.id, setCount: 3 }],
+        exercises: [
+          {
+            id: expect.any(String),
+            exerciseId: incline.id,
+            setCount: 3,
+            intensityTechnique: null,
+            supersetGroupId: null,
+          },
+        ],
       },
     ]);
   });
@@ -870,6 +894,56 @@ describe("WorkoutPage – workout editing", () => {
     ]);
   });
 
+  it("prompts for template sync when updating an exercise intensity technique", () => {
+    const press = makeExercise({
+      id: "exercise-press",
+      name: "Machine Press",
+      muscleGroup: "chest",
+    });
+    const template: WorkoutTemplate = {
+      id: "template-1",
+      name: "Push",
+      muscleGroups: [
+        {
+          id: "group-1",
+          muscleGroup: "chest",
+          exercises: [{ id: "template-ex-1", exerciseId: press.id, setCount: 3 }],
+        },
+      ],
+    };
+
+    setLS(STORAGE_KEYS.EXERCISES, [press]);
+    setLS(STORAGE_KEYS.TEMPLATES, [template]);
+    setLS(
+      STORAGE_KEYS.ACTIVE_WORKOUT,
+      makeWorkout({
+        templateId: template.id,
+        exercises: [{ id: "we-1", exerciseId: press.id, sets: [makeSet()] }],
+      })
+    );
+
+    renderWorkoutPage();
+
+    fireEvent.change(screen.getByLabelText(`Intensity technique for ${press.name}`), {
+      target: { value: "drop-set" },
+    });
+
+    expect(screen.getByText("Apply intensity change?")).toBeDefined();
+    const updateTemplateCheckbox = screen.getByRole("checkbox") as HTMLInputElement;
+    expect(updateTemplateCheckbox.checked).toBe(false);
+
+    fireEvent.click(updateTemplateCheckbox);
+    fireEvent.click(screen.getByRole("button", { name: /^apply$/i }));
+
+    expect(getLS<Workout>(STORAGE_KEYS.ACTIVE_WORKOUT)?.exercises[0].intensityTechnique).toBe(
+      "drop-set"
+    );
+    expect(
+      getLS<WorkoutTemplate[]>(STORAGE_KEYS.TEMPLATES)?.[0].muscleGroups[0].exercises[0]
+        .intensityTechnique
+    ).toBe("drop-set");
+  });
+
   it("deletes a workout exercise and removes it from the template when confirmed", () => {
     const row = makeExercise({ id: "exercise-row", name: "Seated Row", muscleGroup: "back" });
     const template: WorkoutTemplate = {
@@ -908,7 +982,7 @@ describe("WorkoutPage – workout editing", () => {
 
     fireEvent.click(screen.getAllByRole("button", { name: /more options/i })[1]);
     fireEvent.click(screen.getByRole("button", { name: /delete exercise/i }));
-    fireEvent.click(screen.getByRole("checkbox"));
+    expect((screen.getByRole("checkbox") as HTMLInputElement).checked).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: /send it to the shadow realm/i }));
 
     expect(
@@ -916,7 +990,7 @@ describe("WorkoutPage – workout editing", () => {
     ).toEqual(["we-1"]);
     expect(getLS<WorkoutTemplate[]>(STORAGE_KEYS.TEMPLATES)?.[0].muscleGroups).toEqual([
       {
-        id: "group-1",
+        id: expect.any(String),
         muscleGroup: "chest",
         exercises: [
           { id: "template-ex-1", exerciseId: "default-bench-press-medium-grip", setCount: 3 },
