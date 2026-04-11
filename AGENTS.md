@@ -1,0 +1,1 @@
+- Make sure to run `pnpm run build` to ensure there are no errors.

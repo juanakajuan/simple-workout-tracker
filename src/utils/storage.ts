@@ -1,5 +1,6 @@
 import type {
   Exercise,
+  IntensityTechnique,
   TemplateExercise,
   TemplateMuscleGroup,
   Workout,
@@ -9,8 +10,11 @@ import type {
   WorkoutTemplateDraft,
   Settings,
 } from "../types";
+import { INTENSITY_TECHNIQUES } from "../types";
 
-const VALID_INTENSITY_TECHNIQUES = new Set(["myoreps", "myorep-match", "drop-set", "super-set"]);
+function isIntensityTechnique(value: unknown): value is IntensityTechnique {
+  return typeof value === "string" && INTENSITY_TECHNIQUES.includes(value as IntensityTechnique);
+}
 
 /**
  * localStorage keys used throughout the application.
@@ -100,7 +104,7 @@ function parseJsonString(value: string): unknown {
 }
 
 function normalizeIntensityTechnique(value: unknown): TemplateExercise["intensityTechnique"] {
-  return typeof value === "string" && VALID_INTENSITY_TECHNIQUES.has(value) ? value : null;
+  return isIntensityTechnique(value) ? value : null;
 }
 
 function normalizeSupersetGroupId(value: unknown): string | null {
