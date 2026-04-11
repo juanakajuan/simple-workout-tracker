@@ -85,13 +85,13 @@
       Static fixture sanity checks: valid shape, expected IDs, and correct muscle group.
 - [x] `src/data/exercises/back.ts`
       Static fixture sanity checks: valid shape, expected IDs, and correct muscle group.
-- [ ] `src/data/exercises/biceps.ts`
+- [x] `src/data/exercises/biceps.ts`
       Static fixture sanity checks: valid shape, expected IDs, and correct muscle group.
-- [ ] `src/data/exercises/calves.ts`
+- [x] `src/data/exercises/calves.ts`
       Static fixture sanity checks: valid shape, expected IDs, and correct muscle group.
-- [ ] `src/data/exercises/chest.ts`
+- [x] `src/data/exercises/chest.ts`
       Static fixture sanity checks: valid shape, expected IDs, and correct muscle group.
-- [ ] `src/data/exercises/forearms.ts`
+- [x] `src/data/exercises/forearms.ts`
       Static fixture sanity checks: valid shape, expected IDs, and correct muscle group.
 - [ ] `src/data/exercises/glutes.ts`
       Static fixture sanity checks: valid shape, expected IDs, and correct muscle group.
