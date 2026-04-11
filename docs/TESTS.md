@@ -77,13 +77,13 @@
       Continue vs dismiss click propagation.
 - [x] `src/components/Tag.tsx`
       Variant and muscle-group class selection.
-- [ ] `src/types/index.ts`
+- [x] `src/types/index.ts`
       Label/color lookup consistency and `getMuscleGroupClassName` output.
-- [ ] `src/data/defaultExercises.ts`
+- [x] `src/data/defaultExercises.ts`
       Aggregation of all built-in exercise lists.
-- [ ] `src/data/exercises/abs.ts`
+- [x] `src/data/exercises/abs.ts`
       Static fixture sanity checks: valid shape, expected IDs, and correct muscle group.
-- [ ] `src/data/exercises/back.ts`
+- [x] `src/data/exercises/back.ts`
       Static fixture sanity checks: valid shape, expected IDs, and correct muscle group.
 - [ ] `src/data/exercises/biceps.ts`
       Static fixture sanity checks: valid shape, expected IDs, and correct muscle group.
