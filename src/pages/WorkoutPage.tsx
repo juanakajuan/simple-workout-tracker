@@ -681,64 +681,41 @@ export function WorkoutPage() {
   };
 
   /**
-   * Adds a new exercise to a template. Used when adding an exercise to a workout
-   * and the user opts to update the template as well. The exercise is added to
-   * an existing muscle group that matches the exercise's muscle group, or a new
-   * muscle group is created if none exists.
+   * Adds a new exercise to a template at the same flat position used in the
+   * active workout so grouped muscle sections stay in the same order.
    *
    * @param templateId - The unique identifier of the template
    * @param exercise - The exercise to add to the template
+   * @param exercisePositionInWorkout - The zero-based workout insertion position
    */
-  const addExerciseToTemplate = (templateId: string, exercise: Exercise) => {
+  const addExerciseToTemplate = (
+    templateId: string,
+    exercise: Exercise,
+    exercisePositionInWorkout: number
+  ) => {
     const template = templates.find((template) => template.id === templateId);
     if (!template) return;
 
-    const updatedTemplates = templates.map((template) => {
-      if (template.id !== templateId) return template;
+    const templateExercises = template.muscleGroups.flatMap((muscleGroup) =>
+      muscleGroup.exercises.map((templateExercise) => ({ ...templateExercise }))
+    );
+    const insertedExercise = {
+      id: generateId(),
+      exerciseId: exercise.id,
+      setCount: 3,
+    };
+    const insertionIndex = Math.min(
+      Math.max(exercisePositionInWorkout, 0),
+      templateExercises.length
+    );
 
-      const existingMuscleGroup = template.muscleGroups.find(
-        (muscleGroup) => muscleGroup.muscleGroup === exercise.muscleGroup
-      );
+    templateExercises.splice(insertionIndex, 0, insertedExercise);
 
-      if (existingMuscleGroup) {
-        return {
-          ...template,
-          muscleGroups: template.muscleGroups.map((muscleGroup) => {
-            if (muscleGroup.id !== existingMuscleGroup.id) return muscleGroup;
-
-            return {
-              ...muscleGroup,
-              exercises: [
-                ...muscleGroup.exercises,
-                {
-                  id: generateId(),
-                  exerciseId: exercise.id,
-                  setCount: 3,
-                },
-              ],
-            };
-          }),
-        };
-      }
-
-      return {
-        ...template,
-        muscleGroups: [
-          ...template.muscleGroups,
-          {
-            id: generateId(),
-            muscleGroup: exercise.muscleGroup,
-            exercises: [
-              {
-                id: generateId(),
-                exerciseId: exercise.id,
-                setCount: 3,
-              },
-            ],
-          },
-        ],
-      };
-    });
+    const updatedTemplates = templates.map((template) =>
+      template.id === templateId
+        ? { ...template, muscleGroups: buildTemplateMuscleGroups(templateExercises) }
+        : template
+    );
 
     setTemplates(updatedTemplates);
   };
@@ -889,12 +866,17 @@ export function WorkoutPage() {
           state.updateTemplate ?? updateTemplateOnReplace
         );
       } else {
+        const exercisePositionInWorkout = activeWorkout?.exercises.length;
         addExerciseToWorkout(state.selectedExerciseId);
         // Update template if workout is from template and updateTemplate flag is set
-        if (activeWorkout?.templateId && (state.updateTemplate ?? updateTemplateOnAdd)) {
+        if (
+          activeWorkout?.templateId &&
+          exercisePositionInWorkout !== undefined &&
+          (state.updateTemplate ?? updateTemplateOnAdd)
+        ) {
           const exercise = allExercises.find((e) => e.id === state.selectedExerciseId);
           if (exercise) {
-            addExerciseToTemplate(activeWorkout.templateId, exercise);
+            addExerciseToTemplate(activeWorkout.templateId, exercise, exercisePositionInWorkout);
           }
         }
         setUpdateTemplateOnAdd(true);

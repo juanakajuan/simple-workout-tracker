@@ -531,7 +531,7 @@ describe("WorkoutPage – selector return state", () => {
     const storedTemplates = getLS<WorkoutTemplate[]>(STORAGE_KEYS.TEMPLATES);
     expect(storedTemplates?.[0].muscleGroups).toEqual([
       {
-        id: "group-1",
+        id: expect.any(String),
         muscleGroup: "chest",
         exercises: [
           { id: "template-ex-1", exerciseId: "default-bench-press-medium-grip", setCount: 3 },
@@ -541,6 +541,76 @@ describe("WorkoutPage – selector return state", () => {
         id: expect.any(String),
         muscleGroup: "back",
         exercises: [{ id: expect.any(String), exerciseId: row.id, setCount: 3 }],
+      },
+    ]);
+  });
+
+  it("keeps template muscle-group order aligned with the workout when adding a duplicate group", () => {
+    const row = makeExercise({ id: "exercise-row", name: "Seated Row", muscleGroup: "back" });
+    const incline = makeExercise({
+      id: "exercise-incline",
+      name: "Incline Press",
+      muscleGroup: "chest",
+    });
+    const template: WorkoutTemplate = {
+      id: "template-1",
+      name: "Upper",
+      muscleGroups: [
+        {
+          id: "group-1",
+          muscleGroup: "chest",
+          exercises: [
+            { id: "template-ex-1", exerciseId: "default-bench-press-medium-grip", setCount: 3 },
+          ],
+        },
+        {
+          id: "group-2",
+          muscleGroup: "back",
+          exercises: [{ id: "template-ex-2", exerciseId: row.id, setCount: 3 }],
+        },
+      ],
+    };
+
+    setLS(STORAGE_KEYS.EXERCISES, [row, incline]);
+    setLS(STORAGE_KEYS.TEMPLATES, [template]);
+    setLS(
+      STORAGE_KEYS.ACTIVE_WORKOUT,
+      makeWorkout({
+        name: "Upper",
+        templateId: template.id,
+        exercises: [
+          { id: "we-1", exerciseId: "default-bench-press-medium-grip", sets: [makeSet()] },
+          { id: "we-2", exerciseId: row.id, sets: [makeSet()] },
+        ],
+      })
+    );
+
+    renderWorkoutPage("/workout", {
+      selectedExerciseId: incline.id,
+      updateTemplate: true,
+    });
+
+    expect(
+      getLS<Workout>(STORAGE_KEYS.ACTIVE_WORKOUT)?.exercises.map((exercise) => exercise.exerciseId)
+    ).toEqual(["default-bench-press-medium-grip", row.id, incline.id]);
+
+    expect(getLS<WorkoutTemplate[]>(STORAGE_KEYS.TEMPLATES)?.[0].muscleGroups).toEqual([
+      {
+        id: expect.any(String),
+        muscleGroup: "chest",
+        exercises: [
+          { id: "template-ex-1", exerciseId: "default-bench-press-medium-grip", setCount: 3 },
+        ],
+      },
+      {
+        id: expect.any(String),
+        muscleGroup: "back",
+        exercises: [{ id: "template-ex-2", exerciseId: row.id, setCount: 3 }],
+      },
+      {
+        id: expect.any(String),
+        muscleGroup: "chest",
+        exercises: [{ id: expect.any(String), exerciseId: incline.id, setCount: 3 }],
       },
     ]);
   });

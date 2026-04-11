@@ -10,7 +10,7 @@
 
   In `src/pages/TemplateEditorPage.tsx:146-163`, edit mode initializes local state from the stored template; in `src/pages/TemplateEditorPage.tsx:180-184`, draft persistence only runs for new templates; and `src/pages/TemplateEditorPage.tsx:273-315` navigates away to child routes for add/replace flows. Result: name/order/set-count edits made in edit mode disappear after returning from `/select-exercise`.
 
-- [ ] Medium: Adding an exercise to a template-backed workout can rewrite template order incorrectly.
+- [x] Medium: Adding an exercise to a template-backed workout can rewrite template order incorrectly.
 
   `src/pages/WorkoutPage.tsx:692-744` appends the new exercise to the first matching muscle-group bucket in the template, while the caller at `src/pages/WorkoutPage.tsx:892-898` does not pass the actual insertion position from the workout. If the user adds, for example, Chest after Back, the saved template becomes grouped as Chest/Chest/Back on the next run.
 
