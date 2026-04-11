@@ -33,6 +33,12 @@ export function ConfirmDialog({
   useEffect(() => {
     if (!isOpen) return;
 
+    setCheckboxChecked(checkboxDefaultChecked);
+  }, [isOpen, checkboxDefaultChecked]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
     // Prevent body scroll when dialog is open
     document.body.style.overflow = "hidden";
 

@@ -48,6 +48,43 @@ describe("ConfirmDialog", () => {
     expect(calls).toEqual(["confirm:true", "cancel"]);
   });
 
+  it("resets the checkbox state when reopened", () => {
+    const { rerender } = render(
+      <ConfirmDialog
+        isOpen
+        title="Delete this workout?"
+        checkboxLabel="Delete the template too"
+        onConfirm={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("checkbox"));
+    expect((screen.getByRole("checkbox") as HTMLInputElement).checked).toBe(true);
+
+    rerender(
+      <ConfirmDialog
+        isOpen={false}
+        title="Delete this workout?"
+        checkboxLabel="Delete the template too"
+        onConfirm={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+
+    rerender(
+      <ConfirmDialog
+        isOpen
+        title="Delete this workout?"
+        checkboxLabel="Delete the template too"
+        onConfirm={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+
+    expect((screen.getByRole("checkbox") as HTMLInputElement).checked).toBe(false);
+  });
+
   it("locks body scroll while open and cleans it up when closed", () => {
     const { rerender, unmount } = render(
       <ConfirmDialog isOpen title="Delete this workout?" onConfirm={vi.fn()} onCancel={vi.fn()} />

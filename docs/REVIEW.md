@@ -14,7 +14,7 @@
 
   `src/pages/WorkoutPage.tsx:692-744` appends the new exercise to the first matching muscle-group bucket in the template, while the caller at `src/pages/WorkoutPage.tsx:892-898` does not pass the actual insertion position from the workout. If the user adds, for example, Chest after Back, the saved template becomes grouped as Chest/Chest/Back on the next run.
 
-- [ ] Medium: `ConfirmDialog` checkbox state leaks across openings.
+- [x] Medium: `ConfirmDialog` checkbox state leaks across openings.
 
   `src/components/ConfirmDialog.tsx:31` seeds `checkboxChecked` from `checkboxDefaultChecked` only once, and the state is never reset when a new dialog opens. The checkbox rendered at `src/components/ConfirmDialog.tsx:67-73` can therefore retain a previous user toggle and submit the wrong value for later confirmations.
 
