@@ -148,6 +148,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  vi.useRealTimers();
 });
 
 // ---------------------------------------------------------------------------
@@ -341,6 +342,37 @@ describe("WorkoutPage – finish workout", () => {
     expect(history).toHaveLength(2);
     expect(history[0].name).toBe("New Workout");
     expect(history[1].name).toBe("Old Workout");
+  });
+
+  it("stores the completion timestamp as the workout date", () => {
+    vi.useFakeTimers();
+
+    const startDate = new Date("2026-04-11T23:55:00.000Z");
+    const finishDate = new Date("2026-04-12T00:10:00.000Z");
+
+    vi.setSystemTime(finishDate);
+
+    const workout = makeWorkout({
+      name: "Late Night Lift",
+      date: startDate.toISOString(),
+      startTime: startDate.toISOString(),
+      exercises: [
+        {
+          id: uid(),
+          exerciseId: "default-bench-press-medium-grip",
+          sets: [makeSet({ id: uid(), completed: true, weight: 135, reps: 10 })],
+        },
+      ],
+    });
+    setLS(STORAGE_KEYS.ACTIVE_WORKOUT, workout);
+    renderWorkoutPage();
+
+    fireEvent.click(screen.getByRole("button", { name: /finish workout/i }));
+
+    const history = getLS<Workout[]>(STORAGE_KEYS.WORKOUTS);
+    expect(history).toHaveLength(1);
+    expect(history![0].date).toBe(finishDate.toISOString());
+    expect(history![0].duration).toBe(15 * 60);
   });
 });
 

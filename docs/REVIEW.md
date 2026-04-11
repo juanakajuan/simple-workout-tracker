@@ -22,6 +22,6 @@
 
   `src/utils/storage.ts:234-238` returns `value as Workout` with no shape checks, and that same no-op normalization is used when reading storage/import data at `src/utils/storage.ts:349-355` and `src/utils/storage.ts:582-585`. A malformed backup or corrupted localStorage entry can pass through as a "valid" workout and then break consumers that assume `exercises`, `date`, and `startTime` exist.
 
-- [ ] Low/Medium: Overnight workouts are attributed to the start date, not the finish date.
+- [x] Low/Medium: Overnight workouts are attributed to the start date, not the finish date.
 
   `src/pages/WorkoutPage.tsx:445-460` finishes the workout without updating `date`, while history and weekly analytics group by that field in `src/pages/HistoryPage.tsx:48-66`, `src/pages/HistoryPage.tsx:153-166`, and `src/pages/WeeklySetsTrackerPage.tsx:121-128`. A session that crosses midnight or a week boundary will show up under the previous day/week.

@@ -448,10 +448,12 @@ export function WorkoutPage() {
     const now = new Date();
     const startTime = new Date(activeWorkout.startTime);
     const durationInSeconds = Math.floor((now.getTime() - startTime.getTime()) / 1000);
+    const completedAt = now.toISOString();
 
     const completedWorkout: Workout = {
       ...activeWorkout,
       name: workoutName || activeWorkout.name,
+      date: completedAt,
       duration: durationInSeconds,
       completed: true,
     };
