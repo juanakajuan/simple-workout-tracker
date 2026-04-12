@@ -94,6 +94,7 @@ export function WorkoutPage() {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [openKebabMenu, setOpenKebabMenu] = useState<string | null>(null);
+  const [openIntensityEditorId, setOpenIntensityEditorId] = useState<string | null>(null);
   const [openPlateCalculatorId, setOpenPlateCalculatorId] = useState<string | null>(null);
   const [plateCalculatorSelections, setPlateCalculatorSelections] =
     useState<PlateCalculatorSelections>({});
@@ -918,7 +919,9 @@ export function WorkoutPage() {
   const handleClickOutside = (event: React.MouseEvent) => {
     if ((event.target as HTMLElement).closest(".kebab-menu")) return;
     if ((event.target as HTMLElement).closest(".workout-exercise-actions")) return;
+    if ((event.target as HTMLElement).closest(".workout-technique-editor")) return;
     setOpenKebabMenu(null);
+    setOpenIntensityEditorId(null);
   };
 
   /**
@@ -1060,6 +1063,35 @@ export function WorkoutPage() {
     return activeWorkout?.exercises.filter((exercise) => exercise.id !== workoutExerciseId) ?? [];
   };
 
+  const getWorkoutTechniqueLabel = (
+    workoutExercise: WorkoutExercise,
+    supersetLabel: string | null
+  ) => {
+    if (workoutExercise.intensityTechnique === "super-set" && supersetLabel) {
+      return supersetLabel;
+    }
+
+    if (workoutExercise.intensityTechnique) {
+      return intensityTechniqueLabels[workoutExercise.intensityTechnique];
+    }
+
+    return "Standard";
+  };
+
+  const handleWorkoutTechniqueSelection = (
+    workoutExerciseId: string,
+    intensityTechnique: IntensityTechnique | null
+  ) => {
+    updateWorkoutIntensityTechnique(workoutExerciseId, intensityTechnique);
+
+    if (intensityTechnique === "super-set") {
+      setOpenIntensityEditorId(workoutExerciseId);
+      return;
+    }
+
+    setOpenIntensityEditorId((current) => (current === workoutExerciseId ? null : current));
+  };
+
   // No active workout - show start screen
   if (!activeWorkout) {
     return (
@@ -1157,6 +1189,8 @@ export function WorkoutPage() {
             const supersetLabel = workoutExercise.supersetGroupId
               ? supersetDisplayLabels[workoutExercise.supersetGroupId]
               : null;
+            const techniqueLabel = getWorkoutTechniqueLabel(workoutExercise, supersetLabel);
+            const isIntensityEditorOpen = openIntensityEditorId === workoutExercise.id;
 
             return (
               <div key={workoutExercise.id} className="workout-exercise-card card">
@@ -1167,13 +1201,23 @@ export function WorkoutPage() {
                         {muscleGroupLabels[exercise.muscleGroup]}
                       </Tag>
                       <Tag>{exerciseTypeLabels[exercise.exerciseType]}</Tag>
-                      {workoutExercise.intensityTechnique && (
-                        <Tag>
-                          {workoutExercise.intensityTechnique === "super-set" && supersetLabel
-                            ? supersetLabel
-                            : intensityTechniqueLabels[workoutExercise.intensityTechnique]}
-                        </Tag>
-                      )}
+                      <div className="workout-technique-editor">
+                        <button
+                          type="button"
+                          className={`workout-technique-trigger tag ${workoutExercise.intensityTechnique ? "tag-accent" : "tag-muted"} ${isIntensityEditorOpen ? "active" : ""}`}
+                          onClick={() => {
+                            setOpenIntensityEditorId(
+                              isIntensityEditorOpen ? null : workoutExercise.id
+                            );
+                            setOpenKebabMenu(null);
+                          }}
+                          aria-label={`Edit intensity technique for ${exercise.name}`}
+                          aria-expanded={isIntensityEditorOpen}
+                          aria-controls={`workout-technique-editor-${workoutExercise.id}`}
+                        >
+                          {techniqueLabel}
+                        </button>
+                      </div>
                     </div>
                     <div className="exercise-name-row">
                       <h3
@@ -1201,6 +1245,7 @@ export function WorkoutPage() {
                             isPlateCalculatorOpen ? null : workoutExercise.id
                           );
                           setOpenKebabMenu(null);
+                          setOpenIntensityEditorId(null);
                         }}
                         aria-expanded={isPlateCalculatorOpen}
                         aria-controls={`plate-calculator-${workoutExercise.id}`}
@@ -1211,11 +1256,12 @@ export function WorkoutPage() {
                     )}
                     <button
                       className="btn btn-icon btn-ghost"
-                      onClick={() =>
+                      onClick={() => {
                         setOpenKebabMenu(
                           openKebabMenu === workoutExercise.id ? null : workoutExercise.id
-                        )
-                      }
+                        );
+                        setOpenIntensityEditorId(null);
+                      }}
                       aria-label="More options"
                     >
                       <MoreVertical size={20} />
@@ -1347,63 +1393,72 @@ export function WorkoutPage() {
                   </div>
                 )}
 
-                <div className="workout-intensity-controls">
-                  <label className="workout-intensity-field">
-                    <span className="workout-intensity-label">Technique</span>
-                    <select
-                      aria-label={`Intensity technique for ${exercise.name}`}
-                      value={workoutExercise.intensityTechnique ?? ""}
-                      onChange={(event) =>
-                        updateWorkoutIntensityTechnique(
-                          workoutExercise.id,
-                          (event.target.value || null) as IntensityTechnique | null
-                        )
-                      }
-                    >
-                      <option value="">Standard</option>
-                      {INTENSITY_TECHNIQUES.map((technique) => (
-                        <option key={technique} value={technique}>
-                          {intensityTechniqueLabels[technique]}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                {workoutExercise.intensityTechnique === "super-set" && (
+                  <p className="workout-technique-summary">
+                    {supersetPartnerExercise
+                      ? `Paired with ${getExerciseById(supersetPartnerExercise.exerciseId)?.name}`
+                      : "Choose a paired exercise"}
+                  </p>
+                )}
 
-                  {workoutExercise.intensityTechnique === "super-set" && (
-                    <label className="workout-intensity-field">
-                      <span className="workout-intensity-label">Paired with</span>
-                      <select
-                        aria-label={`Superset pair for ${exercise.name}`}
-                        value={supersetPartnerId ?? ""}
-                        onChange={(event) =>
-                          updateWorkoutSupersetPair(workoutExercise.id, event.target.value)
-                        }
+                {isIntensityEditorOpen && (
+                  <div
+                    id={`workout-technique-editor-${workoutExercise.id}`}
+                    className="workout-technique-editor workout-technique-panel"
+                    aria-label={`Intensity technique for ${exercise.name}`}
+                  >
+                    <div className="workout-technique-options">
+                      <button
+                        type="button"
+                        className={`workout-technique-option ${workoutExercise.intensityTechnique === null ? "active" : ""}`}
+                        onClick={() => handleWorkoutTechniqueSelection(workoutExercise.id, null)}
                       >
-                        <option value="">Select exercise</option>
-                        {getWorkoutSupersetPartnerOptions(workoutExercise.id).map((partner) => {
-                          const partnerExercise = getExerciseById(partner.exerciseId);
-
-                          if (!partnerExercise) {
-                            return null;
+                        Standard
+                      </button>
+                      {INTENSITY_TECHNIQUES.map((technique) => (
+                        <button
+                          key={technique}
+                          type="button"
+                          className={`workout-technique-option ${workoutExercise.intensityTechnique === technique ? "active" : ""}`}
+                          onClick={() =>
+                            handleWorkoutTechniqueSelection(workoutExercise.id, technique)
                           }
+                        >
+                          {intensityTechniqueLabels[technique]}
+                        </button>
+                      ))}
+                    </div>
 
-                          return (
-                            <option key={partner.id} value={partner.id}>
-                              {partnerExercise.name}
-                            </option>
-                          );
-                        })}
-                      </select>
-                    </label>
-                  )}
+                    {workoutExercise.intensityTechnique === "super-set" && (
+                      <label className="workout-technique-pairing">
+                        <span className="workout-intensity-label">Paired with</span>
+                        <select
+                          aria-label={`Superset pair for ${exercise.name}`}
+                          value={supersetPartnerId ?? ""}
+                          onChange={(event) => {
+                            updateWorkoutSupersetPair(workoutExercise.id, event.target.value);
+                            setOpenIntensityEditorId(null);
+                          }}
+                        >
+                          <option value="">Select exercise</option>
+                          {getWorkoutSupersetPartnerOptions(workoutExercise.id).map((partner) => {
+                            const partnerExercise = getExerciseById(partner.exerciseId);
 
-                  {workoutExercise.intensityTechnique === "super-set" &&
-                    supersetPartnerExercise && (
-                      <p className="workout-intensity-hint">
-                        Paired with {getExerciseById(supersetPartnerExercise.exerciseId)?.name}
-                      </p>
+                            if (!partnerExercise) {
+                              return null;
+                            }
+
+                            return (
+                              <option key={partner.id} value={partner.id}>
+                                {partnerExercise.name}
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </label>
                     )}
-                </div>
+                  </div>
+                )}
 
                 {supportsPlateCalculator && isPlateCalculatorOpen && (
                   <section

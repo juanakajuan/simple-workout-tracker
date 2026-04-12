@@ -924,9 +924,10 @@ describe("WorkoutPage – workout editing", () => {
 
     renderWorkoutPage();
 
-    fireEvent.change(screen.getByLabelText(`Intensity technique for ${press.name}`), {
-      target: { value: "drop-set" },
-    });
+    fireEvent.click(
+      screen.getByRole("button", { name: `Edit intensity technique for ${press.name}` })
+    );
+    fireEvent.click(screen.getByRole("button", { name: /drop set/i }));
 
     expect(screen.getByText("Apply intensity change?")).toBeDefined();
     const updateTemplateCheckbox = screen.getByRole("checkbox") as HTMLInputElement;

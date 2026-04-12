@@ -196,17 +196,74 @@
   flex-wrap: wrap;
 }
 
-.workout-intensity-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+.workout-technique-trigger {
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
-.workout-intensity-field {
+.workout-technique-trigger.active {
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.workout-technique-trigger.tag-muted.active {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.workout-technique-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.85rem;
+  border: 1px solid rgba(129, 140, 248, 0.18);
+  border-radius: var(--radius-md);
+  background: rgba(129, 140, 248, 0.05);
+}
+
+.workout-technique-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.workout-technique-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.workout-technique-option.active {
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.workout-technique-pairing {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+}
+
+.workout-technique-pairing select {
+  width: 100%;
+}
+
+.workout-technique-summary {
+  margin-bottom: 0.75rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
 }
 
 .workout-intensity-label {
@@ -215,15 +272,6 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-muted);
-}
-
-.workout-intensity-field select {
-  width: 100%;
-}
-
-.workout-intensity-hint {
-  font-size: 0.82rem;
-  color: var(--text-secondary);
 }
 
 /* Kebab menu */
