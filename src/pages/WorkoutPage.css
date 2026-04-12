@@ -170,25 +170,6 @@
   position: relative;
 }
 
-.plate-calculator-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.45rem 0.65rem;
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.plate-calculator-toggle:active,
-.plate-calculator-toggle.active {
-  background: var(--accent-dim);
-  color: var(--accent);
-}
-
 .exercise-meta-row {
   display: flex;
   align-items: center;
@@ -651,10 +632,6 @@
 
   .workout-exercise-actions {
     align-self: flex-start;
-  }
-
-  .plate-calculator-toggle {
-    padding-inline: 0.55rem;
   }
 
   .plate-calculator-panel {

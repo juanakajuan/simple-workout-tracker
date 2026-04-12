@@ -1191,6 +1191,19 @@ export function WorkoutPage() {
               : null;
             const techniqueLabel = getWorkoutTechniqueLabel(workoutExercise, supersetLabel);
             const isIntensityEditorOpen = openIntensityEditorId === workoutExercise.id;
+            const togglePlateCalculator = () => {
+              if (!isPlateCalculatorOpen && defaultPlateCalculatorTarget) {
+                setPlateCalculatorSelections((previous) => ({
+                  ...previous,
+                  [workoutExercise.id]:
+                    previous[workoutExercise.id] ?? defaultPlateCalculatorTarget.set.id,
+                }));
+              }
+
+              setOpenPlateCalculatorId(isPlateCalculatorOpen ? null : workoutExercise.id);
+              setOpenKebabMenu(null);
+              setOpenIntensityEditorId(null);
+            };
 
             return (
               <div key={workoutExercise.id} className="workout-exercise-card card">
@@ -1229,31 +1242,6 @@ export function WorkoutPage() {
                     </div>
                   </div>
                   <div className="workout-exercise-actions">
-                    {supportsPlateCalculator && (
-                      <button
-                        className={`plate-calculator-toggle ${isPlateCalculatorOpen ? "active" : ""}`}
-                        onClick={() => {
-                          if (!isPlateCalculatorOpen && defaultPlateCalculatorTarget) {
-                            setPlateCalculatorSelections((previous) => ({
-                              ...previous,
-                              [workoutExercise.id]:
-                                previous[workoutExercise.id] ?? defaultPlateCalculatorTarget.set.id,
-                            }));
-                          }
-
-                          setOpenPlateCalculatorId(
-                            isPlateCalculatorOpen ? null : workoutExercise.id
-                          );
-                          setOpenKebabMenu(null);
-                          setOpenIntensityEditorId(null);
-                        }}
-                        aria-expanded={isPlateCalculatorOpen}
-                        aria-controls={`plate-calculator-${workoutExercise.id}`}
-                      >
-                        <Dumbbell size={15} />
-                        Plates
-                      </button>
-                    )}
                     <button
                       className="btn btn-icon btn-ghost"
                       onClick={() => {
@@ -1268,6 +1256,17 @@ export function WorkoutPage() {
                     </button>
                     {openKebabMenu === workoutExercise.id && (
                       <div className="kebab-menu">
+                        {supportsPlateCalculator && (
+                          <button
+                            className="kebab-menu-item"
+                            onClick={togglePlateCalculator}
+                            aria-expanded={isPlateCalculatorOpen}
+                            aria-controls={`plate-calculator-${workoutExercise.id}`}
+                          >
+                            <Dumbbell size={16} />
+                            Plate Calculator
+                          </button>
+                        )}
                         {hasNote(exercise) ? (
                           <button
                             className="kebab-menu-item"

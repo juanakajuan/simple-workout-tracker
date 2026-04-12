@@ -1021,7 +1021,8 @@ describe("WorkoutPage – plate calculator", () => {
 
     renderWorkoutPage();
 
-    fireEvent.click(screen.getByRole("button", { name: /plates/i }));
+    fireEvent.click(screen.getByRole("button", { name: /more options/i }));
+    fireEvent.click(screen.getByRole("button", { name: /plate calculator/i }));
     expect(
       screen.getByText("This is lighter than a standard barbell. The lowest load here is 45 lbs.")
     ).toBeDefined();
