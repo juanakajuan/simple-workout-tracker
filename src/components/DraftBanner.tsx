@@ -7,7 +7,7 @@ interface DraftBannerProps {
   onDismiss: () => void;
 }
 
-export function DraftBanner({ onContinue, onDismiss }: DraftBannerProps) {
+export function DraftBanner({ onContinue, onDismiss }: DraftBannerProps): React.ReactElement {
   /**
    * Handles clicking the dismiss button. Stops event propagation to prevent
    * triggering the banner's onClick and calls the onDismiss callback.

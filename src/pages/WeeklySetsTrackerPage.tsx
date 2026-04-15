@@ -81,7 +81,7 @@ function formatWeekChange(currentWeekSets: number, previousWeekSets: number): st
   return "No change vs last week";
 }
 
-export function WeeklySetsTrackerPage() {
+export function WeeklySetsTrackerPage(): React.ReactElement {
   const [workouts] = useLocalStorage<Workout[]>(STORAGE_KEYS.WORKOUTS, []);
   const [userExercises] = useLocalStorage<Exercise[]>(STORAGE_KEYS.EXERCISES, []);
 

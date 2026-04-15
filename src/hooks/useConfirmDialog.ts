@@ -11,6 +11,24 @@ export interface ConfirmDialogOptions {
   checkboxDefaultChecked?: boolean;
 }
 
+interface ConfirmDialogProperties {
+  isOpen: boolean;
+  title: string;
+  message?: string;
+  confirmText?: string;
+  cancelText?: string;
+  variant?: "danger" | "standard";
+  onConfirm: (checkboxChecked?: boolean) => void;
+  onCancel: () => void;
+  checkboxLabel?: string;
+  checkboxDefaultChecked?: boolean;
+}
+
+interface UseConfirmDialogResult {
+  showConfirm: (dialogOptions: ConfirmDialogOptions) => void;
+  dialogProps: ConfirmDialogProperties;
+}
+
 /**
  * Custom hook that provides a simple API for showing confirmation dialogs.
  * Returns a showConfirm function to trigger the dialog and a ConfirmDialog
@@ -40,7 +58,7 @@ export interface ConfirmDialogOptions {
  * }
  * ```
  */
-export function useConfirmDialog() {
+export function useConfirmDialog(): UseConfirmDialogResult {
   const [isOpen, setIsOpen] = useState(false);
   const [options, setOptions] = useState<ConfirmDialogOptions>({
     title: "",
@@ -67,7 +85,7 @@ export function useConfirmDialog() {
   /**
    * Memoized ConfirmDialog component props to prevent unnecessary re-renders.
    */
-  const dialogProps = useMemo(
+  const dialogProps = useMemo<ConfirmDialogProperties>(
     () => ({
       isOpen,
       title: options.title,

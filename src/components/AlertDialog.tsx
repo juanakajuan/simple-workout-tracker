@@ -19,7 +19,7 @@ export function AlertDialog({
   buttonText = "Got it",
   variant = "standard",
   onClose,
-}: AlertDialogProps) {
+}: AlertDialogProps): React.ReactElement | null {
   useEffect(() => {
     if (!isOpen) return;
 

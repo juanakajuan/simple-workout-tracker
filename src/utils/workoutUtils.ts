@@ -1,27 +1,32 @@
 import type { Exercise, WorkoutExercise, WorkoutSet } from "../types";
 
+interface StandardPlate {
+  weight: number;
+  width: number;
+  height: number;
+  className: string;
+}
+
 /**
  * Weight of a standard Olympic barbell in pounds.
  * Used as the baseline for plate calculations.
  */
-export const STANDARD_BARBELL_WEIGHT = 45;
+export const STANDARD_BARBELL_WEIGHT: number = 45;
 
 /**
  * Set of exercise types that support plate calculator functionality.
  * These exercise types use plates that can be calculated and visualized.
  */
-export const PLATE_CALCULATOR_EXERCISE_TYPES = new Set<Exercise["exerciseType"]>([
-  "barbell",
-  "machine",
-  "smith-machine",
-]);
+export const PLATE_CALCULATOR_EXERCISE_TYPES: ReadonlySet<Exercise["exerciseType"]> = new Set<
+  Exercise["exerciseType"]
+>(["barbell", "machine", "smith-machine"]);
 
 /**
  * Standard Olympic weight plates with their visual properties.
  * Used for plate visualization and calculation.
  * Each plate includes weight, dimensions for rendering, and CSS class for styling.
  */
-export const STANDARD_PLATES = [
+export const STANDARD_PLATES: readonly StandardPlate[] = [
   { weight: 45, width: 36, height: 96, className: "plate-blue" },
   { weight: 35, width: 38, height: 90, className: "plate-indigo" },
   { weight: 25, width: 32, height: 82, className: "plate-slate" },
@@ -43,7 +48,7 @@ export interface PlateLayout {
   /** Weight per side of the barbell (after subtracting bar weight) */
   perSideWeight: number;
   /** Array of plates to load on each side of the bar */
-  plates: (typeof STANDARD_PLATES)[number][];
+  plates: StandardPlate[];
 }
 
 /**
@@ -144,7 +149,7 @@ export function getPlateLayout(totalWeight: number): PlateLayout | null {
   }
 
   let remainingPerSideWeight = plateWeight / 2;
-  const plates: (typeof STANDARD_PLATES)[number][] = [];
+  const plates: StandardPlate[] = [];
 
   STANDARD_PLATES.forEach((plate) => {
     while (remainingPerSideWeight + 0.001 >= plate.weight) {

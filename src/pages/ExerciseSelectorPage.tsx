@@ -29,7 +29,7 @@ interface ExerciseSelectorState {
   templateDraft?: WorkoutTemplateDraft;
 }
 
-export function ExerciseSelectorPage() {
+export function ExerciseSelectorPage(): React.ReactElement | null {
   const navigate = useNavigate();
   const location = useLocation();
   const state = location.state as ExerciseSelectorState | undefined;

@@ -1,3 +1,3 @@
-export function reloadPage() {
+export function reloadPage(): void {
   window.location.reload();
 }

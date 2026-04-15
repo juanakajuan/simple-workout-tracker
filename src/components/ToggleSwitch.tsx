@@ -7,7 +7,12 @@ interface ToggleSwitchProps {
   disabled?: boolean;
 }
 
-export function ToggleSwitch({ checked, onChange, label, disabled = false }: ToggleSwitchProps) {
+export function ToggleSwitch({
+  checked,
+  onChange,
+  label,
+  disabled = false,
+}: ToggleSwitchProps): React.ReactElement {
   /**
    * Handles toggling the switch state. Does nothing if the switch is disabled.
    */

@@ -11,7 +11,7 @@ import { PageHeader } from "../components/PageHeader";
 
 import "./ExerciseFormPage.css";
 
-export function ExerciseFormPage() {
+export function ExerciseFormPage(): React.ReactElement {
   const navigate = useNavigate();
   const location = useLocation();
   const { exerciseId } = useParams();

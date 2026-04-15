@@ -23,7 +23,7 @@ import { Tag } from "../components/Tag";
 
 import "./TemplatesPage.css";
 
-export function TemplatesPage() {
+export function TemplatesPage(): React.ReactElement {
   const navigate = useNavigate();
   const [templates, setTemplates] = useLocalStorage<WorkoutTemplate[]>(STORAGE_KEYS.TEMPLATES, [], {
     deserialize: normalizeTemplates,

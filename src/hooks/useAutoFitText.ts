@@ -21,7 +21,7 @@
  * @module useAutoFitText
  */
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 
 /**
  * Configuration options for the auto-fit text behavior.
@@ -77,7 +77,7 @@ function measureTextWidth(text: string, fontSizePx: number, style: CSSStyleDecla
 export function useAutoFitText<T extends HTMLElement>(
   text: string | number,
   options: AutoFitTextOptions = {}
-) {
+): RefObject<T | null> {
   const elementRef = useRef<T>(null);
   const baseFontSizeRef = useRef<number | null>(null);
 

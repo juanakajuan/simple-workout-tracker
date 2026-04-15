@@ -15,7 +15,7 @@ import { reloadPage } from "../utils/browser";
 
 import "./MorePage.css";
 
-export function MorePage() {
+export function MorePage(): React.ReactElement {
   const navigate = useNavigate();
   const { showAlert, showConfirm } = useAppDialog();
   const [hasRecentUpdate] = useState(() => hasUnseenAppUpdate());

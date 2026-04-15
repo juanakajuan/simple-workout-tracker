@@ -27,7 +27,7 @@ export function ConfirmDialog({
   onCancel,
   checkboxLabel,
   checkboxDefaultChecked = false,
-}: ConfirmDialogProps) {
+}: ConfirmDialogProps): React.ReactElement | null {
   const [checkboxChecked, setCheckboxChecked] = useState(checkboxDefaultChecked);
 
   useEffect(() => {

@@ -20,7 +20,15 @@ function isIntensityTechnique(value: unknown): value is IntensityTechnique {
  * localStorage keys used throughout the application.
  * All keys are prefixed with "zenith_" to avoid conflicts with other applications.
  */
-export const STORAGE_KEYS = {
+export const STORAGE_KEYS: Readonly<{
+  EXERCISES: string;
+  WORKOUTS: string;
+  ACTIVE_WORKOUT: string;
+  TEMPLATES: string;
+  DRAFT_TEMPLATE: string;
+  EDIT_TEMPLATE_DRAFTS: string;
+  SETTINGS: string;
+}> = {
   EXERCISES: "zenith_exercises",
   WORKOUTS: "zenith_workouts",
   ACTIVE_WORKOUT: "zenith_active_workout",

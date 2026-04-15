@@ -14,7 +14,7 @@ import { Tag } from "../components/Tag";
 
 import "./WorkoutDetailPage.css";
 
-export function WorkoutDetailPage() {
+export function WorkoutDetailPage(): React.ReactElement | null {
   const { workoutId } = useParams();
   const navigate = useNavigate();
   const [workouts, setWorkouts] = useLocalStorage<Workout[]>(STORAGE_KEYS.WORKOUTS, []);

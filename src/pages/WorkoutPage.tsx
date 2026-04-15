@@ -74,7 +74,7 @@ import "./WorkoutPage.css";
 type PlateCalculatorSelections = Record<string, string>;
 type LastPerformedSet = { weight: number; reps: number };
 
-export function WorkoutPage() {
+export function WorkoutPage(): React.ReactElement {
   const navigate = useNavigate();
   const location = useLocation();
   const [exercises, setExercises] = useLocalStorage<Exercise[]>(STORAGE_KEYS.EXERCISES, []);

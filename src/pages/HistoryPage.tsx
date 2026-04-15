@@ -16,7 +16,7 @@ import { Tag } from "../components/Tag";
 
 import "./HistoryPage.css";
 
-export function HistoryPage() {
+export function HistoryPage(): React.ReactElement {
   const navigate = useNavigate();
   const location = useLocation();
   const [workouts, setWorkouts] = useLocalStorage<Workout[]>(STORAGE_KEYS.WORKOUTS, []);

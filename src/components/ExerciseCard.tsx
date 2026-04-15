@@ -22,7 +22,7 @@ export function ExerciseCard({
   onEdit,
   isDefault = false,
   lastPerformed,
-}: ExerciseCardProps) {
+}: ExerciseCardProps): React.ReactElement {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 

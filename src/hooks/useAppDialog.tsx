@@ -32,7 +32,7 @@ export interface AppDialogContextValue {
   showConfirm: (options: ConfirmOptions) => Promise<ConfirmResult>;
 }
 
-export function AppDialogProvider({ children }: { children: ReactNode }) {
+export function AppDialogProvider({ children }: { children: ReactNode }): React.ReactElement {
   const [alertOptions, setAlertOptions] = useState<AlertOptions | null>(null);
   const [confirmOptions, setConfirmOptions] = useState<ConfirmOptions | null>(null);
   const alertResolveRef = useRef<(() => void) | null>(null);

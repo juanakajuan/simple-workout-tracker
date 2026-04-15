@@ -4,7 +4,7 @@ import { Dumbbell, LayoutTemplate, CirclePlay, History, CircleEllipsis } from "l
 
 import "./BottomTabBar.css";
 
-export function BottomTabBar() {
+export function BottomTabBar(): React.ReactElement {
   const location = useLocation();
   const navigate = useNavigate();
 

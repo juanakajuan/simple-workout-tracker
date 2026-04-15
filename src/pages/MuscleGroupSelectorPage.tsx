@@ -29,7 +29,7 @@ interface TouchGestureState {
   moved: boolean;
 }
 
-export function MuscleGroupSelectorPage() {
+export function MuscleGroupSelectorPage(): React.ReactElement {
   const navigate = useNavigate();
   const location = useLocation();
 

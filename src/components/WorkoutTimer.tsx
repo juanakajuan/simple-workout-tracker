@@ -26,7 +26,7 @@ function formatElapsedTime(seconds: number): string {
   return `${hours}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
 }
 
-export function WorkoutTimer({ startTime }: WorkoutTimerProps) {
+export function WorkoutTimer({ startTime }: WorkoutTimerProps): React.ReactElement {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   useEffect(() => {

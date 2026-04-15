@@ -228,7 +228,7 @@ function templateExercisesReducer(
   }
 }
 
-export function TemplateEditorPage() {
+export function TemplateEditorPage(): React.ReactElement {
   const navigate = useNavigate();
   const location = useLocation();
   const { id } = useParams<{ id: string }>();

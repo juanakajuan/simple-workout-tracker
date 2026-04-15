@@ -23,7 +23,7 @@ export function SetRow({
   exerciseType,
   placeholderWeight,
   placeholderReps,
-}: SetRowProps) {
+}: SetRowProps): React.ReactElement {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const isBodyweight = exerciseType === "bodyweight";

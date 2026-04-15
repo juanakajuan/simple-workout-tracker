@@ -13,7 +13,7 @@ import { Tag } from "../components/Tag";
 
 import "./ExerciseHistoryPage.css";
 
-export function ExerciseHistoryPage() {
+export function ExerciseHistoryPage(): React.ReactElement | null {
   const { exerciseId } = useParams();
   const navigate = useNavigate();
 

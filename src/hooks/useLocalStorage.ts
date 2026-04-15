@@ -65,7 +65,7 @@ export function useLocalStorage<T>(
   key: string,
   initialValue: T,
   options?: UseLocalStorageOptions<T>
-) {
+): readonly [T, (value: T | ((currentValue: T) => T)) => void] {
   const deserialize = options?.deserialize ?? defaultDeserialize<T>;
 
   /**

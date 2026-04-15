@@ -69,7 +69,13 @@ interface TagProps extends HTMLAttributes<HTMLSpanElement> {
  * <Tag className="custom-tag">Custom</Tag>
  * ```
  */
-export function Tag({ children, className, variant = "muted", muscleGroup, ...props }: TagProps) {
+export function Tag({
+  children,
+  className,
+  variant = "muted",
+  muscleGroup,
+  ...props
+}: TagProps): React.ReactElement {
   const toneClassName = muscleGroup ? getMuscleGroupClassName(muscleGroup) : `tag-${variant}`;
 
   const tagClassName = ["tag", toneClassName, className].filter(Boolean).join(" ");

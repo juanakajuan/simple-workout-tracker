@@ -40,7 +40,7 @@ import { AppDialogProvider } from "./hooks/useAppDialog";
  *
  * @returns The rendered application component
  */
-export default function App() {
+export default function App(): React.ReactElement {
   return (
     <BrowserRouter>
       <AppDialogProvider>

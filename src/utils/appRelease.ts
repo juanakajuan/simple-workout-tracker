@@ -22,7 +22,12 @@ const APP_BUILD_SEEN_KEY = "zenith_seen_build_id";
  * Application release information injected at build time by Vite.
  * These values are defined in vite.config.ts using the define plugin.
  */
-export const APP_RELEASE = Object.freeze({
+export const APP_RELEASE: Readonly<{
+  version: string;
+  buildId: string;
+  gitSha: string;
+  builtAt: string;
+}> = Object.freeze({
   /** Application version from package.json */
   version: __APP_VERSION__,
   /** Unique build identifier (timestamp-based) */

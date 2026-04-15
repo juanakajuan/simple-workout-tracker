@@ -25,7 +25,7 @@ export function PageHeader({
   onBack,
   leftSlot,
   actions,
-}: PageHeaderProps) {
+}: PageHeaderProps): React.ReactElement {
   const navigate = useNavigate();
   const headerClassName = showBackButton
     ? "page-header page-header--with-back"

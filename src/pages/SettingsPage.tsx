@@ -8,7 +8,7 @@ import { ToggleSwitch } from "../components/ToggleSwitch";
 
 import "./SettingsPage.css";
 
-export function SettingsPage() {
+export function SettingsPage(): React.ReactElement {
   const [settings, setSettings] = useLocalStorage<Settings>(STORAGE_KEYS.SETTINGS, {
     autoMatchWeight: false,
   });

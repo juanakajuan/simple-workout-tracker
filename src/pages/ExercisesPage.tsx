@@ -18,7 +18,7 @@ import { PageHeader } from "../components/PageHeader";
 
 import "./ExercisesPage.css";
 
-export function ExercisesPage() {
+export function ExercisesPage(): React.ReactElement {
   const navigate = useNavigate();
   const [exercises] = useLocalStorage<Exercise[]>(STORAGE_KEYS.EXERCISES, []);
   const [filterMuscle, setFilterMuscle] = useState<MuscleGroup | "all">("all");

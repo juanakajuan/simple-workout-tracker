@@ -23,7 +23,7 @@
  * @module appDialogContext
  */
 
-import { createContext, useContext } from "react";
+import { createContext, useContext, type Context } from "react";
 
 import type { AppDialogContextValue } from "./useAppDialog";
 
@@ -31,7 +31,8 @@ import type { AppDialogContextValue } from "./useAppDialog";
  * React Context that holds the dialog control functions.
  * Should not be used directly - use useAppDialog() hook instead.
  */
-export const AppDialogContext = createContext<AppDialogContextValue | null>(null);
+export const AppDialogContext: Context<AppDialogContextValue | null> =
+  createContext<AppDialogContextValue | null>(null);
 
 /**
  * Custom hook to access the application dialog system.
@@ -63,7 +64,7 @@ export const AppDialogContext = createContext<AppDialogContextValue | null>(null
  * }
  * ```
  */
-export function useAppDialog() {
+export function useAppDialog(): AppDialogContextValue {
   const context = useContext(AppDialogContext);
 
   if (!context) {

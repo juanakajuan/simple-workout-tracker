@@ -1,1 +1,2 @@
 - Make sure to run `pnpm run build` to ensure there are no errors.
+- Add explicit TypeScript types at module boundaries; keep simple local inference.
