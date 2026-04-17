@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 import { AlertCircle } from "lucide-react";
 
 import "./ConfirmDialog.css";
@@ -28,13 +28,7 @@ export function ConfirmDialog({
   checkboxLabel,
   checkboxDefaultChecked = false,
 }: ConfirmDialogProps): React.ReactElement | null {
-  const [checkboxChecked, setCheckboxChecked] = useState(checkboxDefaultChecked);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    setCheckboxChecked(checkboxDefaultChecked);
-  }, [isOpen, checkboxDefaultChecked]);
+  const checkboxInputReference = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -74,9 +68,9 @@ export function ConfirmDialog({
           <div className="confirm-dialog-checkbox-container">
             <label className="confirm-dialog-checkbox-label">
               <input
+                ref={checkboxInputReference}
                 type="checkbox"
-                checked={checkboxChecked}
-                onChange={(e) => setCheckboxChecked(e.target.checked)}
+                defaultChecked={checkboxDefaultChecked}
               />
               <span>{checkboxLabel}</span>
             </label>
@@ -91,7 +85,11 @@ export function ConfirmDialog({
             type="button"
             className={`btn confirm-dialog-btn-confirm ${variant}`}
             onClick={() => {
-              onConfirm(checkboxLabel ? checkboxChecked : undefined);
+              const checkboxValue = checkboxLabel
+                ? (checkboxInputReference.current?.checked ?? checkboxDefaultChecked)
+                : undefined;
+
+              onConfirm(checkboxValue);
               onCancel();
             }}
           >

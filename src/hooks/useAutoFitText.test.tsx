@@ -85,7 +85,7 @@ describe("useAutoFitText", () => {
 
     const container = screen.getByTestId("container");
     const heading = screen.getByRole("heading");
-    let width = 150;
+    const width = 150;
 
     Object.defineProperty(container, "clientWidth", {
       configurable: true,
