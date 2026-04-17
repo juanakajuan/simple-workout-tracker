@@ -5,7 +5,13 @@ import { Save, Trash2 } from "lucide-react";
 import type { Exercise, MuscleGroup, ExerciseType } from "../types";
 import { MUSCLE_GROUPS, EXERCISE_TYPES, muscleGroupLabels, exerciseTypeLabels } from "../types";
 
-import { getExercises, saveExercises, generateId, DEFAULT_EXERCISES } from "../utils/storage";
+import {
+  getExercises,
+  saveExercises,
+  generateId,
+  DEFAULT_EXERCISES,
+  deleteExerciseAndRepairReferences,
+} from "../utils/storage";
 
 import { PageHeader } from "../components/PageHeader";
 
@@ -100,7 +106,7 @@ export function ExerciseFormPage(): React.ReactElement {
   const handleDelete = () => {
     if (!exerciseToEdit) return;
 
-    saveExercises(getExercises().filter((exercise) => exercise.id !== exerciseToEdit.id));
+    deleteExerciseAndRepairReferences(exerciseToEdit);
     navigateBack({ deletedExerciseId: exerciseToEdit.id });
   };
 

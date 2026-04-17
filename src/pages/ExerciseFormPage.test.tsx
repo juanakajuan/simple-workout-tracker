@@ -243,6 +243,84 @@ describe("ExerciseFormPage", () => {
         name: "Hammer Curl",
         muscleGroup: "biceps",
       }),
+      createExercise({
+        id: "exercise-press",
+        name: "Machine Press",
+        muscleGroup: "chest",
+      }),
+    ]);
+    setLS(STORAGE_KEYS.ACTIVE_WORKOUT, {
+      id: "active-workout",
+      name: "Upper",
+      date: "2026-04-17T10:00:00.000Z",
+      startTime: "2026-04-17T09:00:00.000Z",
+      completed: false,
+      exercises: [
+        {
+          id: "active-curl",
+          exerciseId: "exercise-2",
+          intensityTechnique: "super-set",
+          supersetGroupId: "pair-1",
+          sets: [{ id: "set-1", weight: 30, reps: 10, completed: true }],
+        },
+        {
+          id: "active-press",
+          exerciseId: "exercise-press",
+          intensityTechnique: "super-set",
+          supersetGroupId: "pair-1",
+          sets: [{ id: "set-2", weight: 80, reps: 8, completed: true }],
+        },
+      ],
+    });
+    setLS(STORAGE_KEYS.TEMPLATES, [
+      {
+        id: "template-1",
+        name: "Arms",
+        muscleGroups: [
+          {
+            id: "group-biceps",
+            muscleGroup: "biceps",
+            exercises: [
+              {
+                id: "template-curl",
+                exerciseId: "exercise-2",
+                setCount: 3,
+                intensityTechnique: "super-set",
+                supersetGroupId: "pair-2",
+              },
+            ],
+          },
+          {
+            id: "group-chest",
+            muscleGroup: "chest",
+            exercises: [
+              {
+                id: "template-press",
+                exerciseId: "exercise-press",
+                setCount: 3,
+                intensityTechnique: "super-set",
+                supersetGroupId: "pair-2",
+              },
+            ],
+          },
+        ],
+      },
+    ]);
+    setLS(STORAGE_KEYS.WORKOUTS, [
+      {
+        id: "completed-workout",
+        name: "Arms",
+        date: "2026-04-16T10:00:00.000Z",
+        startTime: "2026-04-16T09:00:00.000Z",
+        completed: true,
+        exercises: [
+          {
+            id: "history-curl",
+            exerciseId: "exercise-2",
+            sets: [{ id: "history-set-1", weight: 25, reps: 12, completed: true }],
+          },
+        ],
+      },
     ]);
 
     renderExerciseForm({
@@ -268,6 +346,68 @@ describe("ExerciseFormPage", () => {
       templateUpdateChecked: false,
       deletedExerciseId: "exercise-2",
     });
-    expect(getLS<Exercise[]>(STORAGE_KEYS.EXERCISES)).toEqual([]);
+    expect(getLS<Exercise[]>(STORAGE_KEYS.EXERCISES)).toEqual([
+      expect.objectContaining({ id: "exercise-press" }),
+    ]);
+    expect(getLS(STORAGE_KEYS.ACTIVE_WORKOUT)).toMatchObject({
+      exercises: [
+        {
+          id: "active-press",
+          exerciseId: "exercise-press",
+        },
+      ],
+    });
+    expect(
+      getLS<{ exercises: Array<Record<string, unknown>> }>(STORAGE_KEYS.ACTIVE_WORKOUT)
+        ?.exercises[0]
+    ).not.toHaveProperty("intensityTechnique");
+    expect(
+      getLS<{ exercises: Array<Record<string, unknown>> }>(STORAGE_KEYS.ACTIVE_WORKOUT)
+        ?.exercises[0]
+    ).not.toHaveProperty("supersetGroupId");
+    expect(getLS(STORAGE_KEYS.TEMPLATES)).toEqual([
+      {
+        id: "template-1",
+        name: "Arms",
+        muscleGroups: [
+          {
+            id: "group-chest",
+            muscleGroup: "chest",
+            exercises: [
+              {
+                id: "template-press",
+                exerciseId: "exercise-press",
+                setCount: 3,
+              },
+            ],
+          },
+        ],
+      },
+    ]);
+    expect(
+      getLS<{ muscleGroups: Array<{ exercises: Array<Record<string, unknown>> }> }[]>(
+        STORAGE_KEYS.TEMPLATES
+      )?.[0].muscleGroups[0].exercises[0]
+    ).not.toHaveProperty("intensityTechnique");
+    expect(
+      getLS<{ muscleGroups: Array<{ exercises: Array<Record<string, unknown>> }> }[]>(
+        STORAGE_KEYS.TEMPLATES
+      )?.[0].muscleGroups[0].exercises[0]
+    ).not.toHaveProperty("supersetGroupId");
+    expect(getLS(STORAGE_KEYS.WORKOUTS)).toEqual([
+      expect.objectContaining({
+        id: "completed-workout",
+        exercises: [
+          expect.objectContaining({
+            id: "history-curl",
+            exerciseId: "exercise-2",
+            exerciseSnapshot: expect.objectContaining({
+              id: "exercise-2",
+              name: "Hammer Curl",
+            }),
+          }),
+        ],
+      }),
+    ]);
   });
 });

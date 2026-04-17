@@ -238,7 +238,11 @@ export function HistoryPage(): React.ReactElement {
                           const muscleGroups = Array.from(
                             new Set(
                               workout.exercises
-                                .map((we) => getExerciseById(we.exerciseId)?.muscleGroup)
+                                .map(
+                                  (workoutExercise) =>
+                                    getExerciseById(workoutExercise.exerciseId)?.muscleGroup ??
+                                    workoutExercise.exerciseSnapshot?.muscleGroup
+                                )
                                 .filter((mg): mg is MuscleGroup => mg !== undefined)
                             )
                           );

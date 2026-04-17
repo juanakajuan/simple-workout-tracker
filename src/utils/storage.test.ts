@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { Workout, WorkoutTemplate } from "../types";
+import type { Exercise, Workout, WorkoutTemplate } from "../types";
 import {
+  deleteExerciseAndRepairReferences,
   STORAGE_KEYS,
   exportAllData,
   formatRelativeDate,
@@ -392,6 +393,141 @@ describe("storage utilities", () => {
 
     expect(localStorage.getItem(STORAGE_KEYS.ACTIVE_WORKOUT)).toBeNull();
     expect(hasActiveWorkout()).toBe(false);
+  });
+
+  it("repairs dependent records when deleting a custom exercise", () => {
+    const deletedExercise: Exercise = {
+      id: "exercise-row",
+      name: "Cable Row",
+      muscleGroup: "back",
+      exerciseType: "cable",
+      notes: "Drive elbows low.",
+    };
+
+    saveExercises([
+      deletedExercise,
+      {
+        id: "exercise-press",
+        name: "Machine Press",
+        muscleGroup: "chest",
+        exerciseType: "machine",
+        notes: "",
+      },
+    ]);
+    saveActiveWorkout(
+      createWorkout({
+        completed: false,
+        exercises: [
+          {
+            id: "active-row",
+            exerciseId: deletedExercise.id,
+            intensityTechnique: "super-set",
+            supersetGroupId: "pair-1",
+            sets: [{ id: "active-set-1", weight: 100, reps: 8, completed: true }],
+          },
+          {
+            id: "active-press",
+            exerciseId: "exercise-press",
+            intensityTechnique: "super-set",
+            supersetGroupId: "pair-1",
+            sets: [{ id: "active-set-2", weight: 90, reps: 10, completed: true }],
+          },
+        ],
+      })
+    );
+    saveTemplates([
+      {
+        id: "template-1",
+        name: "Upper",
+        muscleGroups: [
+          {
+            id: "group-back",
+            muscleGroup: "back",
+            exercises: [
+              {
+                id: "template-row",
+                exerciseId: deletedExercise.id,
+                setCount: 3,
+                intensityTechnique: "super-set",
+                supersetGroupId: "pair-2",
+              },
+            ],
+          },
+          {
+            id: "group-chest",
+            muscleGroup: "chest",
+            exercises: [
+              {
+                id: "template-press",
+                exerciseId: "exercise-press",
+                setCount: 3,
+                intensityTechnique: "super-set",
+                supersetGroupId: "pair-2",
+              },
+            ],
+          },
+        ],
+      },
+    ]);
+    saveWorkouts([
+      createWorkout({
+        id: "completed-workout",
+        exercises: [
+          {
+            id: "history-row",
+            exerciseId: deletedExercise.id,
+            sets: [{ id: "history-set-1", weight: 110, reps: 8, completed: true }],
+          },
+        ],
+      }),
+    ]);
+
+    deleteExerciseAndRepairReferences(deletedExercise);
+
+    expect(getExercises().map((exercise) => exercise.id)).toEqual(["exercise-press"]);
+    expect(getActiveWorkout()?.exercises).toEqual([
+      expect.objectContaining({
+        id: "active-press",
+        exerciseId: "exercise-press",
+      }),
+    ]);
+    expect(getActiveWorkout()?.exercises[0]).not.toHaveProperty("intensityTechnique");
+    expect(getActiveWorkout()?.exercises[0]).not.toHaveProperty("supersetGroupId");
+    expect(getTemplates()).toEqual([
+      {
+        id: "template-1",
+        name: "Upper",
+        muscleGroups: [
+          {
+            id: "group-chest",
+            muscleGroup: "chest",
+            exercises: [
+              {
+                id: "template-press",
+                exerciseId: "exercise-press",
+                setCount: 3,
+              },
+            ],
+          },
+        ],
+      },
+    ]);
+    expect(getTemplates()[0]?.muscleGroups[0]?.exercises[0]).not.toHaveProperty(
+      "intensityTechnique"
+    );
+    expect(getTemplates()[0]?.muscleGroups[0]?.exercises[0]).not.toHaveProperty("supersetGroupId");
+    expect(getWorkouts()).toEqual([
+      expect.objectContaining({
+        id: "completed-workout",
+        exercises: [
+          expect.objectContaining({
+            id: "history-row",
+            exerciseId: deletedExercise.id,
+            exerciseSnapshot: deletedExercise,
+          }),
+        ],
+      }),
+    ]);
   });
 
   it("derives exercise history and last performed sets from completed workouts only", () => {

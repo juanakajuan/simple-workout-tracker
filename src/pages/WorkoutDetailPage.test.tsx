@@ -265,4 +265,30 @@ describe("WorkoutDetailPage", () => {
       );
     });
   });
+
+  it("renders deleted historical exercises from the stored snapshot", () => {
+    setLS(STORAGE_KEYS.WORKOUTS, [
+      createWorkout({
+        id: "workout-1",
+        name: "Upper A",
+        exercises: [
+          {
+            id: "workout-exercise-1",
+            exerciseId: "deleted-row",
+            exerciseSnapshot: createExercise({
+              id: "deleted-row",
+              name: "Cable Row",
+              muscleGroup: "back",
+            }),
+            sets: [{ id: "set-1", weight: 100, reps: 8, completed: true }],
+          },
+        ],
+      }),
+    ]);
+
+    renderWorkoutDetailPage(["/history", "/history/workout/workout-1"]);
+
+    expect(screen.getByText("Cable Row")).toBeDefined();
+    expect(screen.getByText("Back")).toBeDefined();
+  });
 });

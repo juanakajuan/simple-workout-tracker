@@ -253,4 +253,33 @@ describe("WeeklySetsTrackerPage", () => {
     expect(screen.getByText("No completed sets in the last 8 weeks.")).toBeDefined();
     expect(screen.getByText("Finish workouts to unlock weekly muscle-group trends.")).toBeDefined();
   });
+
+  it("uses stored exercise snapshots when a historical exercise has been deleted", () => {
+    setLS(STORAGE_KEYS.WORKOUTS, [
+      createWorkout({
+        id: "deleted-exercise-workout",
+        date: "2026-04-15T12:00:00",
+        exercises: [
+          {
+            id: "entry-deleted-row",
+            exerciseId: "deleted-row",
+            exerciseSnapshot: createExercise({
+              id: "deleted-row",
+              name: "Cable Row",
+              muscleGroup: "back",
+            }),
+            sets: [
+              { id: "set-1", weight: 100, reps: 10, completed: true },
+              { id: "set-2", weight: 100, reps: 10, completed: true },
+            ],
+          },
+        ],
+      }),
+    ]);
+
+    renderWeeklySetsTracker();
+
+    expect(screen.getByText("Back")).toBeDefined();
+    expect(screen.getByText("2 this week")).toBeDefined();
+  });
 });

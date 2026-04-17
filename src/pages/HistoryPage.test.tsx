@@ -251,4 +251,30 @@ describe("HistoryPage", () => {
       expect(screen.getByTestId("location-path").textContent).toBe("/history/weekly-sets");
     });
   });
+
+  it("keeps historical muscle tags when the exercise was deleted from the library", () => {
+    setLS(STORAGE_KEYS.WORKOUTS, [
+      createWorkout({
+        id: "workout-1",
+        name: "Upper A",
+        exercises: [
+          {
+            id: "workout-exercise-1",
+            exerciseId: "deleted-row",
+            exerciseSnapshot: createExercise({
+              id: "deleted-row",
+              name: "Cable Row",
+              muscleGroup: "back",
+            }),
+            sets: [{ id: "set-1", weight: 100, reps: 8, completed: true }],
+          },
+        ],
+      }),
+    ]);
+
+    renderHistoryPage();
+
+    expect(screen.getByText("Back")).toBeDefined();
+    expect(screen.getByText("Upper A")).toBeDefined();
+  });
 });

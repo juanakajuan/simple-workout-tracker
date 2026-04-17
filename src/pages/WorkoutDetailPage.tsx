@@ -240,7 +240,8 @@ export function WorkoutDetailPage(): React.ReactElement | null {
 
         <div className="detail-exercises">
           {workout.exercises.map((workoutExercise) => {
-            const exercise = getExerciseById(workoutExercise.exerciseId);
+            const existingExercise = getExerciseById(workoutExercise.exerciseId);
+            const exercise = existingExercise ?? workoutExercise.exerciseSnapshot;
             if (!exercise) return null;
 
             return (
@@ -260,8 +261,10 @@ export function WorkoutDetailPage(): React.ReactElement | null {
                     )}
                   </div>
                   <h3
-                    className="detail-exercise-name clickable"
-                    onClick={() => handleExerciseClick(exercise)}
+                    className={`detail-exercise-name ${existingExercise ? "clickable" : ""}`}
+                    onClick={
+                      existingExercise ? () => handleExerciseClick(existingExercise) : undefined
+                    }
                   >
                     {exercise.name}
                   </h3>

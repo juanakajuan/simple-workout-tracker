@@ -52,6 +52,11 @@ export interface WorkoutSet {
 export interface WorkoutExercise {
   id: string;
   exerciseId: string;
+  /**
+   * Preserves exercise metadata for historical entries when the source exercise
+   * is later deleted from the library.
+   */
+  exerciseSnapshot?: Exercise;
   sets: WorkoutSet[];
   intensityTechnique?: IntensityTechnique | null;
   supersetGroupId?: string | null;

@@ -1,6 +1,8 @@
 import type {
   Exercise,
+  ExerciseType,
   IntensityTechnique,
+  MuscleGroup,
   TemplateExercise,
   TemplateMuscleGroup,
   Workout,
@@ -10,7 +12,8 @@ import type {
   WorkoutTemplateDraft,
   Settings,
 } from "../types";
-import { INTENSITY_TECHNIQUES } from "../types";
+import { EXERCISE_TYPES, INTENSITY_TECHNIQUES, MUSCLE_GROUPS } from "../types";
+import { removeExerciseWithIntensityCleanup } from "./intensityTechniques";
 
 function isIntensityTechnique(value: unknown): value is IntensityTechnique {
   return typeof value === "string" && INTENSITY_TECHNIQUES.includes(value as IntensityTechnique);
@@ -117,6 +120,39 @@ function normalizeIntensityTechnique(value: unknown): TemplateExercise["intensit
 
 function normalizeSupersetGroupId(value: unknown): string | null {
   return typeof value === "string" && value ? value : null;
+}
+
+function isMuscleGroup(value: unknown): value is MuscleGroup {
+  return typeof value === "string" && MUSCLE_GROUPS.includes(value as MuscleGroup);
+}
+
+function isExerciseType(value: unknown): value is ExerciseType {
+  return typeof value === "string" && EXERCISE_TYPES.includes(value as ExerciseType);
+}
+
+/**
+ * Normalizes a potential exercise into a typed object.
+ *
+ * @param value - Candidate exercise value
+ * @returns Normalized exercise, or null for invalid input
+ */
+function normalizeExercise(value: unknown): Exercise | null {
+  if (!isRecord(value)) return null;
+
+  const id = typeof value.id === "string" ? value.id : "";
+  const name = typeof value.name === "string" ? value.name.trim() : "";
+
+  if (!id || !name || !isMuscleGroup(value.muscleGroup) || !isExerciseType(value.exerciseType)) {
+    return null;
+  }
+
+  return {
+    id,
+    name,
+    muscleGroup: value.muscleGroup,
+    exerciseType: value.exerciseType,
+    notes: typeof value.notes === "string" ? value.notes : "",
+  };
 }
 
 /**
@@ -321,6 +357,7 @@ function normalizeWorkoutExercise(value: unknown): WorkoutExercise | null {
 
   const id = typeof value.id === "string" ? value.id : "";
   const exerciseId = typeof value.exerciseId === "string" ? value.exerciseId : "";
+  const exerciseSnapshot = normalizeExercise(value.exerciseSnapshot);
   const intensityTechnique = normalizeIntensityTechnique(value.intensityTechnique);
   const supersetGroupId = normalizeSupersetGroupId(value.supersetGroupId);
 
@@ -331,6 +368,7 @@ function normalizeWorkoutExercise(value: unknown): WorkoutExercise | null {
   return {
     id,
     exerciseId,
+    ...(exerciseSnapshot ? { exerciseSnapshot } : {}),
     sets: normalizeWorkoutSets(value.sets),
     ...(intensityTechnique ? { intensityTechnique } : {}),
     ...(supersetGroupId ? { supersetGroupId } : {}),
@@ -431,6 +469,49 @@ export function saveExercises(exercises: Exercise[]): void {
 }
 
 /**
+ * Deletes an exercise definition and repairs dependent records that would
+ * otherwise point at a missing custom exercise.
+ *
+ * Default exercise overrides only remove the override because the base exercise
+ * still exists. Custom exercises are removed from active workouts and templates,
+ * while completed workouts retain a snapshot so historical screens still render.
+ *
+ * @param exercise - Exercise being deleted from the library
+ */
+export function deleteExerciseAndRepairReferences(exercise: Exercise): void {
+  saveExercises(getExercises().filter((storedExercise) => storedExercise.id !== exercise.id));
+
+  if (isDefaultExercise(exercise.id)) {
+    return;
+  }
+
+  const activeWorkout = getActiveWorkout();
+  const repairedActiveWorkout = activeWorkout
+    ? {
+        ...activeWorkout,
+        exercises: removeWorkoutExerciseReferences(activeWorkout.exercises, exercise.id),
+      }
+    : null;
+
+  const repairedTemplates = getTemplates().map((template) =>
+    removeTemplateExerciseReferences(template, exercise.id)
+  );
+
+  const repairedWorkouts = getWorkouts().map((workout) => ({
+    ...workout,
+    exercises: workout.exercises.map((workoutExercise) =>
+      workoutExercise.exerciseId === exercise.id
+        ? { ...workoutExercise, exerciseSnapshot: exercise }
+        : workoutExercise
+    ),
+  }));
+
+  saveActiveWorkout(repairedActiveWorkout);
+  saveTemplates(repairedTemplates);
+  saveWorkouts(repairedWorkouts);
+}
+
+/**
  * Retrieves all completed workouts from localStorage.
  * Workouts are returned in the order they were saved.
  *
@@ -461,6 +542,65 @@ export function getWorkouts(): Workout[] {
  */
 export function saveWorkouts(workouts: Workout[]): void {
   localStorage.setItem(STORAGE_KEYS.WORKOUTS, JSON.stringify(normalizeWorkouts(workouts)));
+}
+
+/**
+ * Removes all matching workout exercises for a deleted custom exercise while
+ * clearing any paired intensity metadata left on remaining exercises.
+ *
+ * @param workoutExercises - Workout exercises to update
+ * @param deletedExerciseId - Deleted exercise identifier
+ * @returns Updated workout exercise list
+ */
+function removeWorkoutExerciseReferences(
+  workoutExercises: WorkoutExercise[],
+  deletedExerciseId: string
+): WorkoutExercise[] {
+  return workoutExercises
+    .filter((workoutExercise) => workoutExercise.exerciseId === deletedExerciseId)
+    .reduce<
+      WorkoutExercise[]
+    >((currentWorkoutExercises, workoutExercise) => removeExerciseWithIntensityCleanup(currentWorkoutExercises, workoutExercise.id), workoutExercises);
+}
+
+/**
+ * Removes all matching template exercises for a deleted custom exercise while
+ * clearing supersets that referenced the deleted entry.
+ *
+ * @param template - Template to update
+ * @param deletedExerciseId - Deleted exercise identifier
+ * @returns Updated template
+ */
+function removeTemplateExerciseReferences(
+  template: WorkoutTemplate,
+  deletedExerciseId: string
+): WorkoutTemplate {
+  const supersetGroupIdsToClear = new Set(
+    template.muscleGroups.flatMap((muscleGroup) =>
+      muscleGroup.exercises.flatMap((templateExercise) =>
+        templateExercise.exerciseId === deletedExerciseId && templateExercise.supersetGroupId
+          ? [templateExercise.supersetGroupId]
+          : []
+      )
+    )
+  );
+
+  return {
+    ...template,
+    muscleGroups: template.muscleGroups
+      .map((muscleGroup) => ({
+        ...muscleGroup,
+        exercises: muscleGroup.exercises
+          .filter((templateExercise) => templateExercise.exerciseId !== deletedExerciseId)
+          .map((templateExercise) =>
+            templateExercise.supersetGroupId &&
+            supersetGroupIdsToClear.has(templateExercise.supersetGroupId)
+              ? { ...templateExercise, intensityTechnique: null, supersetGroupId: null }
+              : templateExercise
+          ),
+      }))
+      .filter((muscleGroup) => muscleGroup.exercises.length > 0),
+  };
 }
 
 function getMostRecentCompletedExerciseEntry(

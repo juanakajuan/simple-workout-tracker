@@ -128,7 +128,8 @@ export function WeeklySetsTrackerPage(): React.ReactElement {
       const weekKey = getDateKey(workoutWeekStart);
 
       workout.exercises.forEach((workoutExercise) => {
-        const exercise = exerciseById.get(workoutExercise.exerciseId);
+        const exercise =
+          exerciseById.get(workoutExercise.exerciseId) ?? workoutExercise.exerciseSnapshot;
         if (!exercise) {
           return;
         }
