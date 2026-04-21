@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+const seenBuildIdentifierStorageKey = "zenith_seen_build_id";
+
+/** In-memory `Storage` implementation for app release tests. */
 class MockStorage implements Storage {
   private store = new Map<string, string>();
 
@@ -28,18 +31,21 @@ class MockStorage implements Storage {
   }
 }
 
-async function loadAppReleaseModule(buildId = "build-123") {
+/** Loads the module with fresh globals for each test scenario. */
+async function importAppReleaseModule(
+  buildId: string = "build-123"
+): Promise<typeof import("./appRelease")> {
   vi.resetModules();
-  const storage = new MockStorage();
+  const mockStorage = new MockStorage();
 
   vi.stubGlobal("__APP_VERSION__", "0.1.0");
   vi.stubGlobal("__APP_BUILD_ID__", buildId);
   vi.stubGlobal("__APP_GIT_SHA__", "abc123");
   vi.stubGlobal("__APP_BUILT_AT__", "2026-04-10T12:34:56.000Z");
-  vi.stubGlobal("localStorage", storage);
+  vi.stubGlobal("localStorage", mockStorage);
   Object.defineProperty(window, "localStorage", {
     configurable: true,
-    value: storage,
+    value: mockStorage,
   });
 
   return import("./appRelease");
@@ -52,35 +58,35 @@ describe("appRelease", () => {
   });
 
   it("formats build timestamps and falls back for invalid values", async () => {
-    const { formatBuildTimestamp } = await loadAppReleaseModule();
-    const isoString = "2026-04-10T12:34:56.000Z";
+    const { formatBuildTimestamp } = await importAppReleaseModule();
+    const buildTimestampIsoString = "2026-04-10T12:34:56.000Z";
 
-    expect(formatBuildTimestamp(isoString)).toBe(
+    expect(formatBuildTimestamp(buildTimestampIsoString)).toBe(
       new Intl.DateTimeFormat(undefined, {
         dateStyle: "medium",
         timeStyle: "medium",
-      }).format(new Date(isoString))
+      }).format(new Date(buildTimestampIsoString))
     );
     expect(formatBuildTimestamp("not-a-date")).toBe("Unknown build time");
   });
 
   it("detects whether the current build has already been seen", async () => {
-    const { hasUnseenAppUpdate } = await loadAppReleaseModule("build-456");
+    const { hasUnseenAppUpdate } = await importAppReleaseModule("build-456");
 
     expect(hasUnseenAppUpdate()).toBe(false);
 
-    localStorage.setItem("zenith_seen_build_id", "build-456");
+    localStorage.setItem(seenBuildIdentifierStorageKey, "build-456");
     expect(hasUnseenAppUpdate()).toBe(false);
 
-    localStorage.setItem("zenith_seen_build_id", "build-123");
+    localStorage.setItem(seenBuildIdentifierStorageKey, "build-123");
     expect(hasUnseenAppUpdate()).toBe(true);
   });
 
   it("persists the current build id when marked as seen", async () => {
-    const { APP_RELEASE, markCurrentBuildAsSeen } = await loadAppReleaseModule("build-789");
+    const { APP_RELEASE, markCurrentBuildAsSeen } = await importAppReleaseModule("build-789");
 
     markCurrentBuildAsSeen();
 
-    expect(localStorage.getItem("zenith_seen_build_id")).toBe(APP_RELEASE.buildId);
+    expect(localStorage.getItem(seenBuildIdentifierStorageKey)).toBe(APP_RELEASE.buildId);
   });
 });

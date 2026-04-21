@@ -1,16 +1,24 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+  type RenderResult,
+} from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation, type InitialEntry } from "react-router-dom";
 
 import { MuscleGroupSelectorPage } from "./MuscleGroupSelectorPage";
 
 class MockResizeObserver {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
+  observe(): void {}
+  unobserve(): void {}
+  disconnect(): void {}
 }
 
-function RouteStateViewer() {
+function RouteStateViewer(): React.JSX.Element {
   const location = useLocation();
 
   return (
@@ -21,7 +29,7 @@ function RouteStateViewer() {
   );
 }
 
-function renderMuscleGroupSelector(initialEntry: InitialEntry) {
+function renderMuscleGroupSelector(initialEntry: InitialEntry): RenderResult {
   return render(
     <MemoryRouter initialEntries={[initialEntry]}>
       <Routes>
@@ -30,6 +38,33 @@ function renderMuscleGroupSelector(initialEntry: InitialEntry) {
       </Routes>
     </MemoryRouter>
   );
+}
+
+function getButtonByText(text: string): HTMLButtonElement {
+  return screen.getByText(text).closest("button") as HTMLButtonElement;
+}
+
+function getCategoryElement(categoryName: string): HTMLElement {
+  return screen.getByRole("heading", { name: categoryName }).closest(
+    ".muscle-group-category"
+  ) as HTMLElement;
+}
+
+/** Simulates a touch tap plus the browser's follow-up click event. */
+function simulateTouchTap(element: HTMLElement, pointerId: number, clientOffset: number): void {
+  fireEvent.pointerDown(element, {
+    pointerType: "touch",
+    pointerId,
+    clientX: clientOffset,
+    clientY: clientOffset,
+  });
+  fireEvent.pointerUp(element, {
+    pointerType: "touch",
+    pointerId,
+    clientX: clientOffset,
+    clientY: clientOffset,
+  });
+  fireEvent.click(element, { detail: 1 });
 }
 
 describe("MuscleGroupSelectorPage", () => {
@@ -54,8 +89,8 @@ describe("MuscleGroupSelectorPage", () => {
       state: { existingMuscleGroups: ["chest", "biceps"] },
     });
 
-    const chestButton = screen.getByText("Chest").closest("button") as HTMLButtonElement;
-    const backButton = screen.getByText("Back").closest("button") as HTMLButtonElement;
+    const chestButton = getButtonByText("Chest");
+    const backButton = getButtonByText("Back");
 
     expect(screen.getAllByText("Added")).toHaveLength(2);
     expect(chestButton.getAttribute("aria-pressed")).toBe("true");
@@ -84,24 +119,16 @@ describe("MuscleGroupSelectorPage", () => {
       key: "select-all",
     });
 
-    const upperPushCategory = screen
-      .getByRole("heading", { name: "Upper Push" })
-      .closest(".muscle-group-category") as HTMLElement;
+    const upperPushCategory = getCategoryElement("Upper Push");
     const selectAllButton = within(upperPushCategory).getByRole("button", { name: "Select All" });
 
     fireEvent.click(selectAllButton);
 
     expect(within(upperPushCategory).getByRole("button", { name: "Deselect All" })).toBeDefined();
     expect(screen.getByRole("button", { name: "Add 3 Muscle Groups" })).toBeDefined();
-    expect((screen.getByText("Chest").closest("button") as HTMLButtonElement).ariaPressed).toBe(
-      "true"
-    );
-    expect((screen.getByText("Triceps").closest("button") as HTMLButtonElement).ariaPressed).toBe(
-      "true"
-    );
-    expect((screen.getByText("Shoulders").closest("button") as HTMLButtonElement).ariaPressed).toBe(
-      "true"
-    );
+    expect(getButtonByText("Chest").ariaPressed).toBe("true");
+    expect(getButtonByText("Triceps").ariaPressed).toBe("true");
+    expect(getButtonByText("Shoulders").ariaPressed).toBe("true");
 
     fireEvent.click(within(upperPushCategory).getByRole("button", { name: "Deselect All" }));
 
@@ -117,46 +144,18 @@ describe("MuscleGroupSelectorPage", () => {
       key: "touch-dedup",
     });
 
-    const backButton = screen.getByText("Back").closest("button") as HTMLButtonElement;
-    const upperPullCategory = screen
-      .getByRole("heading", { name: "Upper Pull" })
-      .closest(".muscle-group-category") as HTMLElement;
+    const backButton = getButtonByText("Back");
+    const upperPullCategory = getCategoryElement("Upper Pull");
     const selectAllButton = within(upperPullCategory).getByRole("button", { name: "Select All" });
 
-    fireEvent.pointerDown(backButton, {
-      pointerType: "touch",
-      pointerId: 1,
-      clientX: 10,
-      clientY: 10,
-    });
-    fireEvent.pointerUp(backButton, {
-      pointerType: "touch",
-      pointerId: 1,
-      clientX: 10,
-      clientY: 10,
-    });
-    fireEvent.click(backButton, { detail: 1 });
+    simulateTouchTap(backButton, 1, 10);
 
     expect(backButton.getAttribute("aria-pressed")).toBe("true");
 
-    fireEvent.pointerDown(selectAllButton, {
-      pointerType: "touch",
-      pointerId: 2,
-      clientX: 20,
-      clientY: 20,
-    });
-    fireEvent.pointerUp(selectAllButton, {
-      pointerType: "touch",
-      pointerId: 2,
-      clientX: 20,
-      clientY: 20,
-    });
-    fireEvent.click(selectAllButton, { detail: 1 });
+    simulateTouchTap(selectAllButton, 2, 20);
 
     expect(backButton.getAttribute("aria-pressed")).toBe("true");
-    expect((screen.getByText("Biceps").closest("button") as HTMLButtonElement).ariaPressed).toBe(
-      "true"
-    );
+    expect(getButtonByText("Biceps").ariaPressed).toBe("true");
     expect(within(upperPullCategory).getByRole("button", { name: "Deselect All" })).toBeDefined();
   });
 });

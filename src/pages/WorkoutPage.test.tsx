@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
-import type { Exercise, Workout, WorkoutTemplate } from "../types";
+import type { Exercise, Workout, WorkoutSet, WorkoutTemplate } from "../types";
 import { STORAGE_KEYS } from "../utils/storage";
 import { WorkoutPage } from "./WorkoutPage";
 
@@ -44,16 +44,22 @@ const mockStorage = new MockStorage();
 // localStorage helpers
 // ---------------------------------------------------------------------------
 
-function setLS(key: string, value: unknown) {
+/**
+ * Stores a JSON-serializable test value in mock localStorage.
+ */
+function setLS(key: string, value: unknown): void {
   mockStorage.setItem(key, JSON.stringify(value));
 }
 
+/**
+ * Reads and parses a JSON value from mock localStorage.
+ */
 function getLS<T>(key: string): T | null {
   const raw = mockStorage.getItem(key);
   return raw ? (JSON.parse(raw) as T) : null;
 }
 
-function clearLS() {
+function clearLS(): void {
   mockStorage.clear();
 }
 
@@ -63,7 +69,7 @@ function clearLS() {
 
 let idCounter = 0;
 
-function uid() {
+function uid(): string {
   return `test-id-${++idCounter}`;
 }
 
@@ -75,7 +81,7 @@ function makeSet(
     completed: boolean;
     skipped: boolean;
   }> = {}
-) {
+): WorkoutSet {
   return {
     id: overrides.id ?? uid(),
     weight: overrides.weight ?? 0,
@@ -113,12 +119,24 @@ function makeExercise(
 // Render helper
 // ---------------------------------------------------------------------------
 
-function renderWorkoutPage(initialEntry = "/workout", locationState: unknown = null) {
+function renderWorkoutPage(
+  initialEntry: string = "/workout",
+  locationState: unknown = null
+): ReturnType<typeof render> {
   return render(
-    <MemoryRouter initialEntries={[{ pathname: initialEntry, state: locationState }]}>
+    <MemoryRouter initialEntries={[{ pathname: initialEntry, state: locationState }]}> 
       <WorkoutPage />
     </MemoryRouter>
   );
+}
+
+/**
+ * Returns the inline workout-name editor after the heading enters edit mode.
+ */
+function getWorkoutNameInput(): HTMLInputElement {
+  const input = document.querySelector<HTMLInputElement>(".workout-name-input");
+  expect(input).not.toBeNull();
+  return input!;
 }
 
 // ---------------------------------------------------------------------------
@@ -226,7 +244,7 @@ describe("WorkoutPage – workout name editing", () => {
     fireEvent.click(heading);
 
     // An input should now be present
-    const input = document.querySelector<HTMLInputElement>(".workout-name-input");
+    const input = getWorkoutNameInput();
     expect(input).not.toBeNull();
   });
 
@@ -236,7 +254,7 @@ describe("WorkoutPage – workout name editing", () => {
 
     fireEvent.click(screen.getByText(/Push Day/));
 
-    const input = document.querySelector<HTMLInputElement>(".workout-name-input")!;
+    const input = getWorkoutNameInput();
     fireEvent.change(input, { target: { value: "Chest Day" } });
     fireEvent.blur(input);
 
@@ -252,7 +270,7 @@ describe("WorkoutPage – workout name editing", () => {
     renderWorkoutPage();
 
     fireEvent.click(screen.getByText(/Back Day/));
-    const input = document.querySelector<HTMLInputElement>(".workout-name-input")!;
+    const input = getWorkoutNameInput();
     fireEvent.change(input, { target: { value: "Pull Day" } });
     fireEvent.keyDown(input, { key: "Enter" });
 
@@ -268,7 +286,7 @@ describe("WorkoutPage – workout name editing", () => {
 
     fireEvent.click(screen.getByText(/Template Push/));
 
-    const input = document.querySelector<HTMLInputElement>(".workout-name-input")!;
+    const input = getWorkoutNameInput();
     fireEvent.change(input, { target: { value: "Custom Push" } });
     fireEvent.blur(input);
 
@@ -496,18 +514,7 @@ describe("WorkoutPage – selector return state", () => {
     const workout = makeWorkout({ name: "Selector Test" });
     setLS(STORAGE_KEYS.ACTIVE_WORKOUT, workout);
 
-    render(
-      <MemoryRouter
-        initialEntries={[
-          {
-            pathname: "/workout",
-            state: { selectedExerciseId: "default-bench-press-medium-grip" },
-          },
-        ]}
-      >
-        <WorkoutPage />
-      </MemoryRouter>
-    );
+    renderWorkoutPage("/workout", { selectedExerciseId: "default-bench-press-medium-grip" });
 
     // The active workout in localStorage should now have one exercise
     const stored = getLS<Workout>(STORAGE_KEYS.ACTIVE_WORKOUT);

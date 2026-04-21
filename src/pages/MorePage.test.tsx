@@ -64,7 +64,8 @@ vi.mock("../utils/appRelease", () => ({
 
 import { MorePage } from "./MorePage";
 
-function renderMorePage() {
+/** Renders the More page under the route paths used in these tests. */
+function renderMorePage(): ReturnType<typeof render> {
   return render(
     <MemoryRouter initialEntries={["/more"]}>
       <Routes>
@@ -75,7 +76,13 @@ function renderMorePage() {
   );
 }
 
-function installFileInputSpy() {
+type FileInputSpy = {
+  input: HTMLInputElement;
+  createElementSpy: ReturnType<typeof vi.spyOn>;
+};
+
+/** Replaces `document.createElement("input")` with a controllable file input. */
+function createFileInputSpy(): FileInputSpy {
   const originalCreateElement = document.createElement.bind(document);
   const input = {
     type: "",
@@ -96,6 +103,14 @@ function installFileInputSpy() {
   }) as typeof document.createElement);
 
   return { input, createElementSpy };
+}
+
+/** Attaches a selected backup file to the mocked file input. */
+function setSelectedFile(input: HTMLInputElement, file: { text: () => Promise<string> }): void {
+  Object.defineProperty(input, "files", {
+    configurable: true,
+    value: [file],
+  });
 }
 
 describe("MorePage", () => {
@@ -136,11 +151,7 @@ describe("MorePage", () => {
     mockHasActiveWorkout.mockReturnValue(true);
     mockShowConfirm.mockResolvedValueOnce({ confirmed: false });
 
-    const originalCreateElement = document.createElement.bind(document);
-    const createElementSpy = vi
-      .spyOn(document, "createElement")
-      .mockImplementation(((tagName: string, options?: ElementCreationOptions) =>
-        originalCreateElement(tagName, options)) as typeof document.createElement);
+    const { createElementSpy } = createFileInputSpy();
 
     renderMorePage();
 
@@ -166,7 +177,7 @@ describe("MorePage", () => {
       .mockResolvedValueOnce({ confirmed: true })
       .mockResolvedValueOnce({ confirmed: true });
 
-    const { input } = installFileInputSpy();
+    const { input } = createFileInputSpy();
 
     renderMorePage();
 
@@ -192,10 +203,7 @@ describe("MorePage", () => {
       text: vi.fn().mockResolvedValue('{"version":"1.0"}'),
     };
 
-    Object.defineProperty(input, "files", {
-      configurable: true,
-      value: [file],
-    });
+    setSelectedFile(input, file);
 
     await input.onchange?.({ target: input } as unknown as Event);
 
@@ -217,7 +225,7 @@ describe("MorePage", () => {
       throw new Error("Broken backup");
     });
 
-    const { input } = installFileInputSpy();
+    const { input } = createFileInputSpy();
 
     renderMorePage();
 
@@ -231,10 +239,7 @@ describe("MorePage", () => {
       text: vi.fn().mockResolvedValue('{"version":"1.0"}'),
     };
 
-    Object.defineProperty(input, "files", {
-      configurable: true,
-      value: [file],
-    });
+    setSelectedFile(input, file);
 
     await input.onchange?.({ target: input } as unknown as Event);
 

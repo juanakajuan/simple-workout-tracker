@@ -69,13 +69,19 @@ export function useLocalStorage<T>(
   const deserialize = options?.deserialize ?? defaultDeserialize<T>;
 
   /**
+   * Parses a stored JSON value or falls back to the initial value.
+   */
+  const readStoredValue = (serializedValue: string | null): T => {
+    return serializedValue ? deserialize(JSON.parse(serializedValue)) : initialValue;
+  };
+
+  /**
    * Initialize state from localStorage or use initial value.
    * This only runs once during component mount.
    */
   const [storedValue, setStoredValue] = useState<T>(() => {
     try {
-      const item = window.localStorage.getItem(key);
-      return item ? deserialize(JSON.parse(item)) : initialValue;
+      return readStoredValue(window.localStorage.getItem(key));
     } catch (error) {
       console.error(`Error reading localStorage key "${key}":`, error);
       return initialValue;
@@ -87,7 +93,7 @@ export function useLocalStorage<T>(
    * Accepts either a new value or a function that receives the current value.
    */
   const setValue = useCallback(
-    (value: T | ((val: T) => T)) => {
+    (value: T | ((currentValue: T) => T)) => {
       try {
         const valueToStore = value instanceof Function ? value(storedValue) : value;
         setStoredValue(valueToStore);
@@ -104,13 +110,15 @@ export function useLocalStorage<T>(
    * Updates state when the same key is modified in another context.
    */
   useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === key) {
-        try {
-          setStoredValue(e.newValue ? deserialize(JSON.parse(e.newValue)) : initialValue);
-        } catch (error) {
-          console.error(`Error parsing storage event for key "${key}":`, error);
-        }
+    const handleStorageChange = (event: StorageEvent): void => {
+      if (event.key !== key) {
+        return;
+      }
+
+      try {
+        setStoredValue(readStoredValue(event.newValue));
+      } catch (error) {
+        console.error(`Error parsing storage event for key "${key}":`, error);
       }
     };
 

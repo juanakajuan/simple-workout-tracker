@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { ReactElement } from "react";
 import { MemoryRouter, Route, Routes, useLocation, type InitialEntry } from "react-router-dom";
 
 import type { Exercise, Workout } from "../types";
@@ -42,7 +43,8 @@ class MockResizeObserver {
 
 const mockStorage = new MockStorage();
 
-function setLS(key: string, value: unknown) {
+/** Stores a JSON-serializable value in the mocked local storage. */
+function setLocalStorageItem(key: string, value: unknown): void {
   mockStorage.setItem(key, JSON.stringify(value));
 }
 
@@ -71,7 +73,7 @@ function createWorkout(overrides: Partial<Workout> = {}): Workout {
   };
 }
 
-function RouteStateViewer() {
+function RouteStateViewer(): ReactElement {
   const location = useLocation();
 
   return (
@@ -82,7 +84,7 @@ function RouteStateViewer() {
   );
 }
 
-function renderExerciseSelector(initialEntry: InitialEntry) {
+function renderExerciseSelector(initialEntry: InitialEntry): ReturnType<typeof render> {
   return render(
     <MemoryRouter initialEntries={[initialEntry]}>
       <Routes>
@@ -95,6 +97,11 @@ function renderExerciseSelector(initialEntry: InitialEntry) {
       </Routes>
     </MemoryRouter>
   );
+}
+
+/** Reads the current route state rendered by `RouteStateViewer`. */
+function readRouteState(): unknown {
+  return JSON.parse(screen.getByTestId("location-state").textContent ?? "null");
 }
 
 describe("ExerciseSelectorPage", () => {
@@ -139,7 +146,7 @@ describe("ExerciseSelectorPage", () => {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
 
-    setLS(STORAGE_KEYS.WORKOUTS, [
+    setLocalStorageItem(STORAGE_KEYS.WORKOUTS, [
       createWorkout({
         id: "completed-1",
         date: yesterday.toISOString(),
@@ -158,7 +165,10 @@ describe("ExerciseSelectorPage", () => {
     expect(screen.getByRole("heading", { name: "Chest" })).toBeDefined();
     expect(screen.getByRole("heading", { name: "Back" })).toBeDefined();
 
-    const chestGroup = screen.getByRole("heading", { name: "Chest" }).closest(".selector-group");
+    const chestHeading = screen.getByRole("heading", { name: "Chest" });
+    const chestGroup = chestHeading.closest(".selector-group");
+    const searchInput = screen.getByPlaceholderText("Search exercises...");
+
     expect(chestGroup).not.toBeNull();
     expect(
       Array.from(
@@ -168,7 +178,7 @@ describe("ExerciseSelectorPage", () => {
     ).toEqual(["Alpha Press", "Beta Fly"]);
     expect(screen.getByText("Last performed yesterday")).toBeDefined();
 
-    fireEvent.change(screen.getByPlaceholderText("Search exercises..."), {
+    fireEvent.change(searchInput, {
       target: { value: "row" },
     });
 
@@ -176,7 +186,7 @@ describe("ExerciseSelectorPage", () => {
     expect(screen.queryByText("Beta Fly")).toBeNull();
     expect(screen.getByText("Cable Row")).toBeDefined();
 
-    fireEvent.change(screen.getByPlaceholderText("Search exercises..."), {
+    fireEvent.change(searchInput, {
       target: { value: "" },
     });
     fireEvent.change(screen.getByRole("combobox"), {
@@ -235,7 +245,7 @@ describe("ExerciseSelectorPage", () => {
       expect(screen.getByTestId("location-path").textContent).toBe("/workout");
     });
 
-    expect(JSON.parse(screen.getByTestId("location-state").textContent ?? "null")).toEqual({
+    expect(readRouteState()).toEqual({
       selectedExerciseId: replacementExercise.id,
       updateTemplate: false,
       replacementWorkoutExerciseId: "workout-exercise-42",
@@ -279,7 +289,7 @@ describe("ExerciseSelectorPage", () => {
       );
     });
 
-    expect(JSON.parse(screen.getByTestId("location-state").textContent ?? "null")).toMatchObject({
+    expect(readRouteState()).toMatchObject({
       initialMuscleGroup: "back",
       templateUpdateChecked: true,
       appendTemplateExercise: true,
@@ -312,7 +322,7 @@ describe("ExerciseSelectorPage", () => {
       expect(screen.getByTestId("location-path").textContent).toBe("/templates/new");
     });
 
-    expect(JSON.parse(screen.getByTestId("location-state").textContent ?? "null")).toEqual({
+    expect(readRouteState()).toEqual({
       selectedExerciseId: newExercise.id,
       updateTemplate: true,
       replacementWorkoutExerciseId: "workout-exercise-99",

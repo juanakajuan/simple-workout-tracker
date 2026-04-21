@@ -15,15 +15,14 @@ import {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeSet(
-  overrides: Partial<{
-    id: string;
-    weight: number;
-    reps: number;
-    completed: boolean;
-    skipped: boolean;
-  }>
-) {
+type WorkoutSet = WorkoutExercise["sets"][number];
+
+type WorkoutSetOverrides = Partial<
+  Pick<WorkoutSet, "id" | "weight" | "reps" | "completed" | "skipped">
+>;
+
+/** Creates a workout set with sensible defaults for test scenarios. */
+function createWorkoutSet(overrides: WorkoutSetOverrides = {}): WorkoutSet {
   return {
     id: overrides.id ?? "set-1",
     weight: overrides.weight ?? 0,
@@ -33,7 +32,8 @@ function makeSet(
   };
 }
 
-function makeWorkoutExercise(sets: ReturnType<typeof makeSet>[]): WorkoutExercise {
+/** Creates a workout exercise from a provided set list. */
+function createWorkoutExercise(sets: WorkoutSet[]): WorkoutExercise {
   return { id: "we-1", exerciseId: "ex-1", sets };
 }
 
@@ -174,17 +174,17 @@ describe("getPlateLayout", () => {
 
 describe("getPlateCalculatorTarget", () => {
   it("returns null for an exercise with no sets", () => {
-    const exercise = makeWorkoutExercise([]);
+    const exercise = createWorkoutExercise([]);
     expect(getPlateCalculatorTarget(exercise)).toBeNull();
   });
 
   it("returns the preferred set by ID when provided and found", () => {
     const sets = [
-      makeSet({ id: "s1", completed: true }),
-      makeSet({ id: "s2", weight: 100 }),
-      makeSet({ id: "s3" }),
+      createWorkoutSet({ id: "s1", completed: true }),
+      createWorkoutSet({ id: "s2", weight: 100 }),
+      createWorkoutSet({ id: "s3" }),
     ];
-    const exercise = makeWorkoutExercise(sets);
+    const exercise = createWorkoutExercise(sets);
     const target = getPlateCalculatorTarget(exercise, "s2");
     expect(target?.set.id).toBe("s2");
     expect(target?.setIndex).toBe(1);
@@ -192,22 +192,22 @@ describe("getPlateCalculatorTarget", () => {
 
   it("falls through to active-set when preferred ID is not found", () => {
     const sets = [
-      makeSet({ id: "s1", completed: true }),
-      makeSet({ id: "s2" }), // first active set
-      makeSet({ id: "s3" }),
+      createWorkoutSet({ id: "s1", completed: true }),
+      createWorkoutSet({ id: "s2" }), // first active set
+      createWorkoutSet({ id: "s3" }),
     ];
-    const exercise = makeWorkoutExercise(sets);
+    const exercise = createWorkoutExercise(sets);
     const target = getPlateCalculatorTarget(exercise, "missing-id");
     expect(target?.set.id).toBe("s2");
   });
 
   it("returns the first active (incomplete, non-skipped) set when no preferred ID", () => {
     const sets = [
-      makeSet({ id: "s1", completed: true }),
-      makeSet({ id: "s2", skipped: true }),
-      makeSet({ id: "s3" }), // first active
+      createWorkoutSet({ id: "s1", completed: true }),
+      createWorkoutSet({ id: "s2", skipped: true }),
+      createWorkoutSet({ id: "s3" }), // first active
     ];
-    const exercise = makeWorkoutExercise(sets);
+    const exercise = createWorkoutExercise(sets);
     const target = getPlateCalculatorTarget(exercise);
     expect(target?.set.id).toBe("s3");
     expect(target?.setIndex).toBe(2);
@@ -215,11 +215,11 @@ describe("getPlateCalculatorTarget", () => {
 
   it("falls back to first set with weight when all sets are done", () => {
     const sets = [
-      makeSet({ id: "s1", completed: true, weight: 0 }),
-      makeSet({ id: "s2", skipped: true, weight: 135 }),
-      makeSet({ id: "s3", completed: true, weight: 100 }),
+      createWorkoutSet({ id: "s1", completed: true, weight: 0 }),
+      createWorkoutSet({ id: "s2", skipped: true, weight: 135 }),
+      createWorkoutSet({ id: "s3", completed: true, weight: 100 }),
     ];
-    const exercise = makeWorkoutExercise(sets);
+    const exercise = createWorkoutExercise(sets);
     const target = getPlateCalculatorTarget(exercise);
     // s2 is skipped (not active), s3 is completed. First with weight > 0 is s2
     expect(target?.set.id).toBe("s2");
@@ -227,10 +227,10 @@ describe("getPlateCalculatorTarget", () => {
 
   it("falls back to set[0] when no sets have weight and all are done", () => {
     const sets = [
-      makeSet({ id: "s1", completed: true, weight: 0 }),
-      makeSet({ id: "s2", completed: true, weight: 0 }),
+      createWorkoutSet({ id: "s1", completed: true, weight: 0 }),
+      createWorkoutSet({ id: "s2", completed: true, weight: 0 }),
     ];
-    const exercise = makeWorkoutExercise(sets);
+    const exercise = createWorkoutExercise(sets);
     const target = getPlateCalculatorTarget(exercise);
     expect(target?.set.id).toBe("s1");
     expect(target?.setIndex).toBe(0);
@@ -242,32 +242,16 @@ describe("getPlateCalculatorTarget", () => {
 // ---------------------------------------------------------------------------
 
 describe("canUsePlateCalculator", () => {
-  it("returns true for barbell", () => {
-    expect(canUsePlateCalculator("barbell")).toBe(true);
-  });
-
-  it("returns true for machine", () => {
-    expect(canUsePlateCalculator("machine")).toBe(true);
-  });
-
-  it("returns true for smith-machine", () => {
-    expect(canUsePlateCalculator("smith-machine")).toBe(true);
-  });
-
-  it("returns false for dumbbell", () => {
-    expect(canUsePlateCalculator("dumbbell")).toBe(false);
-  });
-
-  it("returns false for cable", () => {
-    expect(canUsePlateCalculator("cable")).toBe(false);
-  });
-
-  it("returns false for bodyweight", () => {
-    expect(canUsePlateCalculator("bodyweight")).toBe(false);
-  });
-
-  it("returns false for loaded-bodyweight", () => {
-    expect(canUsePlateCalculator("loaded-bodyweight")).toBe(false);
+  it.each([
+    ["barbell", true],
+    ["machine", true],
+    ["smith-machine", true],
+    ["dumbbell", false],
+    ["cable", false],
+    ["bodyweight", false],
+    ["loaded-bodyweight", false],
+  ] as const)("returns %s for %s", (equipmentType, expected) => {
+    expect(canUsePlateCalculator(equipmentType)).toBe(expected);
   });
 });
 
@@ -276,22 +260,13 @@ describe("canUsePlateCalculator", () => {
 // ---------------------------------------------------------------------------
 
 describe("getPlateCalculatorTitle", () => {
-  it("returns machine title for machine type", () => {
-    expect(getPlateCalculatorTitle("machine")).toBe("Machine plate estimate (45 lb baseline)");
-  });
-
-  it("returns smith-machine title for smith-machine type", () => {
-    expect(getPlateCalculatorTitle("smith-machine")).toBe(
-      "Smith machine plate estimate (45 lb baseline)"
-    );
-  });
-
-  it("returns standard barbell title for barbell type", () => {
-    expect(getPlateCalculatorTitle("barbell")).toBe("Standard 45 lb barbell");
-  });
-
-  it("returns standard barbell title for any other type", () => {
-    expect(getPlateCalculatorTitle("dumbbell")).toBe("Standard 45 lb barbell");
-    expect(getPlateCalculatorTitle("cable")).toBe("Standard 45 lb barbell");
+  it.each([
+    ["machine", "Machine plate estimate (45 lb baseline)"],
+    ["smith-machine", "Smith machine plate estimate (45 lb baseline)"],
+    ["barbell", "Standard 45 lb barbell"],
+    ["dumbbell", "Standard 45 lb barbell"],
+    ["cable", "Standard 45 lb barbell"],
+  ] as const)("returns the correct title for %s", (equipmentType, expectedTitle) => {
+    expect(getPlateCalculatorTitle(equipmentType)).toBe(expectedTitle);
   });
 });

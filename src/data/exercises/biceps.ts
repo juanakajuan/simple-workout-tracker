@@ -1,225 +1,111 @@
 import type { Exercise } from "../../types";
 
+type ExerciseType = Exercise["exerciseType"];
+
+/**
+ * Creates a biceps exercise entry with the shared default fields.
+ *
+ * @param id Stable exercise identifier.
+ * @param name Display name shown in the application.
+ * @param exerciseType Equipment or movement classification.
+ * @returns A biceps exercise entry.
+ */
+function createBicepsExercise(
+  id: string,
+  name: string,
+  exerciseType: ExerciseType,
+): Exercise {
+  return {
+    id,
+    name,
+    muscleGroup: "biceps",
+    exerciseType,
+    notes: "",
+  };
+}
+
 /**
  * Default biceps exercises provided by the application.
  * Includes various curling movements and variations.
  */
 export const bicepsExercises: Exercise[] = [
-  {
-    id: "default-barbell-curl-narrow-grip",
-    name: "Barbell Curl (Narrow Grip)",
-    muscleGroup: "biceps",
-    exerciseType: "barbell",
-    notes: "",
-  },
-  {
-    id: "default-barbell-curl-normal-grip",
-    name: "Barbell Curl (Normal Grip)",
-    muscleGroup: "biceps",
-    exerciseType: "barbell",
-    notes: "",
-  },
-  {
-    id: "default-bayesian-curl",
-    name: "Bayesian Curl",
-    muscleGroup: "biceps",
-    exerciseType: "cable",
-    notes: "",
-  },
-  {
-    id: "default-cable-curl",
-    name: "Cable Curl",
-    muscleGroup: "biceps",
-    exerciseType: "cable",
-    notes: "",
-  },
-  {
-    id: "default-cable-curl-ez-bar",
-    name: "Cable Curl (EZ Bar)",
-    muscleGroup: "biceps",
-    exerciseType: "cable",
-    notes: "",
-  },
-  {
-    id: "default-cable-curl-ez-bar-wide-grip",
-    name: "Cable Curl (EZ Bar, Wide Grip)",
-    muscleGroup: "biceps",
-    exerciseType: "cable",
-    notes: "",
-  },
-  {
-    id: "default-cable-curl-single-arm",
-    name: "Cable Curl (Single-Arm)",
-    muscleGroup: "biceps",
-    exerciseType: "cable",
-    notes: "",
-  },
-  {
-    id: "default-cable-hammer-curl",
-    name: "Cable Hammer Curl",
-    muscleGroup: "biceps",
-    exerciseType: "cable",
-    notes: "",
-  },
-  {
-    id: "default-cable-rope-twist-curl",
-    name: "Cable Rope Twist Curl",
-    muscleGroup: "biceps",
-    exerciseType: "cable",
-    notes: "",
-  },
-  {
-    id: "default-concentration-curl",
-    name: "Concentration Curl",
-    muscleGroup: "biceps",
-    exerciseType: "dumbbell",
-    notes: "",
-  },
-  {
-    id: "default-dumbbell-curl-2-arm",
-    name: "Dumbbell Curl (2-Arm)",
-    muscleGroup: "biceps",
-    exerciseType: "dumbbell",
-    notes: "",
-  },
-  {
-    id: "default-dumbbell-curl-alternating",
-    name: "Dumbbell Curl (Alternating)",
-    muscleGroup: "biceps",
-    exerciseType: "dumbbell",
-    notes: "",
-  },
-  {
-    id: "default-dumbbell-curl-incline",
-    name: "Dumbbell Curl (Incline)",
-    muscleGroup: "biceps",
-    exerciseType: "dumbbell",
-    notes: "",
-  },
-  {
-    id: "default-dumbbell-preacher-curl-single-arm",
-    name: "Dumbbell Preacher Curl (Single-Arm)",
-    muscleGroup: "biceps",
-    exerciseType: "dumbbell",
-    notes: "",
-  },
-  {
-    id: "default-dumbbell-spider-curl",
-    name: "Dumbbell Spider Curl",
-    muscleGroup: "biceps",
-    exerciseType: "dumbbell",
-    notes: "",
-  },
-  {
-    id: "default-dumbbell-twist-curl",
-    name: "Dumbbell Twist Curl",
-    muscleGroup: "biceps",
-    exerciseType: "dumbbell",
-    notes: "",
-  },
-  {
-    id: "default-ez-bar-curl-narrow-grip",
-    name: "EZ Bar Curl (Narrow Grip)",
-    muscleGroup: "biceps",
-    exerciseType: "barbell",
-    notes: "",
-  },
-  {
-    id: "default-ez-bar-curl-normal-grip",
-    name: "EZ Bar Curl (Normal Grip)",
-    muscleGroup: "biceps",
-    exerciseType: "barbell",
-    notes: "",
-  },
-  {
-    id: "default-ez-bar-curl-wide-grip",
-    name: "EZ Bar Curl (Wide Grip)",
-    muscleGroup: "biceps",
-    exerciseType: "barbell",
-    notes: "",
-  },
-  {
-    id: "default-ez-bar-preacher-curl",
-    name: "EZ Bar Preacher Curl",
-    muscleGroup: "biceps",
-    exerciseType: "barbell",
-    notes: "",
-  },
-  {
-    id: "default-ez-bar-spider-curl",
-    name: "EZ Bar Spider Curl",
-    muscleGroup: "biceps",
-    exerciseType: "barbell",
-    notes: "",
-  },
-  {
-    id: "default-freemotion-curl-facing-away",
-    name: "Freemotion Curl (Facing Away)",
-    muscleGroup: "biceps",
-    exerciseType: "freemotion",
-    notes: "",
-  },
-  {
-    id: "default-freemotion-curl-facing-machine",
-    name: "Freemotion Curl (Facing Machine)",
-    muscleGroup: "biceps",
-    exerciseType: "freemotion",
-    notes: "",
-  },
-  {
-    id: "default-freemotion-curl-single-arm",
-    name: "Freemotion Curl (Single-Arm)",
-    muscleGroup: "biceps",
-    exerciseType: "freemotion",
-    notes: "",
-  },
-  {
-    id: "default-hammer-curl",
-    name: "Hammer Curl",
-    muscleGroup: "biceps",
-    exerciseType: "dumbbell",
-    notes: "",
-  },
-  {
-    id: "default-hammer-preacher-curl",
-    name: "Hammer Preacher Curl",
-    muscleGroup: "biceps",
-    exerciseType: "dumbbell",
-    notes: "",
-  },
-  {
-    id: "default-lying-biceps-dumbbell-curl",
-    name: "Lying Biceps Dumbbell Curl",
-    muscleGroup: "biceps",
-    exerciseType: "dumbbell",
-    notes: "",
-  },
-  {
-    id: "default-lying-cable-curl",
-    name: "Lying Cable Curl",
-    muscleGroup: "biceps",
-    exerciseType: "cable",
-    notes: "",
-  },
-  {
-    id: "default-lying-down-curl",
-    name: "Lying Down Curl",
-    muscleGroup: "biceps",
-    exerciseType: "cable",
-    notes: "",
-  },
-  {
-    id: "default-lying-dumbbell-curl",
-    name: "Lying Dumbbell Curl",
-    muscleGroup: "biceps",
-    exerciseType: "dumbbell",
-    notes: "",
-  },
-  {
-    id: "default-machine-preacher-curl",
-    name: "Machine Preacher Curl",
-    muscleGroup: "biceps",
-    exerciseType: "machine",
-    notes: "",
-  },
+  createBicepsExercise(
+    "default-barbell-curl-narrow-grip",
+    "Barbell Curl (Narrow Grip)",
+    "barbell",
+  ),
+  createBicepsExercise(
+    "default-barbell-curl-normal-grip",
+    "Barbell Curl (Normal Grip)",
+    "barbell",
+  ),
+  createBicepsExercise("default-bayesian-curl", "Bayesian Curl", "cable"),
+  createBicepsExercise("default-cable-curl", "Cable Curl", "cable"),
+  createBicepsExercise("default-cable-curl-ez-bar", "Cable Curl (EZ Bar)", "cable"),
+  createBicepsExercise(
+    "default-cable-curl-ez-bar-wide-grip",
+    "Cable Curl (EZ Bar, Wide Grip)",
+    "cable",
+  ),
+  createBicepsExercise(
+    "default-cable-curl-single-arm",
+    "Cable Curl (Single-Arm)",
+    "cable",
+  ),
+  createBicepsExercise("default-cable-hammer-curl", "Cable Hammer Curl", "cable"),
+  createBicepsExercise(
+    "default-cable-rope-twist-curl",
+    "Cable Rope Twist Curl",
+    "cable",
+  ),
+  createBicepsExercise("default-concentration-curl", "Concentration Curl", "dumbbell"),
+  createBicepsExercise("default-dumbbell-curl-2-arm", "Dumbbell Curl (2-Arm)", "dumbbell"),
+  createBicepsExercise(
+    "default-dumbbell-curl-alternating",
+    "Dumbbell Curl (Alternating)",
+    "dumbbell",
+  ),
+  createBicepsExercise(
+    "default-dumbbell-curl-incline",
+    "Dumbbell Curl (Incline)",
+    "dumbbell",
+  ),
+  createBicepsExercise(
+    "default-dumbbell-preacher-curl-single-arm",
+    "Dumbbell Preacher Curl (Single-Arm)",
+    "dumbbell",
+  ),
+  createBicepsExercise("default-dumbbell-spider-curl", "Dumbbell Spider Curl", "dumbbell"),
+  createBicepsExercise("default-dumbbell-twist-curl", "Dumbbell Twist Curl", "dumbbell"),
+  createBicepsExercise("default-ez-bar-curl-narrow-grip", "EZ Bar Curl (Narrow Grip)", "barbell"),
+  createBicepsExercise("default-ez-bar-curl-normal-grip", "EZ Bar Curl (Normal Grip)", "barbell"),
+  createBicepsExercise("default-ez-bar-curl-wide-grip", "EZ Bar Curl (Wide Grip)", "barbell"),
+  createBicepsExercise("default-ez-bar-preacher-curl", "EZ Bar Preacher Curl", "barbell"),
+  createBicepsExercise("default-ez-bar-spider-curl", "EZ Bar Spider Curl", "barbell"),
+  createBicepsExercise(
+    "default-freemotion-curl-facing-away",
+    "Freemotion Curl (Facing Away)",
+    "freemotion",
+  ),
+  createBicepsExercise(
+    "default-freemotion-curl-facing-machine",
+    "Freemotion Curl (Facing Machine)",
+    "freemotion",
+  ),
+  createBicepsExercise(
+    "default-freemotion-curl-single-arm",
+    "Freemotion Curl (Single-Arm)",
+    "freemotion",
+  ),
+  createBicepsExercise("default-hammer-curl", "Hammer Curl", "dumbbell"),
+  createBicepsExercise("default-hammer-preacher-curl", "Hammer Preacher Curl", "dumbbell"),
+  createBicepsExercise(
+    "default-lying-biceps-dumbbell-curl",
+    "Lying Biceps Dumbbell Curl",
+    "dumbbell",
+  ),
+  createBicepsExercise("default-lying-cable-curl", "Lying Cable Curl", "cable"),
+  createBicepsExercise("default-lying-down-curl", "Lying Down Curl", "cable"),
+  createBicepsExercise("default-lying-dumbbell-curl", "Lying Dumbbell Curl", "dumbbell"),
+  createBicepsExercise("default-machine-preacher-curl", "Machine Preacher Curl", "machine"),
 ];

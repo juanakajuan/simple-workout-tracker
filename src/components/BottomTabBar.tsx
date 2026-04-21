@@ -7,25 +7,37 @@ import "./BottomTabBar.css";
 export function BottomTabBar(): React.ReactElement {
   const location = useLocation();
   const navigate = useNavigate();
+  const currentPath = location.pathname;
 
   const lastTemplatesPath = useRef("/templates");
   const lastHistoryPath = useRef("/history");
   const lastMorePath = useRef("/more");
 
+  /** Returns whether the current route belongs to a tab section. */
+  const isSectionActive = (sectionPath: string): boolean => currentPath.startsWith(sectionPath);
+
+  /** Keeps tab click behavior consistent when re-selecting the active tab. */
+  const scrollToTop = (): void => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  };
+
+  /** Builds the shared tab class name. */
+  const getTabClassName = (isActive: boolean): string => `tab ${isActive ? "active" : ""}`;
+
   // Update refs when location changes
   useEffect(() => {
-    if (location.pathname.startsWith("/templates")) {
-      lastTemplatesPath.current = location.pathname;
-    } else if (location.pathname.startsWith("/history")) {
-      lastHistoryPath.current = location.pathname;
-    } else if (location.pathname.startsWith("/more")) {
-      lastMorePath.current = location.pathname;
+    if (isSectionActive("/templates")) {
+      lastTemplatesPath.current = currentPath;
+    } else if (isSectionActive("/history")) {
+      lastHistoryPath.current = currentPath;
+    } else if (isSectionActive("/more")) {
+      lastMorePath.current = currentPath;
     }
-  }, [location.pathname]);
+  }, [currentPath]);
 
-  const isTemplatesActive = location.pathname.startsWith("/templates");
-  const isHistoryActive = location.pathname.startsWith("/history");
-  const isMoreActive = location.pathname.startsWith("/more");
+  const isTemplatesActive = isSectionActive("/templates");
+  const isHistoryActive = isSectionActive("/history");
+  const isMoreActive = isSectionActive("/more");
 
   /**
    * Handles clicking on a tab with sub-routes. If already active, scrolls to top
@@ -33,25 +45,25 @@ export function BottomTabBar(): React.ReactElement {
    * sub-route for that tab using replace to avoid cluttering history.
    *
    * @param event - The mouse event
-   * @param basePath - The base path for the tab (e.g., "/templates")
-   * @param lastPathRef - Reference to the last visited path for this tab
+   * @param sectionPath - The base path for the tab (e.g., "/templates")
+   * @param lastVisitedPathReference - Reference to the last visited path for this tab
    * @param isActive - Whether the tab is currently active
    */
   const handleTabClick = (
-    event: React.MouseEvent,
-    basePath: string,
-    lastPathRef: React.RefObject<string>,
+    event: React.MouseEvent<HTMLAnchorElement>,
+    sectionPath: string,
+    lastVisitedPathReference: React.RefObject<string>,
     isActive: boolean
-  ) => {
+  ): void => {
     event.preventDefault();
 
     if (isActive) {
-      window.scrollTo({ top: 0, behavior: "instant" });
-      if (location.pathname !== basePath) {
-        navigate(basePath);
+      scrollToTop();
+      if (currentPath !== sectionPath) {
+        navigate(sectionPath);
       }
     } else {
-      navigate(lastPathRef.current || basePath, { replace: true });
+      navigate(lastVisitedPathReference.current || sectionPath, { replace: true });
     }
   };
 
@@ -62,10 +74,10 @@ export function BottomTabBar(): React.ReactElement {
    * @param event - The mouse event
    * @param isActive - Whether the tab is currently active
    */
-  const handleSimpleTabClick = (event: React.MouseEvent, isActive: boolean) => {
+  const handleSimpleTabClick = (event: React.MouseEvent<HTMLAnchorElement>, isActive: boolean): void => {
     if (isActive) {
       event.preventDefault();
-      window.scrollTo({ top: 0, behavior: "instant" });
+      scrollToTop();
     }
   };
 
@@ -73,45 +85,45 @@ export function BottomTabBar(): React.ReactElement {
     <nav className="bottom-tab-bar">
       <NavLink
         to="/exercises"
-        className={({ isActive }) => `tab ${isActive ? "active" : ""}`}
+        className={({ isActive }) => getTabClassName(isActive)}
         aria-label="Exercises"
-        onClick={(e) => handleSimpleTabClick(e, location.pathname === "/exercises")}
+        onClick={(event) => handleSimpleTabClick(event, currentPath === "/exercises")}
       >
         <Dumbbell size={28} />
       </NavLink>
 
       <NavLink
         to="/templates"
-        className={`tab ${isTemplatesActive ? "active" : ""}`}
+        className={getTabClassName(isTemplatesActive)}
         aria-label="Templates"
-        onClick={(e) => handleTabClick(e, "/templates", lastTemplatesPath, isTemplatesActive)}
+        onClick={(event) => handleTabClick(event, "/templates", lastTemplatesPath, isTemplatesActive)}
       >
         <LayoutTemplate size={28} />
       </NavLink>
 
       <NavLink
         to="/workout"
-        className={({ isActive }) => `tab ${isActive ? "active" : ""}`}
+        className={({ isActive }) => getTabClassName(isActive)}
         aria-label="Workout"
-        onClick={(e) => handleSimpleTabClick(e, location.pathname === "/workout")}
+        onClick={(event) => handleSimpleTabClick(event, currentPath === "/workout")}
       >
         <CirclePlay size={28} />
       </NavLink>
 
       <NavLink
         to="/history"
-        className={`tab ${isHistoryActive ? "active" : ""}`}
+        className={getTabClassName(isHistoryActive)}
         aria-label="History"
-        onClick={(e) => handleTabClick(e, "/history", lastHistoryPath, isHistoryActive)}
+        onClick={(event) => handleTabClick(event, "/history", lastHistoryPath, isHistoryActive)}
       >
         <History size={28} />
       </NavLink>
 
       <NavLink
         to="/more"
-        className={`tab ${isMoreActive ? "active" : ""}`}
+        className={getTabClassName(isMoreActive)}
         aria-label="More"
-        onClick={(e) => handleTabClick(e, "/more", lastMorePath, isMoreActive)}
+        onClick={(event) => handleTabClick(event, "/more", lastMorePath, isMoreActive)}
       >
         <CircleEllipsis size={28} />
       </NavLink>

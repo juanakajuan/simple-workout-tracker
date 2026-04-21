@@ -43,13 +43,15 @@ class MockResizeObserver {
 
 const mockStorage = new MockStorage();
 
-function setLS(key: string, value: unknown) {
+/** Stores a JSON-serializable value in the mock local storage. */
+function setLocalStorageValue(key: string, value: unknown): void {
   mockStorage.setItem(key, JSON.stringify(value));
 }
 
-function getLS<T>(key: string): T | null {
+/** Reads and parses a JSON value from the mock local storage. */
+function getLocalStorageValue<Value>(key: string): Value | null {
   const raw = mockStorage.getItem(key);
-  return raw ? (JSON.parse(raw) as T) : null;
+  return raw ? (JSON.parse(raw) as Value) : null;
 }
 
 function createExercise(
@@ -76,6 +78,39 @@ function renderTemplateEditor(initialEntry: InitialEntry = "/templates/new") {
       </Routes>
     </MemoryRouter>
   );
+}
+
+/** Updates the template name field through the rendered input. */
+function changeTemplateName(name: string): void {
+  fireEvent.change(screen.getByPlaceholderText("Enter template name..."), {
+    target: { value: name },
+  });
+}
+
+/** Returns the visible exercise button labels in their rendered order. */
+function getRenderedExerciseNames(container: HTMLElement): Array<string | null> {
+  return Array.from(container.querySelectorAll<HTMLButtonElement>(".templates-exercise-btn")).map(
+    (button) => button.textContent
+  );
+}
+
+/** Returns the visible set count values in their rendered order. */
+function getRenderedSetCounts(container: HTMLElement): Array<string | null> {
+  return Array.from(container.querySelectorAll(".templates-set-count-value")).map(
+    (value) => value.textContent
+  );
+}
+
+/** Clicks an exercise option in selector list by its visible exercise name. */
+async function clickSelectorExercise(name: string): Promise<void> {
+  const exerciseName = await screen.findByText(name);
+  const exerciseButton = exerciseName.closest("button");
+
+  if (!(exerciseButton instanceof HTMLButtonElement)) {
+    throw new Error(`Could not find selector button for exercise: ${name}`);
+  }
+
+  fireEvent.click(exerciseButton);
 }
 
 describe("TemplateEditorPage", () => {
@@ -115,8 +150,8 @@ describe("TemplateEditorPage", () => {
       ],
     };
 
-    setLS(STORAGE_KEYS.EXERCISES, [chestPress, seatedRow]);
-    setLS(STORAGE_KEYS.DRAFT_TEMPLATE, draft);
+    setLocalStorageValue(STORAGE_KEYS.EXERCISES, [chestPress, seatedRow]);
+    setLocalStorageValue(STORAGE_KEYS.DRAFT_TEMPLATE, draft);
 
     renderTemplateEditor();
 
@@ -124,14 +159,12 @@ describe("TemplateEditorPage", () => {
     expect(screen.getByRole("button", { name: "Chest Press" })).toBeDefined();
     expect(screen.getByRole("button", { name: "Seated Row" })).toBeDefined();
 
-    fireEvent.change(screen.getByPlaceholderText("Enter template name..."), {
-      target: { value: "Updated Draft" },
-    });
+    changeTemplateName("Updated Draft");
     fireEvent.click(screen.getAllByRole("button", { name: /move up/i })[1]);
 
     await waitFor(() => {
       expect(
-        getLS<WorkoutTemplateDraft>(STORAGE_KEYS.DRAFT_TEMPLATE)?.exercises.map(
+        getLocalStorageValue<WorkoutTemplateDraft>(STORAGE_KEYS.DRAFT_TEMPLATE)?.exercises.map(
           (exercise) => exercise.exerciseId
         )
       ).toEqual([seatedRow.id, chestPress.id]);
@@ -140,10 +173,10 @@ describe("TemplateEditorPage", () => {
     fireEvent.click(screen.getAllByRole("button", { name: /increase sets/i })[0]);
     fireEvent.click(screen.getAllByRole("button", { name: /remove exercise/i })[1]);
 
-    await waitFor(() => {
-      expect(screen.queryByRole("button", { name: "Chest Press" })).toBeNull();
+      await waitFor(() => {
+        expect(screen.queryByRole("button", { name: "Chest Press" })).toBeNull();
 
-      expect(getLS<WorkoutTemplateDraft>(STORAGE_KEYS.DRAFT_TEMPLATE)).toEqual({
+      expect(getLocalStorageValue<WorkoutTemplateDraft>(STORAGE_KEYS.DRAFT_TEMPLATE)).toEqual({
         name: "Updated Draft",
         exercises: [
           {
@@ -163,7 +196,7 @@ describe("TemplateEditorPage", () => {
       muscleGroup: "back",
     });
 
-    setLS(STORAGE_KEYS.EXERCISES, [latPulldown]);
+    setLocalStorageValue(STORAGE_KEYS.EXERCISES, [latPulldown]);
 
     renderTemplateEditor({
       pathname: "/templates/new",
@@ -176,7 +209,7 @@ describe("TemplateEditorPage", () => {
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Lat Pulldown" })).toBeDefined();
-      expect(getLS<WorkoutTemplateDraft>(STORAGE_KEYS.DRAFT_TEMPLATE)).toMatchObject({
+      expect(getLocalStorageValue<WorkoutTemplateDraft>(STORAGE_KEYS.DRAFT_TEMPLATE)).toMatchObject({
         name: "",
         exercises: [
           {
@@ -185,9 +218,9 @@ describe("TemplateEditorPage", () => {
           },
         ],
       });
-      expect(getLS<WorkoutTemplateDraft>(STORAGE_KEYS.DRAFT_TEMPLATE)?.exercises[0].id).toEqual(
-        expect.any(String)
-      );
+      expect(
+        getLocalStorageValue<WorkoutTemplateDraft>(STORAGE_KEYS.DRAFT_TEMPLATE)?.exercises[0].id
+      ).toEqual(expect.any(String));
     });
   });
 
@@ -203,8 +236,8 @@ describe("TemplateEditorPage", () => {
       muscleGroup: "back",
     });
 
-    setLS(STORAGE_KEYS.EXERCISES, [inclinePress, cableRow]);
-    setLS(STORAGE_KEYS.DRAFT_TEMPLATE, {
+    setLocalStorageValue(STORAGE_KEYS.EXERCISES, [inclinePress, cableRow]);
+    setLocalStorageValue(STORAGE_KEYS.DRAFT_TEMPLATE, {
       name: "Upper",
       exercises: [
         { id: "draft-1", exerciseId: inclinePress.id, setCount: 3 },
@@ -222,7 +255,7 @@ describe("TemplateEditorPage", () => {
     });
 
     await waitFor(() => {
-      const draft = getLS<WorkoutTemplateDraft>(STORAGE_KEYS.DRAFT_TEMPLATE);
+      const draft = getLocalStorageValue<WorkoutTemplateDraft>(STORAGE_KEYS.DRAFT_TEMPLATE);
 
       expect(draft?.exercises[0]).toMatchObject({
         id: "draft-1",
@@ -248,8 +281,8 @@ describe("TemplateEditorPage", () => {
       muscleGroup: "chest",
     });
 
-    setLS(STORAGE_KEYS.EXERCISES, [inclinePress, cableFly]);
-    setLS(STORAGE_KEYS.DRAFT_TEMPLATE, {
+    setLocalStorageValue(STORAGE_KEYS.EXERCISES, [inclinePress, cableFly]);
+    setLocalStorageValue(STORAGE_KEYS.DRAFT_TEMPLATE, {
       name: "Chest Day",
       exercises: [{ id: "draft-1", exerciseId: inclinePress.id, setCount: 3 }],
     } satisfies WorkoutTemplateDraft);
@@ -268,7 +301,7 @@ describe("TemplateEditorPage", () => {
     await waitFor(() => {
       expect(screen.queryByRole("button", { name: "Incline Press" })).toBeNull();
       expect(screen.getByRole("button", { name: "Cable Fly" })).toBeDefined();
-      expect(getLS<WorkoutTemplateDraft>(STORAGE_KEYS.DRAFT_TEMPLATE)).toEqual({
+      expect(getLocalStorageValue<WorkoutTemplateDraft>(STORAGE_KEYS.DRAFT_TEMPLATE)).toEqual({
         name: "Chest Day",
         exercises: [{ id: "draft-1", exerciseId: cableFly.id, setCount: 3 }],
       });
@@ -312,8 +345,8 @@ describe("TemplateEditorPage", () => {
       ],
     };
 
-    setLS(STORAGE_KEYS.EXERCISES, [inclinePress, chestFly, tBarRow]);
-    setLS(STORAGE_KEYS.TEMPLATES, [template]);
+    setLocalStorageValue(STORAGE_KEYS.EXERCISES, [inclinePress, chestFly, tBarRow]);
+    setLocalStorageValue(STORAGE_KEYS.TEMPLATES, [template]);
 
     renderTemplateEditor("/templates/edit/template-1");
 
@@ -324,7 +357,7 @@ describe("TemplateEditorPage", () => {
       expect(screen.getByText("Templates List")).toBeDefined();
     });
 
-    expect(getLS<WorkoutTemplate[]>(STORAGE_KEYS.TEMPLATES)).toEqual([
+    expect(getLocalStorageValue<WorkoutTemplate[]>(STORAGE_KEYS.TEMPLATES)).toEqual([
       {
         id: "template-1",
         name: "Upper A",
@@ -366,8 +399,8 @@ describe("TemplateEditorPage", () => {
       muscleGroup: "chest",
     });
 
-    setLS(STORAGE_KEYS.EXERCISES, [benchPress, seatedRow, cableFly]);
-    setLS(STORAGE_KEYS.TEMPLATES, [
+    setLocalStorageValue(STORAGE_KEYS.EXERCISES, [benchPress, seatedRow, cableFly]);
+    setLocalStorageValue(STORAGE_KEYS.TEMPLATES, [
       {
         id: "template-1",
         name: "Upper A",
@@ -385,36 +418,24 @@ describe("TemplateEditorPage", () => {
         ],
       } satisfies WorkoutTemplate,
     ]);
-
+    
     const { container } = renderTemplateEditor("/templates/edit/template-1");
 
-    fireEvent.change(screen.getByPlaceholderText("Enter template name..."), {
-      target: { value: "Updated Upper A" },
-    });
+    changeTemplateName("Updated Upper A");
     fireEvent.click(screen.getAllByRole("button", { name: /increase sets/i })[1]);
     fireEvent.click(screen.getAllByRole("button", { name: /move up/i })[1]);
     fireEvent.click(screen.getByRole("button", { name: /add exercise/i }));
 
     await screen.findByPlaceholderText("Search exercises...");
 
-    const cableFlyOption = (await screen.findByText("Cable Fly")).closest("button");
-    expect(cableFlyOption).not.toBeNull();
-    fireEvent.click(cableFlyOption!);
+    await clickSelectorExercise("Cable Fly");
 
     await waitFor(() => {
       expect(screen.getByDisplayValue("Updated Upper A")).toBeDefined();
     });
 
-    expect(
-      Array.from(container.querySelectorAll<HTMLButtonElement>(".templates-exercise-btn")).map(
-        (button) => button.textContent
-      )
-    ).toEqual(["Seated Row", "Bench Press", "Cable Fly"]);
-    expect(
-      Array.from(container.querySelectorAll(".templates-set-count-value")).map(
-        (value) => value.textContent
-      )
-    ).toEqual(["5", "3", "3"]);
+    expect(getRenderedExerciseNames(container)).toEqual(["Seated Row", "Bench Press", "Cable Fly"]);
+    expect(getRenderedSetCounts(container)).toEqual(["5", "3", "3"]);
   });
 
   it("preserves edit-mode changes when backing out of the selector", async () => {
@@ -429,8 +450,8 @@ describe("TemplateEditorPage", () => {
       muscleGroup: "back",
     });
 
-    setLS(STORAGE_KEYS.EXERCISES, [inclinePress, chestSupportedRow]);
-    setLS(STORAGE_KEYS.TEMPLATES, [
+    setLocalStorageValue(STORAGE_KEYS.EXERCISES, [inclinePress, chestSupportedRow]);
+    setLocalStorageValue(STORAGE_KEYS.TEMPLATES, [
       {
         id: "template-1",
         name: "Upper B",
@@ -457,9 +478,7 @@ describe("TemplateEditorPage", () => {
 
     const { container } = renderTemplateEditor("/templates/edit/template-1");
 
-    fireEvent.change(screen.getByPlaceholderText("Enter template name..."), {
-      target: { value: "Upper B Updated" },
-    });
+    changeTemplateName("Upper B Updated");
     fireEvent.click(screen.getAllByRole("button", { name: /increase sets/i })[0]);
     fireEvent.click(screen.getAllByRole("button", { name: /move up/i })[1]);
     fireEvent.click(screen.getByRole("button", { name: "Incline Press" }));
@@ -472,16 +491,8 @@ describe("TemplateEditorPage", () => {
       expect(screen.getByDisplayValue("Upper B Updated")).toBeDefined();
     });
 
-    expect(
-      Array.from(container.querySelectorAll<HTMLButtonElement>(".templates-exercise-btn")).map(
-        (button) => button.textContent
-      )
-    ).toEqual(["Chest Supported Row", "Incline Press"]);
-    expect(
-      Array.from(container.querySelectorAll(".templates-set-count-value")).map(
-        (value) => value.textContent
-      )
-    ).toEqual(["3", "3"]);
+    expect(getRenderedExerciseNames(container)).toEqual(["Chest Supported Row", "Incline Press"]);
+    expect(getRenderedSetCounts(container)).toEqual(["3", "3"]);
   });
 
   it("restores an edit draft after leaving the template tab and coming back", async () => {
@@ -501,8 +512,8 @@ describe("TemplateEditorPage", () => {
       muscleGroup: "chest",
     });
 
-    setLS(STORAGE_KEYS.EXERCISES, [benchPress, seatedRow, pecDeck]);
-    setLS(STORAGE_KEYS.TEMPLATES, [
+    setLocalStorageValue(STORAGE_KEYS.EXERCISES, [benchPress, seatedRow, pecDeck]);
+    setLocalStorageValue(STORAGE_KEYS.TEMPLATES, [
       {
         id: "template-1",
         name: "Upper A",
@@ -523,16 +534,12 @@ describe("TemplateEditorPage", () => {
 
     renderTemplateEditor("/templates/edit/template-1");
 
-    fireEvent.change(screen.getByPlaceholderText("Enter template name..."), {
-      target: { value: "Upper A Updated" },
-    });
+    changeTemplateName("Upper A Updated");
     fireEvent.click(screen.getByRole("button", { name: /add exercise/i }));
 
     await screen.findByPlaceholderText("Search exercises...");
 
-    const pecDeckOption = (await screen.findByText("Pec Deck")).closest("button");
-    expect(pecDeckOption).not.toBeNull();
-    fireEvent.click(pecDeckOption!);
+    await clickSelectorExercise("Pec Deck");
 
     await waitFor(() => {
       expect(screen.getByDisplayValue("Upper A Updated")).toBeDefined();
@@ -540,7 +547,7 @@ describe("TemplateEditorPage", () => {
     });
 
     expect(
-      getLS<Record<string, WorkoutTemplateDraft>>(STORAGE_KEYS.EDIT_TEMPLATE_DRAFTS)
+      getLocalStorageValue<Record<string, WorkoutTemplateDraft>>(STORAGE_KEYS.EDIT_TEMPLATE_DRAFTS)
     ).toMatchObject({
       "template-1": {
         name: "Upper A Updated",

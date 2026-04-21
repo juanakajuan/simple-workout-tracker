@@ -1,39 +1,16 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import {
-  CirclePlay,
-  Pencil,
-  Trash2,
-  Plus,
-  Check,
-  X,
-  Play,
-  Edit3,
-  MoreVertical,
-  StickyNote,
-  ArrowLeftRight,
-  SkipForward,
-  ChevronUp,
-  ChevronDown,
-  Dumbbell,
-} from "lucide-react";
+import { CirclePlay, Pencil, Plus, Check, X, Play } from "lucide-react";
 
 import type {
   Exercise,
   IntensityTechnique,
   TemplateExercise,
-  TemplateMuscleGroup,
   Workout,
   WorkoutExercise,
   WorkoutSet,
   WorkoutTemplate,
   Settings,
-} from "../types";
-import {
-  INTENSITY_TECHNIQUES,
-  exerciseTypeLabels,
-  intensityTechniqueLabels,
-  muscleGroupLabels,
 } from "../types";
 
 import { useLocalStorage } from "../hooks/useLocalStorage";
@@ -46,33 +23,42 @@ import {
   normalizeActiveWorkout,
 } from "../utils/storage";
 
-import { SetRow } from "../components/SetRow";
 import { PageHeader } from "../components/PageHeader";
 import { WorkoutTimer } from "../components/WorkoutTimer";
 import { ConfirmDialog } from "../components/ConfirmDialog";
-import { Tag } from "../components/Tag";
-
-import {
-  STANDARD_BARBELL_WEIGHT,
-  formatWeight,
-  getPlateLayout,
-  getPlateCalculatorTarget,
-  canUsePlateCalculator,
-  getPlateCalculatorTitle,
-} from "../utils/workoutUtils";
 import {
   getSupersetDisplayLabels,
-  getSupersetPartnerId,
   pairExercisesAsSuperset,
   removeExerciseWithIntensityCleanup,
   setExerciseIntensityTechnique,
   unpairSupersetExercise,
 } from "../utils/intensityTechniques";
+import { WorkoutExerciseCard } from "./workout/WorkoutExerciseCard";
+import {
+  areAllWorkoutSetsCompleted,
+  buildTemplateMuscleGroups,
+  createEmptyWorkout,
+  flattenTemplateExercises,
+  formatWorkoutDate,
+  getLastPerformedSetsByExerciseId,
+  getReplacementExercises,
+  mergeAvailableExercises,
+  swapItems,
+  type LastPerformedSet,
+  type PlateCalculatorSelections,
+  type WorkoutPageSelectorState,
+} from "./workout/workoutPageHelpers";
 
 import "./WorkoutPage.css";
 
-type PlateCalculatorSelections = Record<string, string>;
-type LastPerformedSet = { weight: number; reps: number };
+type WorkoutExerciseSelectorNavigationState = {
+  exercises: Exercise[];
+  isReplacement: boolean;
+  hideFilter?: boolean;
+  currentExerciseId?: string;
+  replacementWorkoutExerciseId?: string;
+  templateUpdateChecked: boolean;
+};
 
 export function WorkoutPage(): React.ReactElement {
   const navigate = useNavigate();
@@ -102,31 +88,22 @@ export function WorkoutPage(): React.ReactElement {
   const [updateTemplateOnAdd, setUpdateTemplateOnAdd] = useState(true);
   const { showConfirm, dialogProps } = useConfirmDialog();
 
-  // Merge default exercises with user exercises, user exercises override defaults
-  const allExercises = DEFAULT_EXERCISES.map((defaultExercise) => {
-    const userOverride = exercises.find((exercise) => exercise.id === defaultExercise.id);
-    return userOverride || defaultExercise;
-  }).concat(exercises.filter((exercise) => !exercise.id.startsWith("default-")));
+  const allExercises = useMemo<Exercise[]>(
+    () => mergeAvailableExercises(DEFAULT_EXERCISES, exercises),
+    [exercises]
+  );
+  const exercisesById = useMemo<ReadonlyMap<string, Exercise>>(
+    () => new Map(allExercises.map((exercise) => [exercise.id, exercise])),
+    [allExercises]
+  );
 
   /**
-   * Creates and initializes a new empty workout with a default name based on the
-   * current day of the week (e.g., "Monday Workout").
+   * Creates and initializes a new empty workout using the shared default naming logic.
    */
-  const startEmptyWorkout = () => {
-    const today = new Date();
-    const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-    const defaultName = `${dayNames[today.getDay()]} Workout`;
-
-    const newWorkout: Workout = {
-      id: generateId(),
-      name: defaultName,
-      date: today.toISOString(),
-      startTime: today.toISOString(),
-      exercises: [],
-      completed: false,
-    };
+  const startEmptyWorkout = (): void => {
+    const newWorkout = createEmptyWorkout();
     setActiveWorkout(newWorkout);
-    setWorkoutName(defaultName);
+    setWorkoutName(newWorkout.name);
   };
 
   /**
@@ -151,51 +128,10 @@ export function WorkoutPage(): React.ReactElement {
     });
   };
 
-  const swapItems = <T,>(items: T[], fromIndex: number, toIndex: number) => {
-    const reordered = [...items];
-    [reordered[fromIndex], reordered[toIndex]] = [reordered[toIndex], reordered[fromIndex]];
-    return reordered;
-  };
-
-  const buildTemplateMuscleGroups = (
-    templateExercises: TemplateExercise[]
-  ): TemplateMuscleGroup[] => {
-    const exercisesById = new Map(allExercises.map((exercise) => [exercise.id, exercise]));
-    const muscleGroups: TemplateMuscleGroup[] = [];
-
-    templateExercises.forEach((templateExercise) => {
-      if (!templateExercise.exerciseId) return;
-
-      const exercise = exercisesById.get(templateExercise.exerciseId);
-      if (!exercise) return;
-
-      const previousGroup = muscleGroups[muscleGroups.length - 1];
-
-      if (previousGroup && previousGroup.muscleGroup === exercise.muscleGroup) {
-        previousGroup.exercises.push({ ...templateExercise });
-        return;
-      }
-
-      muscleGroups.push({
-        id: generateId(),
-        muscleGroup: exercise.muscleGroup,
-        exercises: [{ ...templateExercise }],
-      });
-    });
-
-    return muscleGroups;
-  };
-
-  const flattenTemplateExercises = (template: WorkoutTemplate): TemplateExercise[] => {
-    return template.muscleGroups.flatMap((muscleGroup) =>
-      muscleGroup.exercises.map((exercise) => ({ ...exercise }))
-    );
-  };
-
   const updateFlattenedTemplateExercises = (
     templateId: string,
     updater: (templateExercises: TemplateExercise[]) => TemplateExercise[]
-  ) => {
+  ): void => {
     const template = templates.find((item) => item.id === templateId);
     if (!template) return;
 
@@ -204,7 +140,10 @@ export function WorkoutPage(): React.ReactElement {
     setTemplates(
       templates.map((item) =>
         item.id === templateId
-          ? { ...item, muscleGroups: buildTemplateMuscleGroups(updatedTemplateExercises) }
+          ? {
+              ...item,
+              muscleGroups: buildTemplateMuscleGroups(updatedTemplateExercises, exercisesById),
+            }
           : item
       )
     );
@@ -269,13 +208,37 @@ export function WorkoutPage(): React.ReactElement {
     templateId: string,
     exercisePositionInWorkout: number,
     newSetCount: number
-  ) => {
+  ): void => {
     updateFlattenedTemplateExercises(templateId, (templateExercises) =>
       templateExercises.map((exercise, exerciseIndex) =>
         exerciseIndex === exercisePositionInWorkout
           ? { ...exercise, setCount: newSetCount }
           : exercise
       )
+    );
+  };
+
+  /**
+   * Keeps the template set count aligned with the current workout exercise.
+   *
+   * @param updatedWorkout - The workout state after the set change
+   * @param workoutExerciseId - The unique identifier of the updated workout exercise
+   */
+  const syncTemplateSetCountForWorkoutExercise = (
+    updatedWorkout: Workout,
+    workoutExerciseId: string
+  ): void => {
+    if (!updatedWorkout.templateId) return;
+
+    const workoutExerciseIndex = updatedWorkout.exercises.findIndex(
+      (exercise) => exercise.id === workoutExerciseId
+    );
+    if (workoutExerciseIndex === -1) return;
+
+    updateTemplateSetCount(
+      updatedWorkout.templateId,
+      workoutExerciseIndex,
+      updatedWorkout.exercises[workoutExerciseIndex].sets.length
     );
   };
 
@@ -310,21 +273,7 @@ export function WorkoutPage(): React.ReactElement {
     };
 
     setActiveWorkout(updatedWorkout);
-
-    // Update template if this workout is from a template
-    if (activeWorkout.templateId) {
-      const workoutExerciseIndex = activeWorkout.exercises.findIndex(
-        (exercise) => exercise.id === workoutExerciseId
-      );
-      if (workoutExerciseIndex !== -1) {
-        const updatedExercise = updatedWorkout.exercises[workoutExerciseIndex];
-        updateTemplateSetCount(
-          activeWorkout.templateId,
-          workoutExerciseIndex,
-          updatedExercise.sets.length
-        );
-      }
-    }
+    syncTemplateSetCountForWorkoutExercise(updatedWorkout, workoutExerciseId);
   };
 
   /**
@@ -384,21 +333,7 @@ export function WorkoutPage(): React.ReactElement {
     };
 
     setActiveWorkout(updatedWorkout);
-
-    // Update template if this workout is from a template
-    if (activeWorkout.templateId) {
-      const workoutExerciseIndex = activeWorkout.exercises.findIndex(
-        (exercise) => exercise.id === workoutExerciseId
-      );
-      if (workoutExerciseIndex !== -1) {
-        const updatedExercise = updatedWorkout.exercises[workoutExerciseIndex];
-        updateTemplateSetCount(
-          activeWorkout.templateId,
-          workoutExerciseIndex,
-          updatedExercise.sets.length
-        );
-      }
-    }
+    syncTemplateSetCountForWorkoutExercise(updatedWorkout, workoutExerciseId);
   };
 
   const startEditingWorkoutName = () => {
@@ -473,64 +408,21 @@ export function WorkoutPage(): React.ReactElement {
   };
 
   /**
-   * Retrieves an exercise by its unique identifier from the merged list of
-   * default and user exercises.
-   *
-   * @param id - The unique identifier of the exercise
-   * @returns The exercise if found, undefined otherwise
-   */
-  const getExerciseById = (id: string) => allExercises.find((exercise) => exercise.id === id);
-
-  /**
-   * Gets the muscle group of the exercise currently being replaced. Used to filter
-   * replacement exercise options to the same muscle group.
-   *
-   * @returns The muscle group of the exercise being replaced, or undefined
-   */
-  const getReplacementMuscleGroup = (workoutExerciseId: string) => {
-    if (!activeWorkout) return undefined;
-
-    const workoutExercise = activeWorkout.exercises.find(
-      (exercise) => exercise.id === workoutExerciseId
-    );
-    if (!workoutExercise) return undefined;
-
-    const exercise = getExerciseById(workoutExercise.exerciseId);
-    return exercise?.muscleGroup;
-  };
-
-  /**
-   * Gets the list of exercises available for replacement. Filters to only show
-   * exercises from the same muscle group as the exercise being replaced.
-   *
-   * @returns Filtered list of exercises for replacement, or all exercises if no filter applies
-   */
-  const getReplacementExercises = (workoutExerciseId: string) => {
-    const muscleGroup = getReplacementMuscleGroup(workoutExerciseId);
-    if (!muscleGroup) return allExercises;
-
-    return allExercises.filter((exercise) => exercise.muscleGroup === muscleGroup);
-  };
-
-  /**
    * Updates the notes for an exercise. For user exercises, updates the existing
    * exercise. For default exercises, creates an override with the new notes.
    *
    * @param exerciseId - The unique identifier of the exercise
    * @param noteText - The new note text to save
    */
-  const updateExerciseNote = (exerciseId: string, noteText: string) => {
-    // Update in user exercises (will create override for default exercises)
+  const updateExerciseNote = (exerciseId: string, noteText: string): void => {
     const existingExercise = exercises.find((exercise) => exercise.id === exerciseId);
 
     if (existingExercise) {
-      // Update existing user exercise
       const updatedExercises = exercises.map((exercise) =>
         exercise.id === exerciseId ? { ...exercise, notes: noteText } : exercise
       );
       setExercises(updatedExercises);
     } else {
-      // Create override for default exercise
       const defaultExercise = DEFAULT_EXERCISES.find((exercise) => exercise.id === exerciseId);
       if (defaultExercise) {
         setExercises([...exercises, { ...defaultExercise, notes: noteText }]);
@@ -543,7 +435,7 @@ export function WorkoutPage(): React.ReactElement {
    *
    * @param workoutExerciseId - The unique identifier of the workout exercise
    */
-  const addNoteToExercise = (workoutExerciseId: string) => {
+  const addNoteToExercise = (workoutExerciseId: string): void => {
     setEditingNoteId(workoutExerciseId);
     setOpenKebabMenu(null);
   };
@@ -852,8 +744,7 @@ export function WorkoutPage(): React.ReactElement {
    *
    * @param exerciseId - The unique identifier of the exercise
    */
-  const deleteNoteFromExercise = (exerciseId: string) => {
-    // Update exercise notes to empty
+  const deleteNoteFromExercise = (exerciseId: string): void => {
     const existingExercise = exercises.find((exercise) => exercise.id === exerciseId);
 
     if (existingExercise) {
@@ -867,33 +758,11 @@ export function WorkoutPage(): React.ReactElement {
   };
 
   /**
-   * Checks whether an exercise has notes.
-   *
-   * @param exercise - The exercise to check
-   * @returns True if the exercise has non-empty notes, false otherwise
-   */
-  const hasNote = (exercise: Exercise): boolean => {
-    return !!exercise.notes;
-  };
-
-  /**
-   * Checks if all sets in the active workout have been completed or skipped.
-   *
-   * @returns True if all sets are completed or skipped (and workout has exercises), false otherwise
-   */
-  const allSetsCompleted = () => {
-    if (!activeWorkout || activeWorkout.exercises.length === 0) return false;
-    return activeWorkout.exercises.every((workoutExercise) =>
-      workoutExercise.sets.every((set) => set.completed || set.skipped)
-    );
-  };
-
-  /**
    * Marks all incomplete sets of an exercise as skipped.
    *
    * @param workoutExerciseId - The unique identifier of the workout exercise
    */
-  const skipRemainingSets = (workoutExerciseId: string) => {
+  const skipRemainingSets = (workoutExerciseId: string): void => {
     if (!activeWorkout) return;
 
     setActiveWorkout({
@@ -911,32 +780,108 @@ export function WorkoutPage(): React.ReactElement {
     });
   };
 
-  /**
-   * Closes any open kebab menu when clicking outside of the menu area.
-   *
-   * @param event - The mouse event
-   */
-  const handleClickOutside = (event: React.MouseEvent) => {
-    if ((event.target as HTMLElement).closest(".kebab-menu")) return;
-    if ((event.target as HTMLElement).closest(".workout-exercise-actions")) return;
-    if ((event.target as HTMLElement).closest(".workout-technique-editor")) return;
+  /** Closes the transient per-exercise action menus. */
+  const closeExerciseActionMenus = (): void => {
     setOpenKebabMenu(null);
     setOpenIntensityEditorId(null);
   };
 
   /**
-   * Opens the exercise selector for adding a new exercise to the workout.
+   * Closes any open kebab menu when clicking outside of the menu area.
+   *
+   * @param event - The mouse event
    */
-  const handleAddExercise = () => {
+  const handleClickOutside = (event: React.MouseEvent): void => {
+    if ((event.target as HTMLElement).closest(".kebab-menu")) return;
+    if ((event.target as HTMLElement).closest(".workout-exercise-actions")) return;
+    if ((event.target as HTMLElement).closest(".workout-technique-editor")) return;
+    closeExerciseActionMenus();
+  };
+
+  /** Opens or closes the kebab menu for a workout exercise. */
+  const toggleKebabMenu = (workoutExerciseId: string): void => {
+    setOpenKebabMenu((current) => (current === workoutExerciseId ? null : workoutExerciseId));
+    setOpenIntensityEditorId(null);
+  };
+
+  /** Opens or closes the intensity editor for a workout exercise. */
+  const toggleIntensityEditor = (workoutExerciseId: string): void => {
+    setOpenIntensityEditorId((current) => (current === workoutExerciseId ? null : workoutExerciseId));
+    setOpenKebabMenu(null);
+  };
+
+  /** Opens or closes the plate calculator for a workout exercise. */
+  const togglePlateCalculator = (workoutExerciseId: string, defaultSetId?: string): void => {
+    if (openPlateCalculatorId !== workoutExerciseId && defaultSetId) {
+      setPlateCalculatorSelections((previous) => ({
+        ...previous,
+        [workoutExerciseId]: previous[workoutExerciseId] ?? defaultSetId,
+      }));
+    }
+
+    setOpenPlateCalculatorId((current) => (current === workoutExerciseId ? null : workoutExerciseId));
+    closeExerciseActionMenus();
+  };
+
+  /** Stores the chosen plate-calculator set for a workout exercise. */
+  const selectPlateCalculatorSet = (workoutExerciseId: string, setId: string): void => {
+    setPlateCalculatorSelections((previous) => ({
+      ...previous,
+      [workoutExerciseId]: setId,
+    }));
+  };
+
+  /** Navigates to the workout exercise selector with shared template flags. */
+  const openExerciseSelector = (state: WorkoutExerciseSelectorNavigationState): void => {
     navigate("/workout/select-exercise", {
       state: {
-        exercises: allExercises,
-        isReplacement: false,
-        isTemplateWorkout: !!activeWorkout?.templateId,
-        showTemplateUpdate: !!activeWorkout?.templateId,
-        templateUpdateChecked: updateTemplateOnAdd,
+        ...state,
+        isTemplateWorkout: Boolean(activeWorkout?.templateId),
+        showTemplateUpdate: Boolean(activeWorkout?.templateId),
       },
     });
+  };
+
+  /**
+   * Opens the exercise selector for adding a new exercise to the workout.
+   */
+  const handleAddExercise = (): void => {
+    openExerciseSelector({
+      exercises: allExercises,
+      isReplacement: false,
+      templateUpdateChecked: updateTemplateOnAdd,
+    });
+  };
+
+  /** Removes a workout exercise and optionally updates its template source. */
+  const deleteWorkoutExercise = (workoutExerciseId: string): void => {
+    if (!activeWorkout?.templateId) {
+      removeExerciseFromWorkout(workoutExerciseId);
+      setOpenKebabMenu(null);
+      return;
+    }
+
+    const exercisePositionInWorkout = activeWorkout.exercises.findIndex(
+      (exercise) => exercise.id === workoutExerciseId
+    );
+
+    showConfirm({
+      title: "Delete Exercise?",
+      message: "Remove this exercise from your workout.",
+      confirmText: "Send it to the shadow realm",
+      variant: "danger",
+      checkboxLabel: "Update template",
+      checkboxDefaultChecked: true,
+      onConfirm: (shouldUpdateTemplate) => {
+        if (shouldUpdateTemplate && exercisePositionInWorkout !== -1) {
+          removeExerciseFromTemplate(activeWorkout.templateId!, exercisePositionInWorkout);
+        }
+
+        removeExerciseFromWorkout(workoutExerciseId);
+      },
+    });
+
+    setOpenKebabMenu(null);
   };
 
   /**
@@ -944,22 +889,21 @@ export function WorkoutPage(): React.ReactElement {
    *
    * @param workoutExerciseId - The unique identifier of the workout exercise to replace
    */
-  const handleReplaceExercise = (workoutExerciseId: string) => {
+  const handleReplaceExercise = (workoutExerciseId: string): void => {
     setOpenKebabMenu(null);
 
-    const workoutExercise = activeWorkout?.exercises.find((e) => e.id === workoutExerciseId);
-    const currentExerciseId = workoutExercise?.exerciseId;
+    const selectedWorkoutExercise = activeWorkout?.exercises.find(
+      (exercise) => exercise.id === workoutExerciseId
+    );
+    const currentExerciseId = selectedWorkoutExercise?.exerciseId;
 
-    navigate("/workout/select-exercise", {
-      state: {
-        exercises: getReplacementExercises(workoutExerciseId),
-        isReplacement: true,
-        hideFilter: true,
-        currentExerciseId,
-        replacementWorkoutExerciseId: workoutExerciseId,
-        showTemplateUpdate: !!activeWorkout?.templateId,
-        templateUpdateChecked: updateTemplateOnReplace,
-      },
+    openExerciseSelector({
+      exercises: getReplacementExercises(activeWorkout, allExercises, exercisesById, workoutExerciseId),
+      isReplacement: true,
+      hideFilter: true,
+      currentExerciseId,
+      replacementWorkoutExerciseId: workoutExerciseId,
+      templateUpdateChecked: updateTemplateOnReplace,
     });
   };
 
@@ -968,7 +912,7 @@ export function WorkoutPage(): React.ReactElement {
    *
    * @param exerciseId - The unique identifier of the exercise
    */
-  const handleViewHistory = (exerciseId: string) => {
+  const handleViewHistory = (exerciseId: string): void => {
     navigate(`/workout/history/${exerciseId}`);
   };
 
@@ -978,13 +922,8 @@ export function WorkoutPage(): React.ReactElement {
   useEffect(() => {
     if (!location.state) return;
 
-    const state = location.state as {
-      selectedExerciseId?: string;
-      updateTemplate?: boolean;
-      replacementWorkoutExerciseId?: string;
-    };
+    const state = location.state as WorkoutPageSelectorState;
 
-    // Handle exercise selection (add or replace)
     if (state.selectedExerciseId) {
       if (state.replacementWorkoutExerciseId) {
         setUpdateTemplateOnReplace(state.updateTemplate ?? updateTemplateOnReplace);
@@ -996,20 +935,19 @@ export function WorkoutPage(): React.ReactElement {
       } else {
         const exercisePositionInWorkout = activeWorkout?.exercises.length;
         addExerciseToWorkout(state.selectedExerciseId);
-        // Update template if workout is from template and updateTemplate flag is set
         if (
           activeWorkout?.templateId &&
           exercisePositionInWorkout !== undefined &&
           (state.updateTemplate ?? updateTemplateOnAdd)
         ) {
-          const exercise = allExercises.find((e) => e.id === state.selectedExerciseId);
+          const exercise = exercisesById.get(state.selectedExerciseId);
           if (exercise) {
             addExerciseToTemplate(activeWorkout.templateId, exercise, exercisePositionInWorkout);
           }
         }
         setUpdateTemplateOnAdd(true);
       }
-      // Clear navigation state
+
       navigate(location.pathname, { replace: true, state: {} });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1017,71 +955,19 @@ export function WorkoutPage(): React.ReactElement {
 
   const activeExerciseIdsKey =
     activeWorkout?.exercises.map((exercise) => exercise.exerciseId).join("\u0000") ?? "";
-  const lastPerformedSetsByExerciseId = useMemo<Record<string, LastPerformedSet[] | null>>(() => {
-    if (!activeExerciseIdsKey) {
-      return {};
-    }
-
-    const exerciseIds = new Set(activeExerciseIdsKey.split("\u0000"));
-    const latestWorkoutTimes = new Map<string, number>();
-    const lastSetsByExerciseId: Record<string, LastPerformedSet[] | null> = {};
-
-    for (const workout of workouts) {
-      if (!workout.completed) {
-        continue;
-      }
-
-      const workoutTime = new Date(workout.date).getTime();
-
-      for (const workoutExercise of workout.exercises) {
-        if (!exerciseIds.has(workoutExercise.exerciseId)) {
-          continue;
-        }
-
-        const latestWorkoutTime = latestWorkoutTimes.get(workoutExercise.exerciseId) ?? -Infinity;
-
-        if (workoutTime <= latestWorkoutTime) {
-          continue;
-        }
-
-        latestWorkoutTimes.set(workoutExercise.exerciseId, workoutTime);
-        lastSetsByExerciseId[workoutExercise.exerciseId] =
-          workoutExercise.sets.length === 0
-            ? null
-            : workoutExercise.sets.map((set) => ({ weight: set.weight, reps: set.reps }));
-      }
-    }
-
-    return lastSetsByExerciseId;
-  }, [activeExerciseIdsKey, workouts]);
+  const lastPerformedSetsByExerciseId = useMemo<Record<string, LastPerformedSet[] | null>>(
+    () => getLastPerformedSetsByExerciseId(activeExerciseIdsKey, workouts),
+    [activeExerciseIdsKey, workouts]
+  );
 
   const supersetDisplayLabels = activeWorkout
     ? getSupersetDisplayLabels(activeWorkout.exercises)
     : {};
 
-  const getWorkoutSupersetPartnerOptions = (workoutExerciseId: string) => {
-    return activeWorkout?.exercises.filter((exercise) => exercise.id !== workoutExerciseId) ?? [];
-  };
-
-  const getWorkoutTechniqueLabel = (
-    workoutExercise: WorkoutExercise,
-    supersetLabel: string | null
-  ) => {
-    if (workoutExercise.intensityTechnique === "super-set" && supersetLabel) {
-      return supersetLabel;
-    }
-
-    if (workoutExercise.intensityTechnique) {
-      return intensityTechniqueLabels[workoutExercise.intensityTechnique];
-    }
-
-    return "Standard";
-  };
-
   const handleWorkoutTechniqueSelection = (
     workoutExerciseId: string,
     intensityTechnique: IntensityTechnique | null
-  ) => {
+  ): void => {
     updateWorkoutIntensityTechnique(workoutExerciseId, intensityTechnique);
 
     if (intensityTechnique === "super-set") {
@@ -1115,7 +1001,8 @@ export function WorkoutPage(): React.ReactElement {
     );
   }
 
-  // Active workout view
+  const isWorkoutReadyToFinish = areAllWorkoutSetsCompleted(activeWorkout);
+
   return (
     <div className="page workout-page" onClick={handleClickOutside}>
       <header className="workout-header">
@@ -1146,13 +1033,7 @@ export function WorkoutPage(): React.ReactElement {
             </h1>
           )}
         </div>
-        <p className="workout-date">
-          {new Date(activeWorkout.date).toLocaleDateString("en-US", {
-            weekday: "long",
-            month: "short",
-            day: "numeric",
-          })}
-        </p>
+        <p className="workout-date">{formatWorkoutDate(activeWorkout.date)}</p>
         <WorkoutTimer startTime={activeWorkout.startTime} />
       </header>
 
@@ -1163,476 +1044,56 @@ export function WorkoutPage(): React.ReactElement {
           </div>
         ) : (
           activeWorkout.exercises.map((workoutExercise, exerciseIndex) => {
-            const exercise = getExerciseById(workoutExercise.exerciseId);
+            const exercise = exercisesById.get(workoutExercise.exerciseId);
             if (!exercise) return null;
 
-            const canMoveUp = exerciseIndex > 0;
-            const canMoveDown = exerciseIndex < activeWorkout.exercises.length - 1;
-            const supportsPlateCalculator = canUsePlateCalculator(exercise.exerciseType);
-            const isPlateCalculatorOpen = openPlateCalculatorId === workoutExercise.id;
-            const defaultPlateCalculatorTarget = getPlateCalculatorTarget(workoutExercise);
-            const plateCalculatorTarget = getPlateCalculatorTarget(
-              workoutExercise,
-              plateCalculatorSelections[workoutExercise.id]
-            );
-            const plateLayout = plateCalculatorTarget
-              ? getPlateLayout(plateCalculatorTarget.set.weight)
-              : null;
-            const lastSets = lastPerformedSetsByExerciseId[workoutExercise.exerciseId];
-            const supersetPartnerId = getSupersetPartnerId(
-              activeWorkout.exercises,
-              workoutExercise.id
-            );
-            const supersetPartnerExercise = activeWorkout.exercises.find(
-              (item) => item.id === supersetPartnerId
-            );
-            const supersetLabel = workoutExercise.supersetGroupId
-              ? supersetDisplayLabels[workoutExercise.supersetGroupId]
-              : null;
-            const techniqueLabel = getWorkoutTechniqueLabel(workoutExercise, supersetLabel);
-            const isIntensityEditorOpen = openIntensityEditorId === workoutExercise.id;
-            const togglePlateCalculator = () => {
-              if (!isPlateCalculatorOpen && defaultPlateCalculatorTarget) {
-                setPlateCalculatorSelections((previous) => ({
-                  ...previous,
-                  [workoutExercise.id]:
-                    previous[workoutExercise.id] ?? defaultPlateCalculatorTarget.set.id,
-                }));
-              }
-
-              setOpenPlateCalculatorId(isPlateCalculatorOpen ? null : workoutExercise.id);
-              setOpenKebabMenu(null);
-              setOpenIntensityEditorId(null);
-            };
-
             return (
-              <div key={workoutExercise.id} className="workout-exercise-card card">
-                <div className="workout-exercise-header">
-                  <div>
-                    <div className="exercise-meta-row">
-                      <Tag muscleGroup={exercise.muscleGroup}>
-                        {muscleGroupLabels[exercise.muscleGroup]}
-                      </Tag>
-                      <Tag>{exerciseTypeLabels[exercise.exerciseType]}</Tag>
-                      <div className="workout-technique-editor">
-                        <button
-                          type="button"
-                          className={`workout-technique-trigger tag ${workoutExercise.intensityTechnique ? "tag-accent" : "tag-muted"} ${isIntensityEditorOpen ? "active" : ""}`}
-                          onClick={() => {
-                            setOpenIntensityEditorId(
-                              isIntensityEditorOpen ? null : workoutExercise.id
-                            );
-                            setOpenKebabMenu(null);
-                          }}
-                          aria-label={`Edit intensity technique for ${exercise.name}`}
-                          aria-expanded={isIntensityEditorOpen}
-                          aria-controls={`workout-technique-editor-${workoutExercise.id}`}
-                        >
-                          {techniqueLabel}
-                        </button>
-                      </div>
-                    </div>
-                    <div className="exercise-name-row">
-                      <h3
-                        className="workout-exercise-name clickable"
-                        onClick={() => handleViewHistory(exercise.id)}
-                      >
-                        {exercise.name}
-                      </h3>
-                    </div>
-                  </div>
-                  <div className="workout-exercise-actions">
-                    <button
-                      className="btn btn-icon btn-ghost"
-                      onClick={() => {
-                        setOpenKebabMenu(
-                          openKebabMenu === workoutExercise.id ? null : workoutExercise.id
-                        );
-                        setOpenIntensityEditorId(null);
-                      }}
-                      aria-label="More options"
-                    >
-                      <MoreVertical size={20} />
-                    </button>
-                    {openKebabMenu === workoutExercise.id && (
-                      <div className="kebab-menu">
-                        {supportsPlateCalculator && (
-                          <button
-                            className="kebab-menu-item"
-                            onClick={togglePlateCalculator}
-                            aria-expanded={isPlateCalculatorOpen}
-                            aria-controls={`plate-calculator-${workoutExercise.id}`}
-                          >
-                            <Dumbbell size={16} />
-                            Plate Calculator
-                          </button>
-                        )}
-                        {hasNote(exercise) ? (
-                          <button
-                            className="kebab-menu-item"
-                            onClick={() => deleteNoteFromExercise(exercise.id)}
-                          >
-                            <Trash2 size={16} />
-                            Delete Note
-                          </button>
-                        ) : (
-                          <button
-                            className="kebab-menu-item"
-                            onClick={() => addNoteToExercise(workoutExercise.id)}
-                          >
-                            <StickyNote size={16} />
-                            Add Note
-                          </button>
-                        )}
-                        {workoutExercise.sets.some((set) => !set.completed && !set.skipped) && (
-                          <button
-                            className="kebab-menu-item"
-                            onClick={() => {
-                              skipRemainingSets(workoutExercise.id);
-                              setOpenKebabMenu(null);
-                            }}
-                          >
-                            <SkipForward size={16} />
-                            Skip Remaining Sets
-                          </button>
-                        )}
-                        <button
-                          className="kebab-menu-item"
-                          onClick={() => moveWorkoutExercise(workoutExercise.id, "up")}
-                          disabled={!canMoveUp}
-                        >
-                          <ChevronUp size={16} />
-                          Move Up
-                        </button>
-                        <button
-                          className="kebab-menu-item"
-                          onClick={() => moveWorkoutExercise(workoutExercise.id, "down")}
-                          disabled={!canMoveDown}
-                        >
-                          <ChevronDown size={16} />
-                          Move Down
-                        </button>
-                        <button
-                          className="kebab-menu-item"
-                          onClick={() => handleReplaceExercise(workoutExercise.id)}
-                        >
-                          <ArrowLeftRight size={16} />
-                          Replace Exercise
-                        </button>
-                        <button
-                          className="kebab-menu-item kebab-menu-item-danger"
-                          onClick={() => {
-                            const isFromTemplate = !!activeWorkout.templateId;
-
-                            if (isFromTemplate) {
-                              // Get exercise position before deletion for template update
-                              const exercisePosition = activeWorkout.exercises.findIndex(
-                                (e) => e.id === workoutExercise.id
-                              );
-
-                              showConfirm({
-                                title: "Delete Exercise?",
-                                message: "Remove this exercise from your workout.",
-                                confirmText: "Send it to the shadow realm",
-                                variant: "danger",
-                                checkboxLabel: "Update template",
-                                checkboxDefaultChecked: true,
-                                onConfirm: (checkboxChecked) => {
-                                  // Update template first (before removing from workout to preserve position)
-                                  if (
-                                    checkboxChecked &&
-                                    activeWorkout.templateId &&
-                                    exercisePosition !== -1
-                                  ) {
-                                    removeExerciseFromTemplate(
-                                      activeWorkout.templateId,
-                                      exercisePosition
-                                    );
-                                  }
-                                  // Then remove from workout
-                                  removeExerciseFromWorkout(workoutExercise.id);
-                                },
-                              });
-                            } else {
-                              // Not from template, delete directly
-                              removeExerciseFromWorkout(workoutExercise.id);
-                            }
-
-                            setOpenKebabMenu(null);
-                          }}
-                        >
-                          <Trash2 size={16} />
-                          Delete Exercise
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {(hasNote(exercise) || editingNoteId === workoutExercise.id) && (
-                  <div className="workout-exercise-note-section">
-                    {editingNoteId === workoutExercise.id ? (
-                      <textarea
-                        className="workout-exercise-note-input"
-                        value={exercise.notes}
-                        onChange={(e) => updateExerciseNote(exercise.id, e.target.value)}
-                        onBlur={() => setEditingNoteId(null)}
-                        placeholder="Add notes..."
-                        autoFocus
-                      />
-                    ) : (
-                      <div
-                        className="workout-exercise-note"
-                        onClick={() => setEditingNoteId(workoutExercise.id)}
-                      >
-                        <Edit3 size={16} className="note-edit-icon" />
-                        <span>{exercise.notes || "Add notes..."}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {workoutExercise.intensityTechnique === "super-set" && (
-                  <p className="workout-technique-summary">
-                    {supersetPartnerExercise
-                      ? `Paired with ${getExerciseById(supersetPartnerExercise.exerciseId)?.name}`
-                      : "Choose a paired exercise"}
-                  </p>
-                )}
-
-                {isIntensityEditorOpen && (
-                  <div
-                    id={`workout-technique-editor-${workoutExercise.id}`}
-                    className="workout-technique-editor workout-technique-panel"
-                    aria-label={`Intensity technique for ${exercise.name}`}
-                  >
-                    <div className="workout-technique-options">
-                      <button
-                        type="button"
-                        className={`workout-technique-option ${workoutExercise.intensityTechnique === null ? "active" : ""}`}
-                        onClick={() => handleWorkoutTechniqueSelection(workoutExercise.id, null)}
-                      >
-                        Standard
-                      </button>
-                      {INTENSITY_TECHNIQUES.map((technique) => (
-                        <button
-                          key={technique}
-                          type="button"
-                          className={`workout-technique-option ${workoutExercise.intensityTechnique === technique ? "active" : ""}`}
-                          onClick={() =>
-                            handleWorkoutTechniqueSelection(workoutExercise.id, technique)
-                          }
-                        >
-                          {intensityTechniqueLabels[technique]}
-                        </button>
-                      ))}
-                    </div>
-
-                    {workoutExercise.intensityTechnique === "super-set" && (
-                      <label className="workout-technique-pairing">
-                        <span className="workout-intensity-label">Paired with</span>
-                        <select
-                          aria-label={`Superset pair for ${exercise.name}`}
-                          value={supersetPartnerId ?? ""}
-                          onChange={(event) => {
-                            updateWorkoutSupersetPair(workoutExercise.id, event.target.value);
-                            setOpenIntensityEditorId(null);
-                          }}
-                        >
-                          <option value="">Select exercise</option>
-                          {getWorkoutSupersetPartnerOptions(workoutExercise.id).map((partner) => {
-                            const partnerExercise = getExerciseById(partner.exerciseId);
-
-                            if (!partnerExercise) {
-                              return null;
-                            }
-
-                            return (
-                              <option key={partner.id} value={partner.id}>
-                                {partnerExercise.name}
-                              </option>
-                            );
-                          })}
-                        </select>
-                      </label>
-                    )}
-                  </div>
-                )}
-
-                {supportsPlateCalculator && isPlateCalculatorOpen && (
-                  <section
-                    id={`plate-calculator-${workoutExercise.id}`}
-                    className="plate-calculator-panel"
-                    aria-label={`${exercise.name} plate calculator`}
-                  >
-                    <div className="plate-calculator-topline">
-                      <div>
-                        <p className="plate-calculator-kicker">Plate Calculator</p>
-                        <h4 className="plate-calculator-title">
-                          {getPlateCalculatorTitle(exercise.exerciseType)}
-                        </h4>
-                      </div>
-                    </div>
-
-                    {workoutExercise.sets.length > 1 && (
-                      <div className="plate-calculator-set-picker" aria-label="Choose set">
-                        {workoutExercise.sets.map((set, index) => {
-                          const isSelected = plateCalculatorTarget?.set.id === set.id;
-
-                          return (
-                            <button
-                              key={set.id}
-                              type="button"
-                              className={`plate-calculator-set-button ${isSelected ? "active" : ""}`}
-                              onClick={() =>
-                                setPlateCalculatorSelections((previous) => ({
-                                  ...previous,
-                                  [workoutExercise.id]: set.id,
-                                }))
-                              }
-                            >
-                              <span className="plate-calculator-set-button-label">
-                                Set {index + 1}
-                              </span>
-                              <span className="plate-calculator-set-button-value">
-                                {set.weight > 0 ? `${formatWeight(set.weight)} lbs` : "No weight"}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {!plateCalculatorTarget || plateCalculatorTarget.set.weight <= 0 ? (
-                      <p className="plate-calculator-message">
-                        Enter a weight on the current set to see the plate stack.
-                      </p>
-                    ) : plateLayout?.status === "bar-only" ? (
-                      <div className="plate-calculator-state">
-                        <div className="plate-calculator-summary-grid">
-                          <div className="plate-calculator-stat">
-                            <span className="plate-calculator-stat-label">Target</span>
-                            <strong>{formatWeight(plateCalculatorTarget.set.weight)} lbs</strong>
-                          </div>
-                          <div className="plate-calculator-stat">
-                            <span className="plate-calculator-stat-label">Load</span>
-                            <strong>Bar only</strong>
-                          </div>
-                        </div>
-                        <p className="plate-calculator-message">
-                          No plates needed. Just use the empty bar.
-                        </p>
-                      </div>
-                    ) : plateLayout?.status === "below-bar" ? (
-                      <div className="plate-calculator-state">
-                        <div className="plate-calculator-summary-grid">
-                          <div className="plate-calculator-stat">
-                            <span className="plate-calculator-stat-label">Target</span>
-                            <strong>{formatWeight(plateCalculatorTarget.set.weight)} lbs</strong>
-                          </div>
-                          <div className="plate-calculator-stat">
-                            <span className="plate-calculator-stat-label">Closest</span>
-                            <strong>{STANDARD_BARBELL_WEIGHT} lbs</strong>
-                          </div>
-                        </div>
-                        <p className="plate-calculator-message">
-                          This is lighter than a standard barbell. The lowest load here is 45 lbs.
-                        </p>
-                      </div>
-                    ) : plateLayout?.status === "unloadable" ? (
-                      <div className="plate-calculator-state">
-                        <div className="plate-calculator-summary-grid">
-                          <div className="plate-calculator-stat">
-                            <span className="plate-calculator-stat-label">Target</span>
-                            <strong>{formatWeight(plateCalculatorTarget.set.weight)} lbs</strong>
-                          </div>
-                          <div className="plate-calculator-stat">
-                            <span className="plate-calculator-stat-label">Closest</span>
-                            <strong>{formatWeight(plateLayout.nearestLoadableWeight)} lbs</strong>
-                          </div>
-                        </div>
-                        <p className="plate-calculator-message">
-                          Standard plates load in 5 lb jumps. Round to the nearest loadable weight.
-                        </p>
-                      </div>
-                    ) : plateLayout ? (
-                      <div className="plate-calculator-state">
-                        <div className="plate-visual" aria-hidden="true">
-                          <div className="plate-visual-sleeve" />
-                          <div className="plate-stack plate-stack-left">
-                            {[...plateLayout.plates].reverse().map((plate, index) => (
-                              <div
-                                key={`left-${plate.weight}-${index}`}
-                                className={`plate-visual-plate ${plate.className}`}
-                                style={{ width: `${plate.width}px`, height: `${plate.height}px` }}
-                              >
-                                <span
-                                  className={`plate-visual-label ${plate.width <= 30 ? "compact" : ""}`}
-                                >
-                                  {formatWeight(plate.weight)}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                          <div className="plate-visual-collar" />
-                          <div className="plate-visual-center" />
-                          <div className="plate-visual-collar" />
-                          <div className="plate-stack plate-stack-right">
-                            {plateLayout.plates.map((plate, index) => (
-                              <div
-                                key={`right-${plate.weight}-${index}`}
-                                className={`plate-visual-plate ${plate.className}`}
-                                style={{ width: `${plate.width}px`, height: `${plate.height}px` }}
-                              >
-                                <span
-                                  className={`plate-visual-label ${plate.width <= 30 ? "compact" : ""}`}
-                                >
-                                  {formatWeight(plate.weight)}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                          <div className="plate-visual-sleeve" />
-                        </div>
-                      </div>
-                    ) : null}
-                  </section>
-                )}
-
-                <div className="sets-container">
-                  <div
-                    className={`sets-header ${exercise.exerciseType === "bodyweight" ? "bodyweight" : ""}`}
-                  >
-                    <span className="set-col-num"></span>
-                    {exercise.exerciseType !== "bodyweight" && (
-                      <span className="set-col-weight text-uppercase">Weight</span>
-                    )}
-                    <span className="set-col-reps text-uppercase">Reps</span>
-                    <span className="set-col-done text-uppercase">Log</span>
-                  </div>
-                  {workoutExercise.sets.map((set, setIndex) => {
-                    const lastSet = lastSets?.[setIndex];
-
-                    return (
-                      <SetRow
-                        key={set.id}
-                        set={set}
-                        onUpdate={(updates) => updateSet(workoutExercise.id, set.id, updates)}
-                        onRemove={() => removeSet(workoutExercise.id, set.id)}
-                        canRemove={workoutExercise.sets.length > 1}
-                        exerciseType={exercise.exerciseType}
-                        placeholderWeight={lastSet?.weight}
-                        placeholderReps={lastSet?.reps}
-                      />
-                    );
-                  })}
-                </div>
-
-                <button className="add-set-btn" onClick={() => addSet(workoutExercise.id)}>
-                  <Plus size={16} />
-                  Add Set
-                </button>
-              </div>
+              <WorkoutExerciseCard
+                key={workoutExercise.id}
+                workoutExercise={workoutExercise}
+                exercise={exercise}
+                allWorkoutExercises={activeWorkout.exercises}
+                exerciseLookup={exercisesById}
+                exerciseIndex={exerciseIndex}
+                totalExerciseCount={activeWorkout.exercises.length}
+                lastPerformedSets={lastPerformedSetsByExerciseId[workoutExercise.exerciseId]}
+                supersetDisplayLabels={supersetDisplayLabels}
+                isKebabMenuOpen={openKebabMenu === workoutExercise.id}
+                isIntensityEditorOpen={openIntensityEditorId === workoutExercise.id}
+                isPlateCalculatorOpen={openPlateCalculatorId === workoutExercise.id}
+                isNoteEditorOpen={editingNoteId === workoutExercise.id}
+                selectedPlateCalculatorSetId={plateCalculatorSelections[workoutExercise.id]}
+                onViewHistory={() => handleViewHistory(exercise.id)}
+                onToggleKebabMenu={() => toggleKebabMenu(workoutExercise.id)}
+                onToggleIntensityEditor={() => toggleIntensityEditor(workoutExercise.id)}
+                onTogglePlateCalculator={(defaultSetId) =>
+                  togglePlateCalculator(workoutExercise.id, defaultSetId)
+                }
+                onSelectPlateCalculatorSet={(setId) =>
+                  selectPlateCalculatorSet(workoutExercise.id, setId)
+                }
+                onStartEditingNote={() => addNoteToExercise(workoutExercise.id)}
+                onStopEditingNote={() => setEditingNoteId(null)}
+                onChangeNote={(noteText) => updateExerciseNote(exercise.id, noteText)}
+                onDeleteNote={() => deleteNoteFromExercise(exercise.id)}
+                onSkipRemainingSets={() => {
+                  skipRemainingSets(workoutExercise.id);
+                  setOpenKebabMenu(null);
+                }}
+                onMoveExercise={(direction) => moveWorkoutExercise(workoutExercise.id, direction)}
+                onReplaceExercise={() => handleReplaceExercise(workoutExercise.id)}
+                onDeleteExercise={() => deleteWorkoutExercise(workoutExercise.id)}
+                onSetIntensityTechnique={(intensityTechnique) =>
+                  handleWorkoutTechniqueSelection(workoutExercise.id, intensityTechnique)
+                }
+                onSetSupersetPartner={(partnerWorkoutExerciseId) => {
+                  updateWorkoutSupersetPair(workoutExercise.id, partnerWorkoutExerciseId);
+                  setOpenIntensityEditorId(null);
+                }}
+                onUpdateSet={(setId, updates) => updateSet(workoutExercise.id, setId, updates)}
+                onRemoveSet={(setId) => removeSet(workoutExercise.id, setId)}
+                onAddSet={() => addSet(workoutExercise.id)}
+              />
             );
           })
         )}
@@ -1646,11 +1107,11 @@ export function WorkoutPage(): React.ReactElement {
 
         <button
           className={
-            allSetsCompleted() ? "btn btn-primary finish-btn" : "btn btn-secondary finish-btn"
+            isWorkoutReadyToFinish ? "btn btn-primary finish-btn" : "btn btn-secondary finish-btn"
           }
-          onClick={allSetsCompleted() ? finishWorkout : cancelWorkout}
+          onClick={isWorkoutReadyToFinish ? finishWorkout : cancelWorkout}
         >
-          {allSetsCompleted() ? (
+          {isWorkoutReadyToFinish ? (
             <>
               <Check size={20} strokeWidth={2.5} />
               Finish Workout

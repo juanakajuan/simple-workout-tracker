@@ -42,10 +42,12 @@ class MockResizeObserver {
 
 const mockStorage = new MockStorage();
 
-function setLS(key: string, value: unknown) {
+/** Stores a JSON-serializable value in mock localStorage. */
+function setLS(key: string, value: unknown): void {
   mockStorage.setItem(key, JSON.stringify(value));
 }
 
+/** Reads and parses a JSON value from mock localStorage. */
 function getLS<T>(key: string): T | null {
   const raw = mockStorage.getItem(key);
   return raw ? (JSON.parse(raw) as T) : null;
@@ -88,6 +90,30 @@ function renderExerciseForm(initialEntry: InitialEntry) {
   );
 }
 
+type ExerciseFormInputValues = {
+  name: string;
+  exerciseType: string;
+  muscleGroup: string;
+  notes: string;
+};
+
+/** Fills the editable exercise form fields with the provided values. */
+function fillExerciseForm(inputValues: ExerciseFormInputValues): void {
+  fireEvent.change(screen.getByLabelText("Name"), { target: { value: inputValues.name } });
+  fireEvent.change(screen.getByLabelText("Exercise Type"), {
+    target: { value: inputValues.exerciseType },
+  });
+  fireEvent.change(screen.getByLabelText("Muscle Group"), {
+    target: { value: inputValues.muscleGroup },
+  });
+  fireEvent.change(screen.getByLabelText("Notes"), { target: { value: inputValues.notes } });
+}
+
+/** Returns the current route state captured by the test router. */
+function getCurrentRouteState<T>(): T {
+  return JSON.parse(screen.getByTestId("location-state").textContent ?? "null") as T;
+}
+
 describe("ExerciseFormPage", () => {
   beforeEach(() => {
     mockStorage.clear();
@@ -115,17 +141,25 @@ describe("ExerciseFormPage", () => {
       },
     });
 
-    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Cable Row" } });
-    fireEvent.change(screen.getByLabelText("Exercise Type"), { target: { value: "cable" } });
-    fireEvent.change(screen.getByLabelText("Muscle Group"), { target: { value: "back" } });
-    fireEvent.change(screen.getByLabelText("Notes"), { target: { value: "Lead with elbows" } });
+    fillExerciseForm({
+      name: "Cable Row",
+      exerciseType: "cable",
+      muscleGroup: "back",
+      notes: "Lead with elbows",
+    });
     fireEvent.click(screen.getByRole("button", { name: /add/i }));
 
     await waitFor(() => {
       expect(screen.getByTestId("location-path").textContent).toBe("/workout/select-exercise");
     });
 
-    expect(JSON.parse(screen.getByTestId("location-state").textContent ?? "null")).toMatchObject({
+    expect(
+      getCurrentRouteState<{
+        templateUpdateChecked: boolean;
+        appendTemplateExercise: boolean;
+        savedExerciseId: string;
+      }>()
+    ).toMatchObject({
       templateUpdateChecked: true,
       appendTemplateExercise: true,
       savedExerciseId: expect.any(String),
@@ -158,19 +192,19 @@ describe("ExerciseFormPage", () => {
       state: { ignoredByExercisesReturn: true },
     });
 
-    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Incline Chest Press" } });
-    fireEvent.change(screen.getByLabelText("Exercise Type"), {
-      target: { value: "machine-assistance" },
+    fillExerciseForm({
+      name: "Incline Chest Press",
+      exerciseType: "machine-assistance",
+      muscleGroup: "shoulders",
+      notes: "Controlled tempo",
     });
-    fireEvent.change(screen.getByLabelText("Muscle Group"), { target: { value: "shoulders" } });
-    fireEvent.change(screen.getByLabelText("Notes"), { target: { value: "Controlled tempo" } });
     fireEvent.click(screen.getByRole("button", { name: /^save$/i }));
 
     await waitFor(() => {
       expect(screen.getByTestId("location-path").textContent).toBe("/exercises");
     });
 
-    expect(JSON.parse(screen.getByTestId("location-state").textContent ?? "null")).toEqual({
+    expect(getCurrentRouteState<{ savedExerciseId: string }>()).toEqual({
       savedExerciseId: "exercise-1",
     });
     expect(getLS<Exercise[]>(STORAGE_KEYS.EXERCISES)).toEqual([
@@ -221,7 +255,7 @@ describe("ExerciseFormPage", () => {
       expect(screen.getByTestId("location-path").textContent).toBe("/workout/select-exercise");
     });
 
-    expect(JSON.parse(screen.getByTestId("location-state").textContent ?? "null")).toMatchObject({
+    expect(getCurrentRouteState<{ fromSelector: boolean; savedExerciseId: string }>()).toMatchObject({
       fromSelector: true,
       savedExerciseId: "default-bench-press-medium-grip",
     });
@@ -342,14 +376,19 @@ describe("ExerciseFormPage", () => {
       expect(screen.getByTestId("location-path").textContent).toBe("/workout/select-exercise");
     });
 
-    expect(JSON.parse(screen.getByTestId("location-state").textContent ?? "null")).toMatchObject({
+    expect(
+      getCurrentRouteState<{ templateUpdateChecked: boolean; deletedExerciseId: string }>()
+    ).toMatchObject({
       templateUpdateChecked: false,
       deletedExerciseId: "exercise-2",
     });
     expect(getLS<Exercise[]>(STORAGE_KEYS.EXERCISES)).toEqual([
       expect.objectContaining({ id: "exercise-press" }),
     ]);
-    expect(getLS(STORAGE_KEYS.ACTIVE_WORKOUT)).toMatchObject({
+    const activeWorkout = getLS<{ exercises: Array<Record<string, unknown>> }>(
+      STORAGE_KEYS.ACTIVE_WORKOUT
+    );
+    expect(activeWorkout).toMatchObject({
       exercises: [
         {
           id: "active-press",
@@ -357,14 +396,8 @@ describe("ExerciseFormPage", () => {
         },
       ],
     });
-    expect(
-      getLS<{ exercises: Array<Record<string, unknown>> }>(STORAGE_KEYS.ACTIVE_WORKOUT)
-        ?.exercises[0]
-    ).not.toHaveProperty("intensityTechnique");
-    expect(
-      getLS<{ exercises: Array<Record<string, unknown>> }>(STORAGE_KEYS.ACTIVE_WORKOUT)
-        ?.exercises[0]
-    ).not.toHaveProperty("supersetGroupId");
+    expect(activeWorkout?.exercises[0]).not.toHaveProperty("intensityTechnique");
+    expect(activeWorkout?.exercises[0]).not.toHaveProperty("supersetGroupId");
     expect(getLS(STORAGE_KEYS.TEMPLATES)).toEqual([
       {
         id: "template-1",
@@ -384,16 +417,11 @@ describe("ExerciseFormPage", () => {
         ],
       },
     ]);
-    expect(
-      getLS<{ muscleGroups: Array<{ exercises: Array<Record<string, unknown>> }> }[]>(
-        STORAGE_KEYS.TEMPLATES
-      )?.[0].muscleGroups[0].exercises[0]
-    ).not.toHaveProperty("intensityTechnique");
-    expect(
-      getLS<{ muscleGroups: Array<{ exercises: Array<Record<string, unknown>> }> }[]>(
-        STORAGE_KEYS.TEMPLATES
-      )?.[0].muscleGroups[0].exercises[0]
-    ).not.toHaveProperty("supersetGroupId");
+    const templates = getLS<{
+      muscleGroups: Array<{ exercises: Array<Record<string, unknown>> }>;
+    }[]>(STORAGE_KEYS.TEMPLATES);
+    expect(templates?.[0].muscleGroups[0].exercises[0]).not.toHaveProperty("intensityTechnique");
+    expect(templates?.[0].muscleGroups[0].exercises[0]).not.toHaveProperty("supersetGroupId");
     expect(getLS(STORAGE_KEYS.WORKOUTS)).toEqual([
       expect.objectContaining({
         id: "completed-workout",

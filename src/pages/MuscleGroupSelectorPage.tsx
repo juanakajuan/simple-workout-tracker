@@ -22,6 +22,10 @@ const MUSCLE_GROUP_CATEGORIES: { label: string; groups: MuscleGroup[] }[] = [
 
 const TAP_MOVE_THRESHOLD = 10;
 
+interface MuscleGroupSelectorLocationState {
+  existingMuscleGroups?: MuscleGroup[];
+}
+
 interface TouchGestureState {
   pointerId: number;
   startX: number;
@@ -33,12 +37,14 @@ export function MuscleGroupSelectorPage(): React.ReactElement {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const state = location.state as { existingMuscleGroups?: MuscleGroup[] } | null;
+  const state = location.state as MuscleGroupSelectorLocationState | null;
   const existingMuscleGroups = state?.existingMuscleGroups ?? [];
 
   const [selectedGroups, setSelectedGroups] = useState<MuscleGroup[]>(existingMuscleGroups);
   const lastTouchInteractionRef = useRef(0);
   const touchGestureRef = useRef<TouchGestureState | null>(null);
+  const selectedGroupSet = new Set(selectedGroups);
+  const existingGroupSet = new Set(existingMuscleGroups);
 
   /**
    * Toggles the selection state of a muscle group.
@@ -48,15 +54,17 @@ export function MuscleGroupSelectorPage(): React.ReactElement {
    */
   const toggleSelection = (group: MuscleGroup) => {
     setSelectedGroups((prev) => {
-      if (prev.includes(group)) {
-        return prev.filter((g) => g !== group);
-      } else {
-        return [...prev, group];
-      }
+      return prev.includes(group) ? prev.filter((selectedGroup) => selectedGroup !== group) : [...prev, group];
     });
   };
 
-  const hasRecentTouchInteraction = (timeStamp: number) =>
+  /**
+   * Detects synthetic click events fired immediately after a touch interaction.
+   *
+   * @param timeStamp - Event timestamp from the click event
+   * @returns True when the click should be ignored
+   */
+  const hasRecentTouchInteraction = (timeStamp: number): boolean =>
     timeStamp - lastTouchInteractionRef.current < 500;
 
   const handleTouchPointerDown = (event: PointerEvent<HTMLButtonElement>) => {
@@ -92,20 +100,41 @@ export function MuscleGroupSelectorPage(): React.ReactElement {
     }
   };
 
-  const handleOptionPointerUp = (group: MuscleGroup, event: PointerEvent<HTMLButtonElement>) => {
-    if (event.pointerType !== "touch") return;
+  /**
+   * Finalizes a touch tap and prevents the follow-up synthetic click.
+   *
+   * @param event - Pointer event for the tap interaction
+   * @returns True when the interaction should trigger its action
+   */
+  const shouldHandleTouchTap = (event: PointerEvent<HTMLButtonElement>): boolean => {
+    if (event.pointerType !== "touch") return false;
 
     const gesture = touchGestureRef.current;
     touchGestureRef.current = null;
-    if (!gesture || gesture.pointerId !== event.pointerId || gesture.moved) return;
+    if (!gesture || gesture.pointerId !== event.pointerId || gesture.moved) return false;
 
     lastTouchInteractionRef.current = event.timeStamp;
     event.preventDefault();
+    return true;
+  };
+
+  /**
+   * Ignores mouse clicks generated from a recent touch interaction.
+   *
+   * @param event - Mouse event fired by the button
+   * @returns True when the click should be ignored
+   */
+  const shouldIgnoreClickAfterTouch = (event: MouseEvent<HTMLButtonElement>): boolean => {
+    return event.detail !== 0 && hasRecentTouchInteraction(event.timeStamp);
+  };
+
+  const handleOptionPointerUp = (group: MuscleGroup, event: PointerEvent<HTMLButtonElement>) => {
+    if (!shouldHandleTouchTap(event)) return;
     toggleSelection(group);
   };
 
   const handleOptionClick = (group: MuscleGroup, event: MouseEvent<HTMLButtonElement>) => {
-    if (event.detail !== 0 && hasRecentTouchInteraction(event.timeStamp)) return;
+    if (shouldIgnoreClickAfterTouch(event)) return;
     toggleSelection(group);
   };
 
@@ -117,17 +146,15 @@ export function MuscleGroupSelectorPage(): React.ReactElement {
    */
   const handleSelectAll = (categoryGroups: MuscleGroup[]) => {
     setSelectedGroups((prev) => {
-      // Check if all groups in this category are already selected
-      const allSelected = categoryGroups.every((g) => prev.includes(g));
+      const previousGroupSet = new Set(prev);
+      const allSelected = categoryGroups.every((group) => previousGroupSet.has(group));
 
       if (allSelected) {
-        // Deselect all groups from this category
-        return prev.filter((g) => !categoryGroups.includes(g));
-      } else {
-        // Select all groups from this category that aren't already selected
-        const newGroups = categoryGroups.filter((g) => !prev.includes(g));
-        return [...prev, ...newGroups];
+        return prev.filter((group) => !categoryGroups.includes(group));
       }
+
+      const groupsToAdd = categoryGroups.filter((group) => !previousGroupSet.has(group));
+      return [...prev, ...groupsToAdd];
     });
   };
 
@@ -135,14 +162,7 @@ export function MuscleGroupSelectorPage(): React.ReactElement {
     categoryGroups: MuscleGroup[],
     event: PointerEvent<HTMLButtonElement>
   ) => {
-    if (event.pointerType !== "touch") return;
-
-    const gesture = touchGestureRef.current;
-    touchGestureRef.current = null;
-    if (!gesture || gesture.pointerId !== event.pointerId || gesture.moved) return;
-
-    lastTouchInteractionRef.current = event.timeStamp;
-    event.preventDefault();
+    if (!shouldHandleTouchTap(event)) return;
     handleSelectAll(categoryGroups);
   };
 
@@ -150,7 +170,7 @@ export function MuscleGroupSelectorPage(): React.ReactElement {
     categoryGroups: MuscleGroup[],
     event: MouseEvent<HTMLButtonElement>
   ) => {
-    if (event.detail !== 0 && hasRecentTouchInteraction(event.timeStamp)) return;
+    if (shouldIgnoreClickAfterTouch(event)) return;
     handleSelectAll(categoryGroups);
   };
 
@@ -161,17 +181,7 @@ export function MuscleGroupSelectorPage(): React.ReactElement {
    * @returns True if all groups are selected
    */
   const areAllSelected = (categoryGroups: MuscleGroup[]): boolean => {
-    return categoryGroups.every((g) => selectedGroups.includes(g));
-  };
-
-  /**
-   * Checks if a muscle group is already added to the current day.
-   *
-   * @param group - The muscle group to check
-   * @returns True if the group is already added
-   */
-  const isAlreadyAdded = (group: MuscleGroup): boolean => {
-    return existingMuscleGroups.includes(group);
+    return categoryGroups.every((group) => selectedGroupSet.has(group));
   };
 
   /**
@@ -202,8 +212,8 @@ export function MuscleGroupSelectorPage(): React.ReactElement {
               </button>
             </div>
             {category.groups.map((group) => {
-              const isSelected = selectedGroups.includes(group);
-              const alreadyAdded = isAlreadyAdded(group);
+              const isSelected = selectedGroupSet.has(group);
+              const isExistingGroup = existingGroupSet.has(group);
 
               return (
                 <button
@@ -223,7 +233,7 @@ export function MuscleGroupSelectorPage(): React.ReactElement {
                       style={{ backgroundColor: muscleGroupColors[group] }}
                     />
                     <span className="muscle-group-name">{muscleGroupLabels[group]}</span>
-                    {alreadyAdded && <span className="already-added-badge">Added</span>}
+                    {isExistingGroup && <span className="already-added-badge">Added</span>}
                   </div>
                 </button>
               );

@@ -48,8 +48,10 @@ interface TemplateSelectionTarget {
 interface TemplateEditorLocationState {
   selectedExerciseId?: string;
   appendTemplateExercise?: boolean;
+  initialMuscleGroup?: Exercise["muscleGroup"];
   templateSelectionTarget?: TemplateSelectionTarget;
   templateDraft?: WorkoutTemplateDraft;
+  templateUpdateChecked?: boolean;
 }
 
 function flattenTemplateMuscleGroups(muscleGroups: TemplateMuscleGroup[]): TemplateExercise[] {
@@ -283,7 +285,7 @@ export function TemplateEditorPage(): React.ReactElement {
   const nameInputRef = useAutoFitText<HTMLInputElement>(name || "Enter template name...");
   const handledSelectionRef = useRef<string | null>(null);
 
-  const allExercises = DEFAULT_EXERCISES.map((defaultExercise) => {
+  const availableExercises = DEFAULT_EXERCISES.map((defaultExercise) => {
     const userOverride = exercises.find((exercise) => exercise.id === defaultExercise.id);
     return userOverride || defaultExercise;
   }).concat(exercises.filter((exercise) => !exercise.id.startsWith("default-")));
@@ -308,10 +310,10 @@ export function TemplateEditorPage(): React.ReactElement {
   useEffect(() => {
     if (!location.state) return;
 
-    const state = location.state as TemplateEditorLocationState;
+    const editorLocationState = location.state as TemplateEditorLocationState;
 
-    const selectionKey = state.selectedExerciseId
-      ? `${location.key}:${state.selectedExerciseId}:${state.templateSelectionTarget?.templateExerciseId ?? "append"}`
+    const selectionKey = editorLocationState.selectedExerciseId
+      ? `${location.key}:${editorLocationState.selectedExerciseId}:${editorLocationState.templateSelectionTarget?.templateExerciseId ?? "append"}`
       : null;
 
     if (!selectionKey || handledSelectionRef.current === selectionKey) {
@@ -319,26 +321,23 @@ export function TemplateEditorPage(): React.ReactElement {
     }
 
     handledSelectionRef.current = selectionKey;
+    navigate(location.pathname, { replace: true, state: {} });
 
-    if (state.selectedExerciseId && state.templateSelectionTarget) {
-      navigate(location.pathname, { replace: true, state: {} });
-
+    if (editorLocationState.selectedExerciseId && editorLocationState.templateSelectionTarget) {
       dispatchTemplateExercises({
         type: "replaceExercise",
-        templateExerciseId: state.templateSelectionTarget.templateExerciseId,
-        exerciseId: state.selectedExerciseId,
+        templateExerciseId: editorLocationState.templateSelectionTarget.templateExerciseId,
+        exerciseId: editorLocationState.selectedExerciseId,
       });
       return;
     }
 
-    if (state.selectedExerciseId && state.appendTemplateExercise) {
-      navigate(location.pathname, { replace: true, state: {} });
-
+    if (editorLocationState.selectedExerciseId && editorLocationState.appendTemplateExercise) {
       dispatchTemplateExercises({
         type: "appendExercise",
         templateExercise: {
           id: generateId(),
-          exerciseId: state.selectedExerciseId,
+          exerciseId: editorLocationState.selectedExerciseId,
           setCount: 3,
         },
       });
@@ -346,12 +345,38 @@ export function TemplateEditorPage(): React.ReactElement {
     }
   }, [location.key, location.pathname, location.state, navigate]);
 
+  /** Preserves current in-progress changes while navigating to exercise selection. */
   const createDraftSnapshot = (): WorkoutTemplateDraft => ({
     name,
     exercises: templateExercises.map((exercise) => ({ ...exercise })),
   });
 
-  const saveTemplate = () => {
+  const getExerciseSelectionPath = (): string => {
+    return isEditMode ? `/templates/edit/${id}/select-exercise` : "/templates/new/select-exercise";
+  };
+
+  /** Navigates to the exercise picker while keeping the current editor draft in route state. */
+  const openExerciseSelection = (selectionState: TemplateEditorLocationState): void => {
+    const templateDraft = createDraftSnapshot();
+
+    navigate(location.pathname, {
+      replace: true,
+      state: { templateDraft },
+      flushSync: true,
+    });
+
+    queueMicrotask(() => {
+      navigate(getExerciseSelectionPath(), {
+        state: {
+          exercises: availableExercises,
+          templateDraft,
+          ...selectionState,
+        },
+      });
+    });
+  };
+
+  const saveTemplate = (): void => {
     const trimmedName = name.trim();
     if (!trimmedName) {
       setNameError("Please enter a template name");
@@ -380,7 +405,7 @@ export function TemplateEditorPage(): React.ReactElement {
     const savedTemplate: WorkoutTemplate = {
       id: isEditMode ? id! : generateId(),
       name: trimmedName,
-      muscleGroups: buildTemplateMuscleGroups(cleanedExercises, allExercises),
+      muscleGroups: buildTemplateMuscleGroups(cleanedExercises, availableExercises),
     };
 
     const existingIndex = templates.findIndex((template) => template.id === savedTemplate.id);
@@ -401,79 +426,44 @@ export function TemplateEditorPage(): React.ReactElement {
     navigate("/templates");
   };
 
-  const handleAddExercise = () => {
+  const handleAddExercise = (): void => {
     setError("");
 
-    const draft = createDraftSnapshot();
-    navigate(location.pathname, {
-      replace: true,
-      state: { templateDraft: draft },
-      flushSync: true,
-    });
-
-    const path = isEditMode
-      ? `/templates/edit/${id}/select-exercise`
-      : "/templates/new/select-exercise";
-    queueMicrotask(() => {
-      navigate(path, {
-        state: {
-          exercises: allExercises,
-          appendTemplateExercise: true,
-          templateDraft: draft,
-        },
-      });
-    });
+    openExerciseSelection({ appendTemplateExercise: true });
   };
 
-  const removeExercise = (templateExerciseId: string) => {
+  const removeExercise = (templateExerciseId: string): void => {
     dispatchTemplateExercises({ type: "removeExercise", templateExerciseId });
   };
 
-  const moveExercise = (templateExerciseId: string, direction: "up" | "down") => {
+  const moveExercise = (templateExerciseId: string, direction: "up" | "down"): void => {
     dispatchTemplateExercises({ type: "moveExercise", templateExerciseId, direction });
   };
 
-  const handleSelectExercise = (templateExerciseId: string) => {
+  const handleSelectExercise = (templateExerciseId: string): void => {
     setError("");
-
-    const draft = createDraftSnapshot();
-    navigate(location.pathname, {
-      replace: true,
-      state: { templateDraft: draft },
-      flushSync: true,
-    });
-
-    const path = isEditMode
-      ? `/templates/edit/${id}/select-exercise`
-      : "/templates/new/select-exercise";
     const templateExercise = templateExercises.find(
       (exercise) => exercise.id === templateExerciseId
     );
     const currentExercise = getExerciseById(templateExercise?.exerciseId ?? null);
 
-    queueMicrotask(() => {
-      navigate(path, {
-        state: {
-          exercises: allExercises,
-          initialMuscleGroup: currentExercise?.muscleGroup,
-          templateUpdateChecked: true,
-          templateDraft: draft,
-          templateSelectionTarget: {
-            templateExerciseId,
-          },
-        },
-      });
+    openExerciseSelection({
+      initialMuscleGroup: currentExercise?.muscleGroup,
+      templateSelectionTarget: {
+        templateExerciseId,
+      },
+      templateUpdateChecked: true,
     });
   };
 
-  const getExerciseById = (exerciseId: string | null) => {
+  const getExerciseById = (exerciseId: string | null): Exercise | null => {
     if (!exerciseId) return null;
-    return allExercises.find((exercise) => exercise.id === exerciseId) ?? null;
+    return availableExercises.find((exercise) => exercise.id === exerciseId) ?? null;
   };
 
   const supersetDisplayLabels = getSupersetDisplayLabels(templateExercises);
 
-  const getSupersetPartnerOptions = (templateExerciseId: string) => {
+  const getSupersetPartnerOptions = (templateExerciseId: string): TemplateExercise[] => {
     return templateExercises.filter(
       (exercise) => exercise.id !== templateExerciseId && exercise.exerciseId !== null
     );
@@ -491,7 +481,7 @@ export function TemplateEditorPage(): React.ReactElement {
     });
   };
 
-  const updateSupersetPair = (templateExerciseId: string, partnerTemplateExerciseId: string) => {
+  const updateSupersetPair = (templateExerciseId: string, partnerTemplateExerciseId: string): void => {
     setError("");
 
     if (!partnerTemplateExerciseId) {
@@ -509,7 +499,7 @@ export function TemplateEditorPage(): React.ReactElement {
     });
   };
 
-  const updateSetCount = (templateExerciseId: string, delta: number) => {
+  const updateSetCount = (templateExerciseId: string, delta: number): void => {
     dispatchTemplateExercises({ type: "updateSetCount", templateExerciseId, delta });
   };
 

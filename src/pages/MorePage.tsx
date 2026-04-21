@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Settings, ChevronRight, Download, Upload } from "lucide-react";
 
@@ -18,8 +18,8 @@ import "./MorePage.css";
 export function MorePage(): React.ReactElement {
   const navigate = useNavigate();
   const { showAlert, showConfirm } = useAppDialog();
-  const [hasRecentUpdate] = useState(() => hasUnseenAppUpdate());
-  const buildTimestampLabel = useMemo(() => formatBuildTimestamp(APP_RELEASE.builtAt), []);
+  const [hasDetectedRecentUpdate] = useState(() => hasUnseenAppUpdate());
+  const buildTimestampLabel = formatBuildTimestamp(APP_RELEASE.builtAt);
 
   useEffect(() => {
     markCurrentBuildAsSeen();
@@ -29,7 +29,7 @@ export function MorePage(): React.ReactElement {
    * Handles exporting all user data to a JSON file.
    * Generates a backup file and triggers browser download.
    */
-  const handleExport = async () => {
+  const handleExport = async (): Promise<void> => {
     try {
       const data = exportAllData();
       downloadDataFile(data);
@@ -47,45 +47,55 @@ export function MorePage(): React.ReactElement {
    * Handles importing user data from a JSON file.
    * Warns user if active workout exists, validates file, and replaces all data.
    */
-  const handleImport = async () => {
-    if (hasActiveWorkout()) {
+  const handleImport = async (): Promise<void> => {
+    const importWarnings = hasActiveWorkout()
+      ? [
+          {
+            title: "Replace active workout?",
+            message:
+              "You have an active workout in progress. Importing data will replace it. Do you want to continue?",
+            confirmText: "Continue",
+          },
+          {
+            title: "Replace all data?",
+            message:
+              "This will replace all your current data with the imported data. This action cannot be undone.",
+            confirmText: "Import",
+          },
+        ]
+      : [
+          {
+            title: "Replace all data?",
+            message:
+              "This will replace all your current data with the imported data. This action cannot be undone.",
+            confirmText: "Import",
+          },
+        ];
+
+    for (const importWarning of importWarnings) {
       const { confirmed } = await showConfirm({
-        title: "Replace active workout?",
-        message:
-          "You have an active workout in progress. Importing data will replace it. Do you want to continue?",
-        confirmText: "Continue",
+        ...importWarning,
         cancelText: "Cancel",
         variant: "danger",
       });
+
       if (!confirmed) {
         return;
       }
     }
 
-    const { confirmed } = await showConfirm({
-      title: "Replace all data?",
-      message:
-        "This will replace all your current data with the imported data. This action cannot be undone.",
-      confirmText: "Import",
-      cancelText: "Cancel",
-      variant: "danger",
-    });
-    if (!confirmed) {
-      return;
-    }
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = ".json";
 
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".json";
-
-    input.onchange = async (event) => {
-      const file = (event.target as HTMLInputElement).files?.[0];
-      if (!file) {
+    fileInput.onchange = async (event: Event): Promise<void> => {
+      const selectedFile = (event.target as HTMLInputElement).files?.[0];
+      if (!selectedFile) {
         return;
       }
 
       try {
-        const fileContent = await file.text();
+        const fileContent = await selectedFile.text();
         importAllData(fileContent);
 
         await showAlert({
@@ -106,7 +116,7 @@ export function MorePage(): React.ReactElement {
       }
     };
 
-    input.click();
+    fileInput.click();
   };
 
   return (
@@ -118,13 +128,13 @@ export function MorePage(): React.ReactElement {
           <div className="more-version-card">
             <div className="more-version-header">
               <p className="more-version-label">App Version</p>
-              {hasRecentUpdate ? <span className="more-version-badge">Updated</span> : null}
+              {hasDetectedRecentUpdate ? <span className="more-version-badge">Updated</span> : null}
             </div>
 
             <p className="more-version-value">v{APP_RELEASE.version}</p>
             <p className="more-version-meta">Build {APP_RELEASE.buildId}</p>
             <p className="more-version-status">
-              {hasRecentUpdate
+              {hasDetectedRecentUpdate
                 ? `This device picked up a newer build at ${buildTimestampLabel} since your last visit here.`
                 : `Built ${buildTimestampLabel}. This card will flag when a newer build is installed on this device.`}
             </p>

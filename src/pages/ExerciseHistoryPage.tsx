@@ -40,13 +40,25 @@ export function ExerciseHistoryPage(): React.ReactElement | null {
   const workoutHistory = getExerciseHistory(exercise.id);
 
   /**
+   * Finds this exercise's entry within a workout.
+   *
+   * @param workout - Workout that may contain the exercise
+   * @returns Matching workout exercise entry when present
+   */
+  const getWorkoutExercise = (workout: Workout): Workout["exercises"][number] | undefined => {
+    return workout.exercises.find(
+      (workoutExercise) => workoutExercise.exerciseId === exercise.id
+    );
+  };
+
+  /**
    * Formats a date string into a human-readable format. Returns "Today" or
    * "Yesterday" for recent dates, otherwise returns a formatted date string.
    *
    * @param dateString - ISO date string to format
    * @returns Formatted date string
    */
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
     const today = new Date();
     const yesterday = new Date(today);
@@ -74,7 +86,7 @@ export function ExerciseHistoryPage(): React.ReactElement | null {
    * @returns Total volume (weight × reps summed across all sets) in lbs
    */
   const getExerciseVolume = (workout: Workout): number => {
-    const workoutExercise = workout.exercises.find((ex) => ex.exerciseId === exercise.id);
+    const workoutExercise = getWorkoutExercise(workout);
     if (!workoutExercise) return 0;
 
     return workoutExercise.sets.reduce((accumulator, set) => {
@@ -86,28 +98,29 @@ export function ExerciseHistoryPage(): React.ReactElement | null {
   };
 
   /**
-   * Calculates the total number of completed sets for this exercise.
+   * Calculates summary stats across all workouts for this exercise.
    *
-   * @returns Total completed sets across all workouts
+   * @returns Completed set count and total volume
    */
-  const getTotalSets = (): number => {
-    return workoutHistory.reduce((accumulator, workout) => {
-      const workoutExercise = workout.exercises.find((ex) => ex.exerciseId === exercise.id);
-      if (!workoutExercise) return accumulator;
-      return accumulator + workoutExercise.sets.filter((set) => set.completed).length;
-    }, 0);
-  };
+  const historySummary = workoutHistory.reduce(
+    (accumulator, workout) => {
+      const workoutExercise = getWorkoutExercise(workout);
+      if (!workoutExercise) {
+        return accumulator;
+      }
 
-  /**
-   * Calculates the total volume across all workouts for this exercise.
-   *
-   * @returns Total volume in lbs
-   */
-  const getTotalVolume = (): number => {
-    return workoutHistory.reduce((accumulator, workout) => {
-      return accumulator + getExerciseVolume(workout);
-    }, 0);
-  };
+      const completedSets = workoutExercise.sets.filter((set) => set.completed);
+      const workoutVolume = completedSets.reduce((totalVolume, set) => {
+        return totalVolume + set.weight * set.reps;
+      }, 0);
+
+      return {
+        totalSets: accumulator.totalSets + completedSets.length,
+        totalVolume: accumulator.totalVolume + workoutVolume,
+      };
+    },
+    { totalSets: 0, totalVolume: 0 }
+  );
 
   return (
     <div className="exercise-history-page">
@@ -128,11 +141,11 @@ export function ExerciseHistoryPage(): React.ReactElement | null {
               </span>
             </div>
             <div className="history-stat">
-              <span className="stat-value">{getTotalSets()}</span>
+              <span className="stat-value">{historySummary.totalSets}</span>
               <span className="stat-label">Total Sets</span>
             </div>
             <div className="history-stat">
-              <span className="stat-value">{getTotalVolume().toLocaleString()}</span>
+              <span className="stat-value">{historySummary.totalVolume.toLocaleString()}</span>
               <span className="stat-label">Volume (lbs)</span>
             </div>
           </div>
@@ -149,9 +162,7 @@ export function ExerciseHistoryPage(): React.ReactElement | null {
           ) : (
             <div className="history-workouts">
               {workoutHistory.map((workout) => {
-                const workoutExercise = workout.exercises.find(
-                  (ex) => ex.exerciseId === exercise.id
-                );
+                const workoutExercise = getWorkoutExercise(workout);
                 if (!workoutExercise) return null;
 
                 const workoutVolume = getExerciseVolume(workout);

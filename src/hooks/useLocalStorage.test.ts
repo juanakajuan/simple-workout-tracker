@@ -3,6 +3,7 @@ import { act, cleanup, renderHook } from "@testing-library/react";
 
 import { useLocalStorage } from "./useLocalStorage";
 
+/** In-memory `Storage` implementation for deterministic hook tests. */
 class MockStorage implements Storage {
   private store = new Map<string, string>();
 
@@ -33,6 +34,18 @@ class MockStorage implements Storage {
 
 const mockStorage = new MockStorage();
 
+/** Dispatches a `storage` event with the provided key/value pair. */
+function dispatchStorageEvent(key: string, newValue: string | null): void {
+  act(() => {
+    window.dispatchEvent(
+      new StorageEvent("storage", {
+        key,
+        newValue,
+      })
+    );
+  });
+}
+
 describe("useLocalStorage", () => {
   beforeEach(() => {
     mockStorage.clear();
@@ -52,11 +65,11 @@ describe("useLocalStorage", () => {
   it("falls back to the initial value when stored data cannot be parsed or deserialized", () => {
     mockStorage.setItem("broken-json", "{");
 
-    const { result: malformedResult, unmount } = renderHook(() =>
+    const { result: resultWithMalformedStorage, unmount } = renderHook(() =>
       useLocalStorage("broken-json", 12)
     );
 
-    expect(malformedResult.current[0]).toBe(12);
+    expect(resultWithMalformedStorage.current[0]).toBe(12);
     expect(console.error).toHaveBeenCalledWith(
       'Error reading localStorage key "broken-json":',
       expect.anything()
@@ -67,7 +80,7 @@ describe("useLocalStorage", () => {
 
     mockStorage.setItem("bad-shape", JSON.stringify({ count: "oops" }));
 
-    const { result: deserializeResult } = renderHook(() =>
+    const { result: resultWithInvalidDeserializedValue } = renderHook(() =>
       useLocalStorage("bad-shape", 7, {
         deserialize: (value) => {
           if (typeof (value as { count?: unknown }).count !== "number") {
@@ -79,7 +92,7 @@ describe("useLocalStorage", () => {
       })
     );
 
-    expect(deserializeResult.current[0]).toBe(7);
+    expect(resultWithInvalidDeserializedValue.current[0]).toBe(7);
     expect(console.error).toHaveBeenCalledWith(
       'Error reading localStorage key "bad-shape":',
       expect.any(Error)
@@ -105,39 +118,19 @@ describe("useLocalStorage", () => {
   });
 
   it("syncs same-key storage events across tabs and resets on removal", () => {
-    const { result } = renderHook(() => useLocalStorage("settings", { autoMatchWeight: false }));
+    const initialSettings = { autoMatchWeight: false };
+    const { result } = renderHook(() => useLocalStorage("settings", initialSettings));
 
-    act(() => {
-      window.dispatchEvent(
-        new StorageEvent("storage", {
-          key: "other-key",
-          newValue: JSON.stringify({ autoMatchWeight: true }),
-        })
-      );
-    });
+    dispatchStorageEvent("other-key", JSON.stringify({ autoMatchWeight: true }));
 
-    expect(result.current[0]).toEqual({ autoMatchWeight: false });
+    expect(result.current[0]).toEqual(initialSettings);
 
-    act(() => {
-      window.dispatchEvent(
-        new StorageEvent("storage", {
-          key: "settings",
-          newValue: JSON.stringify({ autoMatchWeight: true }),
-        })
-      );
-    });
+    dispatchStorageEvent("settings", JSON.stringify({ autoMatchWeight: true }));
 
     expect(result.current[0]).toEqual({ autoMatchWeight: true });
 
-    act(() => {
-      window.dispatchEvent(
-        new StorageEvent("storage", {
-          key: "settings",
-          newValue: null,
-        })
-      );
-    });
+    dispatchStorageEvent("settings", null);
 
-    expect(result.current[0]).toEqual({ autoMatchWeight: false });
+    expect(result.current[0]).toEqual(initialSettings);
   });
 });

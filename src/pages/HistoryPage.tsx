@@ -16,6 +16,10 @@ import { Tag } from "../components/Tag";
 
 import "./HistoryPage.css";
 
+type HistoryPageLocationState = {
+  deleteWorkoutId?: string;
+};
+
 export function HistoryPage(): React.ReactElement {
   const navigate = useNavigate();
   const location = useLocation();
@@ -36,7 +40,8 @@ export function HistoryPage(): React.ReactElement {
    * @param id - The unique identifier of the exercise
    * @returns The exercise if found, undefined otherwise
    */
-  const getExerciseById = (id: string) => allExercises.find((exercise) => exercise.id === id);
+  const getExerciseById = (exerciseId: string): Exercise | undefined =>
+    allExercises.find((exercise) => exercise.id === exerciseId);
 
   /**
    * Formats a date string into a human-readable format. Returns "Today" or
@@ -46,7 +51,7 @@ export function HistoryPage(): React.ReactElement {
    * @param dateString - ISO date string to format
    * @returns Formatted date string
    */
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
     const today = new Date();
     const yesterday = new Date(today);
@@ -73,27 +78,26 @@ export function HistoryPage(): React.ReactElement {
    * @param workout - The workout to calculate statistics for
    * @returns Object containing totalSets, completedSets, and totalVolume (in lbs)
    */
-  const getWorkoutStats = (workout: Workout) => {
-    const totalSets = workout.exercises.reduce(
-      (accumulator, exercise) => accumulator + exercise.sets.length,
-      0
-    );
-    const completedSets = workout.exercises.reduce(
-      (accumulator, exercise) => accumulator + exercise.sets.filter((set) => set.completed).length,
-      0
-    );
-    const totalVolume = workout.exercises.reduce(
-      (accumulator, exercise) =>
-        accumulator +
-        exercise.sets.reduce((setAccumulator, set) => {
-          if (set.completed) {
-            return setAccumulator + set.weight * set.reps;
+  const getWorkoutStats = (
+    workout: Workout
+  ): { totalSets: number; completedSets: number; totalVolume: number } => {
+    return workout.exercises.reduce(
+      (accumulator, exercise) => {
+        accumulator.totalSets += exercise.sets.length;
+
+        exercise.sets.forEach((set) => {
+          if (!set.completed) {
+            return;
           }
-          return setAccumulator;
-        }, 0),
-      0
+
+          accumulator.completedSets += 1;
+          accumulator.totalVolume += set.weight * set.reps;
+        });
+
+        return accumulator;
+      },
+      { totalSets: 0, completedSets: 0, totalVolume: 0 }
     );
-    return { totalSets, completedSets, totalVolume };
   };
 
   /**
@@ -142,13 +146,61 @@ export function HistoryPage(): React.ReactElement {
    * the workout ID to delete.
    */
   useEffect(() => {
-    const state = location.state as { deleteWorkoutId?: string } | null;
+    const state = location.state as HistoryPageLocationState | null;
     if (state?.deleteWorkoutId) {
       handleDeleteWorkout(state.deleteWorkoutId);
       // Clear the state to prevent re-triggering on future navigations
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location.state, location.pathname, navigate, handleDeleteWorkout]);
+
+  /**
+   * Collects unique muscle groups represented in a workout in display order.
+   * Falls back to the stored exercise snapshot when the exercise no longer exists.
+   *
+   * @param workout - Workout to inspect
+   * @returns Unique muscle groups for the workout
+   */
+  const getWorkoutMuscleGroups = (workout: Workout): MuscleGroup[] => {
+    return Array.from(
+      new Set(
+        workout.exercises
+          .map(
+            (workoutExercise) =>
+              getExerciseById(workoutExercise.exerciseId)?.muscleGroup ??
+              workoutExercise.exerciseSnapshot?.muscleGroup
+          )
+          .filter((muscleGroup): muscleGroup is MuscleGroup => muscleGroup !== undefined)
+      )
+    );
+  };
+
+  /**
+   * Collects unique intensity labels used by the workout's exercises.
+   *
+   * @param workout - Workout to inspect
+   * @returns Unique intensity labels for the workout
+   */
+  const getWorkoutIntensityLabels = (workout: Workout): string[] => {
+    const supersetDisplayLabels = getSupersetDisplayLabels(workout.exercises);
+
+    return workout.exercises.reduce<string[]>((labels, exercise) => {
+      if (!exercise.intensityTechnique) {
+        return labels;
+      }
+
+      const intensityLabel =
+        exercise.intensityTechnique === "super-set" && exercise.supersetGroupId
+          ? supersetDisplayLabels[exercise.supersetGroupId]
+          : intensityTechniqueLabels[exercise.intensityTechnique];
+
+      if (intensityLabel && !labels.includes(intensityLabel)) {
+        labels.push(intensityLabel);
+      }
+
+      return labels;
+    }, []);
+  };
 
   // Group workouts by month
   const groupedWorkouts = workouts.reduce(
@@ -203,23 +255,8 @@ export function HistoryPage(): React.ReactElement {
               <div className="month-workouts">
                 {monthWorkouts.map((workout) => {
                   const stats = getWorkoutStats(workout);
-                  const supersetLabels = getSupersetDisplayLabels(workout.exercises);
-                  const intensityTags = workout.exercises.reduce<string[]>((labels, exercise) => {
-                    if (!exercise.intensityTechnique) {
-                      return labels;
-                    }
-
-                    const label =
-                      exercise.intensityTechnique === "super-set" && exercise.supersetGroupId
-                        ? supersetLabels[exercise.supersetGroupId]
-                        : intensityTechniqueLabels[exercise.intensityTechnique];
-
-                    if (label && !labels.includes(label)) {
-                      labels.push(label);
-                    }
-
-                    return labels;
-                  }, []);
+                  const muscleGroups = getWorkoutMuscleGroups(workout);
+                  const intensityLabels = getWorkoutIntensityLabels(workout);
 
                   return (
                     <button
@@ -234,25 +271,12 @@ export function HistoryPage(): React.ReactElement {
                         </div>
                       </div>
                       <div className="history-card-exercises">
-                        {(() => {
-                          const muscleGroups = Array.from(
-                            new Set(
-                              workout.exercises
-                                .map(
-                                  (workoutExercise) =>
-                                    getExerciseById(workoutExercise.exerciseId)?.muscleGroup ??
-                                    workoutExercise.exerciseSnapshot?.muscleGroup
-                                )
-                                .filter((mg): mg is MuscleGroup => mg !== undefined)
-                            )
-                          );
-                          return muscleGroups.map((muscleGroup) => (
-                            <Tag key={muscleGroup} muscleGroup={muscleGroup}>
-                              {muscleGroupLabels[muscleGroup]}
-                            </Tag>
-                          ));
-                        })()}
-                        {intensityTags.map((label) => (
+                        {muscleGroups.map((muscleGroup) => (
+                          <Tag key={muscleGroup} muscleGroup={muscleGroup}>
+                            {muscleGroupLabels[muscleGroup]}
+                          </Tag>
+                        ))}
+                        {intensityLabels.map((label) => (
                           <Tag key={label}>{label}</Tag>
                         ))}
                       </div>

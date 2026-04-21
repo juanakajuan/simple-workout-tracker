@@ -28,31 +28,36 @@ import {
 } from "./storage";
 
 class MockStorage implements Storage {
-  private store = new Map<string, string>();
+  private storageEntries = new Map<string, string>();
 
   get length(): number {
-    return this.store.size;
+    return this.storageEntries.size;
   }
 
   clear(): void {
-    this.store.clear();
+    this.storageEntries.clear();
   }
 
   getItem(key: string): string | null {
-    return this.store.get(key) ?? null;
+    return this.storageEntries.get(key) ?? null;
   }
 
   key(index: number): string | null {
-    return Array.from(this.store.keys())[index] ?? null;
+    return Array.from(this.storageEntries.keys())[index] ?? null;
   }
 
   removeItem(key: string): void {
-    this.store.delete(key);
+    this.storageEntries.delete(key);
   }
 
   setItem(key: string, value: string): void {
-    this.store.set(key, value);
+    this.storageEntries.set(key, value);
   }
+}
+
+/** Reads a JSON value from localStorage using the same null fallback used in production. */
+function readStoredJsonValue(storageKey: string): unknown {
+  return JSON.parse(localStorage.getItem(storageKey) ?? "null");
 }
 
 function createWorkout(overrides: Partial<Workout> = {}): Workout {
@@ -348,9 +353,9 @@ describe("storage utilities", () => {
     expect(getExercises()).toEqual(exercises);
     expect(getWorkouts()).toEqual(workouts);
     expect(getSettings()).toEqual({ autoMatchWeight: true });
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.EXERCISES) ?? "null")).toEqual(exercises);
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.WORKOUTS) ?? "null")).toEqual(workouts);
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.SETTINGS) ?? "null")).toEqual({
+    expect(readStoredJsonValue(STORAGE_KEYS.EXERCISES)).toEqual(exercises);
+    expect(readStoredJsonValue(STORAGE_KEYS.WORKOUTS)).toEqual(workouts);
+    expect(readStoredJsonValue(STORAGE_KEYS.SETTINGS)).toEqual({
       autoMatchWeight: true,
     });
   });
@@ -370,7 +375,7 @@ describe("storage utilities", () => {
       },
     ]);
 
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.TEMPLATES) ?? "null")).toEqual([
+    expect(readStoredJsonValue(STORAGE_KEYS.TEMPLATES)).toEqual([
       {
         id: "template-1",
         name: "Legs",
@@ -779,7 +784,7 @@ describe("storage utilities", () => {
       })
     );
 
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.TEMPLATES) ?? "null")).toEqual([
+    expect(readStoredJsonValue(STORAGE_KEYS.TEMPLATES)).toEqual([
       {
         id: "template-1",
         name: "Upper",
@@ -807,7 +812,7 @@ describe("storage utilities", () => {
         ],
       },
     ]);
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.DRAFT_TEMPLATE) ?? "null")).toEqual({
+    expect(readStoredJsonValue(STORAGE_KEYS.DRAFT_TEMPLATE)).toEqual({
       name: "Draft Upper",
       exercises: [
         {
@@ -818,7 +823,7 @@ describe("storage utilities", () => {
         },
       ],
     });
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.ACTIVE_WORKOUT) ?? "null")).toEqual({
+    expect(readStoredJsonValue(STORAGE_KEYS.ACTIVE_WORKOUT)).toEqual({
       id: "active-1",
       name: "Upper",
       date: "2026-04-04T09:00:00.000Z",
@@ -833,7 +838,7 @@ describe("storage utilities", () => {
       ],
       completed: false,
     });
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.WORKOUTS) ?? "null")).toEqual([
+    expect(readStoredJsonValue(STORAGE_KEYS.WORKOUTS)).toEqual([
       {
         id: "workout-1",
         name: "History Upper",
@@ -880,17 +885,17 @@ describe("storage utilities", () => {
 
     expect(localStorage.getItem(STORAGE_KEYS.WORKOUTS)).toBeNull();
     expect(localStorage.getItem(STORAGE_KEYS.DRAFT_TEMPLATE)).toBeNull();
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.TEMPLATES) ?? "null")).toEqual([
+    expect(readStoredJsonValue(STORAGE_KEYS.TEMPLATES)).toEqual([
       {
         id: "template-1",
         name: "Full Body",
         muscleGroups: [{ id: "group-1", muscleGroup: "chest", exercises: [] }],
       },
     ]);
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.ACTIVE_WORKOUT) ?? "null")).toMatchObject({
+    expect(readStoredJsonValue(STORAGE_KEYS.ACTIVE_WORKOUT)).toMatchObject({
       id: "active-1",
     });
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.SETTINGS) ?? "null")).toEqual({
+    expect(readStoredJsonValue(STORAGE_KEYS.SETTINGS)).toEqual({
       autoMatchWeight: true,
     });
   });
@@ -913,7 +918,7 @@ describe("storage utilities", () => {
 
     expect(localStorage.getItem(STORAGE_KEYS.ACTIVE_WORKOUT)).toBeNull();
     expect(getActiveWorkout()).toBeNull();
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.SETTINGS) ?? "null")).toEqual({
+    expect(readStoredJsonValue(STORAGE_KEYS.SETTINGS)).toEqual({
       autoMatchWeight: true,
     });
   });
@@ -933,7 +938,7 @@ describe("storage utilities", () => {
       importAllData(JSON.stringify({ version: "1.0", appName: "Zenith", data: { bad: 123 } }))
     ).toThrow("Invalid backup file format. Backup entries must be strings.");
 
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.SETTINGS) ?? "null")).toEqual({
+    expect(readStoredJsonValue(STORAGE_KEYS.SETTINGS)).toEqual({
       autoMatchWeight: false,
     });
     expect(consoleError).toHaveBeenCalledTimes(1);
@@ -980,10 +985,10 @@ describe("storage utilities", () => {
       )
     ).toThrow("Failed to import data. Your storage may be full or the data may be too large.");
 
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.SETTINGS) ?? "null")).toEqual({
+    expect(readStoredJsonValue(STORAGE_KEYS.SETTINGS)).toEqual({
       autoMatchWeight: false,
     });
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.TEMPLATES) ?? "null")).toEqual([
+    expect(readStoredJsonValue(STORAGE_KEYS.TEMPLATES)).toEqual([
       { id: "existing", name: "Keep", muscleGroups: [] },
     ]);
     expect(localStorage.getItem(STORAGE_KEYS.WORKOUTS)).toBeNull();

@@ -44,8 +44,14 @@ export function TemplatesPage(): React.ReactElement {
     setHasDraft(getDraftTemplate() !== null);
   }, []);
 
-  const handleCreateTemplate = () => {
-    if (getDraftTemplate()) {
+  const navigateToNewTemplate = (): void => {
+    navigate("/templates/new");
+  };
+
+  const handleCreateTemplate = (): void => {
+    const draftTemplate = getDraftTemplate();
+
+    if (draftTemplate) {
       showConfirm({
         title: "Discard unsaved draft?",
         message:
@@ -56,19 +62,20 @@ export function TemplatesPage(): React.ReactElement {
         onConfirm: () => {
           saveDraftTemplate(null);
           setHasDraft(false);
-          navigate("/templates/new");
+          navigateToNewTemplate();
         },
       });
-    } else {
-      navigate("/templates/new");
+      return;
     }
+
+    navigateToNewTemplate();
   };
 
-  const handleEditTemplate = (templateId: string) => {
+  const handleEditTemplate = (templateId: string): void => {
     navigate(`/templates/edit/${templateId}`);
   };
 
-  const deleteTemplate = (templateId: string) => {
+  const handleDeleteTemplate = (templateId: string): void => {
     showConfirm({
       title: "Delete this template?",
       message: "This action cannot be undone.",
@@ -81,11 +88,11 @@ export function TemplatesPage(): React.ReactElement {
     });
   };
 
-  const handleContinueDraft = () => {
-    navigate("/templates/new");
+  const handleContinueDraft = (): void => {
+    navigateToNewTemplate();
   };
 
-  const handleDismissDraft = () => {
+  const handleDismissDraft = (): void => {
     showConfirm({
       title: "Discard draft template?",
       message: "This action cannot be undone.",
@@ -99,7 +106,7 @@ export function TemplatesPage(): React.ReactElement {
     });
   };
 
-  const handleStartTemplate = (template: WorkoutTemplate) => {
+  const handleStartTemplate = (template: WorkoutTemplate): void => {
     const today = new Date();
     const workoutExercises: WorkoutExercise[] = [];
 
@@ -136,7 +143,7 @@ export function TemplatesPage(): React.ReactElement {
     navigate("/workout");
   };
 
-  const confirmStartTemplate = (template: WorkoutTemplate) => {
+  const confirmStartTemplate = (template: WorkoutTemplate): void => {
     const isReplacingActiveWorkout = activeWorkout !== null;
 
     showConfirm({
@@ -151,11 +158,12 @@ export function TemplatesPage(): React.ReactElement {
     });
   };
 
+  /** Returns unique muscle groups represented in a template. */
   const getTemplateMuscleGroups = (template: WorkoutTemplate): MuscleGroup[] => {
-    return Array.from(new Set(template.muscleGroups.map((mg) => mg.muscleGroup)));
+    return Array.from(new Set(template.muscleGroups.map((muscleGroup) => muscleGroup.muscleGroup)));
   };
 
-  const getTemplateStats = (template: WorkoutTemplate) => {
+  const getTemplateStats = (template: WorkoutTemplate): { exerciseCount: number; setCount: number } => {
     let exerciseCount = 0;
     let setCount = 0;
 
@@ -171,12 +179,21 @@ export function TemplatesPage(): React.ReactElement {
     return { exerciseCount, setCount };
   };
 
-  const toggleMenu = (templateId: string, event: React.MouseEvent) => {
+  const toggleMenu = (templateId: string, event: React.MouseEvent): void => {
     event.stopPropagation();
     setOpenMenuId(openMenuId === templateId ? null : templateId);
   };
 
-  const handleClickOutside = (event: React.MouseEvent) => {
+  const handleTemplateMenuAction = (
+    event: React.MouseEvent,
+    action: () => void
+  ): void => {
+    event.stopPropagation();
+    setOpenMenuId(null);
+    action();
+  };
+
+  const handleClickOutside = (event: React.MouseEvent): void => {
     if ((event.target as HTMLElement).closest(".template-kebab-menu")) return;
     setOpenMenuId(null);
   };
@@ -251,22 +268,16 @@ export function TemplatesPage(): React.ReactElement {
                     <div className="template-kebab-dropdown">
                       <button
                         className="template-kebab-item"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setOpenMenuId(null);
-                          handleEditTemplate(template.id);
-                        }}
+                        onClick={(event) => handleTemplateMenuAction(event, () => handleEditTemplate(template.id))}
                       >
                         <Pencil size={15} />
                         Edit
                       </button>
                       <button
                         className="template-kebab-item template-kebab-item-delete"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setOpenMenuId(null);
-                          deleteTemplate(template.id);
-                        }}
+                        onClick={(event) =>
+                          handleTemplateMenuAction(event, () => handleDeleteTemplate(template.id))
+                        }
                       >
                         <Trash2 size={15} />
                         Delete

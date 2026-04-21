@@ -114,6 +114,25 @@ function parseJsonString(value: string): unknown {
   }
 }
 
+/**
+ * Normalizes an array by dropping invalid items.
+ *
+ * @param value - Candidate array value
+ * @param normalizeItem - Item normalizer
+ * @returns Array of normalized items
+ */
+function normalizeArrayItems<T>(
+  value: unknown,
+  normalizeItem: (item: unknown) => T | null
+): T[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((item) => {
+    const normalizedItem = normalizeItem(item);
+    return normalizedItem ? [normalizedItem] : [];
+  });
+}
+
 function normalizeIntensityTechnique(value: unknown): TemplateExercise["intensityTechnique"] {
   return isIntensityTechnique(value) ? value : null;
 }
@@ -190,12 +209,7 @@ function normalizeTemplateExercise(value: unknown): TemplateExercise | null {
  * @returns Normalized exercises, or an empty array for invalid input
  */
 function normalizeTemplateExercises(value: unknown): TemplateExercise[] {
-  if (!Array.isArray(value)) return [];
-
-  return value.flatMap((exercise) => {
-    const normalizedExercise = normalizeTemplateExercise(exercise);
-    return normalizedExercise ? [normalizedExercise] : [];
-  });
+  return normalizeArrayItems(value, normalizeTemplateExercise);
 }
 
 /**
@@ -205,27 +219,18 @@ function normalizeTemplateExercises(value: unknown): TemplateExercise[] {
  * @returns Normalized muscle groups, or an empty array for invalid input
  */
 function normalizeMuscleGroups(value: unknown): TemplateMuscleGroup[] {
-  if (!Array.isArray(value)) return [];
-
-  return value.flatMap((muscleGroup) => {
-    if (!isRecord(muscleGroup)) return [];
+  return normalizeArrayItems(value, (muscleGroup) => {
+    if (!isRecord(muscleGroup)) return null;
 
     const id = typeof muscleGroup.id === "string" ? muscleGroup.id : "";
     const groupName = typeof muscleGroup.muscleGroup === "string" ? muscleGroup.muscleGroup : "";
-    if (!id || !groupName) return [];
+    if (!id || !groupName) return null;
 
-    return [
-      {
-        id,
-        muscleGroup: groupName as TemplateMuscleGroup["muscleGroup"],
-        exercises: Array.isArray(muscleGroup.exercises)
-          ? muscleGroup.exercises.flatMap((exercise) => {
-              const normalizedExercise = normalizeTemplateExercise(exercise);
-              return normalizedExercise ? [normalizedExercise] : [];
-            })
-          : [],
-      },
-    ];
+    return {
+      id,
+      muscleGroup: groupName as TemplateMuscleGroup["muscleGroup"],
+      exercises: normalizeTemplateExercises(muscleGroup.exercises),
+    };
   });
 }
 
@@ -256,11 +261,7 @@ function normalizeTemplate(template: unknown): WorkoutTemplate | null {
  * @returns Normalized templates, or an empty array for invalid input
  */
 export function normalizeTemplates(value: unknown): WorkoutTemplate[] {
-  if (!Array.isArray(value)) return [];
-  return value.flatMap((template) => {
-    const normalizedTemplate = normalizeTemplate(template);
-    return normalizedTemplate ? [normalizedTemplate] : [];
-  });
+  return normalizeArrayItems(value, normalizeTemplate);
 }
 
 /**
@@ -281,14 +282,16 @@ export function normalizeTemplateDraft(value: unknown): WorkoutTemplateDraft | n
     };
   }
 
-  if (!Array.isArray(value.muscleGroups)) return null;
+  if (Array.isArray(value.muscleGroups)) {
+    return {
+      name,
+      exercises: normalizeMuscleGroups(value.muscleGroups).flatMap((muscleGroup) =>
+        muscleGroup.exercises.map((exercise) => ({ ...exercise }))
+      ),
+    };
+  }
 
-  return {
-    name,
-    exercises: normalizeMuscleGroups(value.muscleGroups).flatMap((muscleGroup) =>
-      muscleGroup.exercises.map((exercise) => ({ ...exercise }))
-    ),
-  };
+  return null;
 }
 
 /**
@@ -344,12 +347,7 @@ function normalizeWorkoutSet(value: unknown): WorkoutSet | null {
 }
 
 function normalizeWorkoutSets(value: unknown): WorkoutSet[] {
-  if (!Array.isArray(value)) return [];
-
-  return value.flatMap((set) => {
-    const normalizedSet = normalizeWorkoutSet(set);
-    return normalizedSet ? [normalizedSet] : [];
-  });
+  return normalizeArrayItems(value, normalizeWorkoutSet);
 }
 
 function normalizeWorkoutExercise(value: unknown): WorkoutExercise | null {
@@ -376,12 +374,7 @@ function normalizeWorkoutExercise(value: unknown): WorkoutExercise | null {
 }
 
 function normalizeWorkoutExercises(value: unknown): WorkoutExercise[] {
-  if (!Array.isArray(value)) return [];
-
-  return value.flatMap((exercise) => {
-    const normalizedExercise = normalizeWorkoutExercise(exercise);
-    return normalizedExercise ? [normalizedExercise] : [];
-  });
+  return normalizeArrayItems(value, normalizeWorkoutExercise);
 }
 
 function normalizeWorkout(value: unknown): Workout | null {
@@ -417,12 +410,7 @@ function normalizeWorkout(value: unknown): Workout | null {
 }
 
 function normalizeWorkouts(value: unknown): Workout[] {
-  if (!Array.isArray(value)) return [];
-
-  return value.flatMap((workout) => {
-    const normalizedWorkout = normalizeWorkout(workout);
-    return normalizedWorkout ? [normalizedWorkout] : [];
-  });
+  return normalizeArrayItems(value, normalizeWorkout);
 }
 
 /**
@@ -690,11 +678,7 @@ export function saveActiveWorkout(workout: Workout | null): void {
  * const pplTemplate = templates.find(t => t.name === "PPL Split");
  */
 export function getTemplates(): WorkoutTemplate[] {
-  try {
-    return normalizeTemplates(parseStoredValue(STORAGE_KEYS.TEMPLATES));
-  } catch {
-    return [];
-  }
+  return normalizeTemplates(parseStoredValue(STORAGE_KEYS.TEMPLATES));
 }
 
 /**
@@ -815,20 +799,28 @@ export function formatRelativeDate(dateString: string): string {
 
   if (diffDays === 0) {
     return "today";
-  } else if (diffDays === 1) {
+  }
+
+  if (diffDays === 1) {
     return "yesterday";
-  } else if (diffDays < 7) {
+  }
+
+  if (diffDays < 7) {
     return `${diffDays} days ago`;
-  } else if (diffDays < 30) {
+  }
+
+  if (diffDays < 30) {
     const weeks = Math.floor(diffDays / 7);
     return weeks === 1 ? "1 week ago" : `${weeks} weeks ago`;
-  } else if (diffDays < 365) {
+  }
+
+  if (diffDays < 365) {
     const months = Math.floor(diffDays / 30);
     return months === 1 ? "1 month ago" : `${months} months ago`;
-  } else {
-    const years = Math.floor(diffDays / 365);
-    return years === 1 ? "1 year ago" : `${years} years ago`;
   }
+
+  const years = Math.floor(diffDays / 365);
+  return years === 1 ? "1 year ago" : `${years} years ago`;
 }
 
 /**

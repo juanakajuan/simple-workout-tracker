@@ -21,8 +21,9 @@ export function ExerciseFormPage(): React.ReactElement {
   const navigate = useNavigate();
   const location = useLocation();
   const { exerciseId } = useParams();
+  const locationState = location.state as (Record<string, unknown> & { exercise?: Exercise }) | null;
 
-  const navigateBack = (state: Record<string, unknown>) => {
+  const navigateBack = (state: Record<string, unknown>): void => {
     if (location.pathname.startsWith("/exercises/")) {
       navigate("/exercises", { state });
       return;
@@ -30,7 +31,7 @@ export function ExerciseFormPage(): React.ReactElement {
 
     navigate("..", {
       state: {
-        ...(location.state as Record<string, unknown> | null),
+        ...locationState,
         ...state,
       },
       relative: "path",
@@ -38,17 +39,19 @@ export function ExerciseFormPage(): React.ReactElement {
   };
 
   // Get exercise to edit (either from URL param or location state)
-  let exerciseToEdit: Exercise | null = null;
-  if (exerciseId) {
-    const userExercises = getExercises();
-    const allExercises = DEFAULT_EXERCISES.map((defaultExercise) => {
-      const userOverride = userExercises.find((exercise) => exercise.id === defaultExercise.id);
-      return userOverride || defaultExercise;
-    }).concat(userExercises.filter((exercise) => !exercise.id.startsWith("default-")));
-    exerciseToEdit = allExercises.find((ex) => ex.id === exerciseId) || null;
-  } else if (location.state?.exercise) {
-    exerciseToEdit = location.state.exercise as Exercise;
-  }
+  const exerciseToEdit: Exercise | null = (() => {
+    if (exerciseId) {
+      const userExercises = getExercises();
+      const allExercises = DEFAULT_EXERCISES.map((defaultExercise) => {
+        const userOverride = userExercises.find((exercise) => exercise.id === defaultExercise.id);
+        return userOverride ?? defaultExercise;
+      }).concat(userExercises.filter((exercise) => !exercise.id.startsWith("default-")));
+
+      return allExercises.find((exercise) => exercise.id === exerciseId) ?? null;
+    }
+
+    return locationState?.exercise ?? null;
+  })();
 
   const [name, setName] = useState(exerciseToEdit?.name ?? "");
   const [muscleGroup, setMuscleGroup] = useState<MuscleGroup>(
@@ -61,6 +64,7 @@ export function ExerciseFormPage(): React.ReactElement {
 
   // Check if this is a default exercise (not yet overridden by user)
   const isDefaultExercise = exerciseToEdit?.id.startsWith("default-") ?? false;
+  const disabledFieldClassName = isDefaultExercise ? "disabled-field" : "";
 
   /**
    * Handles form submission. Validates that the name is not empty,
@@ -68,7 +72,7 @@ export function ExerciseFormPage(): React.ReactElement {
    *
    * @param event - The form submit event
    */
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
     if (!name.trim()) return;
 
@@ -86,15 +90,14 @@ export function ExerciseFormPage(): React.ReactElement {
     );
     const savedExercise = { ...exerciseData, id: savedExerciseId };
 
-    if (existingExerciseIndex >= 0) {
-      saveExercises(
-        userExercises.map((exercise) =>
-          exercise.id === savedExerciseId ? savedExercise : exercise
-        )
-      );
-    } else {
-      saveExercises([...userExercises, savedExercise]);
-    }
+    const nextExercises =
+      existingExerciseIndex >= 0
+        ? userExercises.map((exercise) =>
+            exercise.id === savedExerciseId ? savedExercise : exercise
+          )
+        : [...userExercises, savedExercise];
+
+    saveExercises(nextExercises);
 
     navigateBack({ savedExerciseId });
   };
@@ -103,7 +106,7 @@ export function ExerciseFormPage(): React.ReactElement {
    * Handles deleting an exercise. Removes any user exercise or override,
    * then navigates back with the deleted exercise ID.
    */
-  const handleDelete = () => {
+  const handleDelete = (): void => {
     if (!exerciseToEdit) return;
 
     deleteExerciseAndRepairReferences(exerciseToEdit);
@@ -141,7 +144,7 @@ export function ExerciseFormPage(): React.ReactElement {
               autoFocus={!isDefaultExercise}
               required
               disabled={isDefaultExercise}
-              className={isDefaultExercise ? "disabled-field" : ""}
+              className={disabledFieldClassName}
             />
           </div>
 
@@ -154,7 +157,7 @@ export function ExerciseFormPage(): React.ReactElement {
               value={exerciseType}
               onChange={(e) => setExerciseType(e.target.value as ExerciseType)}
               disabled={isDefaultExercise}
-              className={isDefaultExercise ? "disabled-field" : ""}
+              className={disabledFieldClassName}
             >
               {EXERCISE_TYPES.map((type) => (
                 <option key={type} value={type}>
@@ -173,7 +176,7 @@ export function ExerciseFormPage(): React.ReactElement {
               value={muscleGroup}
               onChange={(e) => setMuscleGroup(e.target.value as MuscleGroup)}
               disabled={isDefaultExercise}
-              className={isDefaultExercise ? "disabled-field" : ""}
+              className={disabledFieldClassName}
             >
               {MUSCLE_GROUPS.map((group) => (
                 <option key={group} value={group}>

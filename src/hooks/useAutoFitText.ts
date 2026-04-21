@@ -42,7 +42,11 @@ interface AutoFitTextOptions {
  * @param style The computed CSS style of the element
  * @returns The measured width in pixels, or 0 if canvas context is unavailable
  */
-function measureTextWidth(text: string, fontSizePx: number, style: CSSStyleDeclaration) {
+function measureTextWidth(
+  text: string,
+  fontSizePx: number,
+  style: CSSStyleDeclaration
+): number {
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
 
@@ -89,8 +93,10 @@ export function useAutoFitText<T extends HTMLElement>(
      * Calculates and applies the optimal font size for the text to fit.
      * Considers parent element width, padding, and text length.
      */
-    const fitText = () => {
+    const fitText = (): void => {
       const style = window.getComputedStyle(element);
+      const textValue = String(text);
+      const trimmedText = textValue.trim();
 
       // Store the original base font size on first run
       if (baseFontSizeRef.current === null) {
@@ -101,7 +107,7 @@ export function useAutoFitText<T extends HTMLElement>(
 
       // Dynamic minimum font size based on text length
       // Longer text gets a much lower minimum to fit better
-      const textLength = String(text).length;
+      const textLength = textValue.length;
       let minSizeRatio = 0.65; // default ratio
 
       if (textLength > 30) {
@@ -111,31 +117,26 @@ export function useAutoFitText<T extends HTMLElement>(
       }
 
       const minFontSize = options.minFontSizePx ?? Math.max(11, baseFontSize * minSizeRatio);
+      const horizontalPadding =
+        Number.parseFloat(style.paddingLeft) + Number.parseFloat(style.paddingRight);
 
       // Use parent element's width for more accurate measurement
       // This accounts for the actual available space in the layout
-      const parentElement = element.parentElement;
-      const availableWidth = parentElement
-        ? parentElement.clientWidth -
-          Number.parseFloat(style.paddingLeft) -
-          Number.parseFloat(style.paddingRight)
-        : element.clientWidth -
-          Number.parseFloat(style.paddingLeft) -
-          Number.parseFloat(style.paddingRight);
+      const containerElement = element.parentElement ?? element;
+      const availableWidth = containerElement.clientWidth - horizontalPadding;
 
       if (availableWidth <= 0) return;
 
       // Reset before measuring so the title can grow back when space becomes available.
       element.style.fontSize = `${baseFontSize}px`;
 
-      const nextText = String(text).trim();
-      if (!nextText) return;
+      if (!trimmedText) return;
 
       // Gradually reduce font size until text fits
       let fontSize = baseFontSize;
       while (
         fontSize > minFontSize &&
-        measureTextWidth(nextText, fontSize, style) > availableWidth
+        measureTextWidth(trimmedText, fontSize, style) > availableWidth
       ) {
         fontSize -= 0.5;
       }

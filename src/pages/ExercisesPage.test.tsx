@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
+import type { ReactElement } from "react";
 
 import type { Exercise, Workout } from "../types";
 import { STORAGE_KEYS } from "../utils/storage";
@@ -42,7 +43,8 @@ class MockResizeObserver {
 
 const mockStorage = new MockStorage();
 
-function setLS(key: string, value: unknown) {
+/** Stores a JSON-serializable value in mock localStorage. */
+function setLS(key: string, value: unknown): void {
   mockStorage.setItem(key, JSON.stringify(value));
 }
 
@@ -71,7 +73,7 @@ function createWorkout(overrides: Partial<Workout> = {}): Workout {
   };
 }
 
-function RouteStateViewer() {
+function RouteStateViewer(): ReactElement {
   const location = useLocation();
 
   return (
@@ -82,7 +84,7 @@ function RouteStateViewer() {
   );
 }
 
-function renderExercisesPage() {
+function renderExercisesPage(): ReturnType<typeof render> {
   return render(
     <MemoryRouter initialEntries={["/exercises"]}>
       <Routes>
@@ -164,15 +166,16 @@ describe("ExercisesPage", () => {
     ]);
 
     renderExercisesPage();
+    const searchInput = screen.getByPlaceholderText("Search exercises...");
 
-    fireEvent.change(screen.getByPlaceholderText("Search exercises..."), {
+    fireEvent.change(searchInput, {
       target: { value: "alpha fly" },
     });
 
     expect(screen.getByText("Alpha Fly")).toBeDefined();
     expect(screen.queryByText("Cable Row")).toBeNull();
 
-    fireEvent.change(screen.getByPlaceholderText("Search exercises..."), {
+    fireEvent.change(searchInput, {
       target: { value: "" },
     });
     fireEvent.change(screen.getByRole("combobox"), {
@@ -226,10 +229,13 @@ describe("ExercisesPage", () => {
 
     renderExercisesPage();
 
-    const card = screen.getByText("Cable Row").closest(".exercise-card");
-    expect(card).not.toBeNull();
+    const exerciseCard = screen.getByText("Cable Row").closest(".exercise-card");
+    expect(exerciseCard).not.toBeNull();
+    if (!(exerciseCard instanceof HTMLElement)) {
+      return;
+    }
 
-    fireEvent.click(within(card as HTMLElement).getByRole("button", { name: /exercise options/i }));
+    fireEvent.click(within(exerciseCard).getByRole("button", { name: /exercise options/i }));
     fireEvent.click(screen.getByRole("button", { name: /edit exercise/i }));
 
     await waitFor(() => {

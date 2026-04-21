@@ -42,16 +42,19 @@ class MockResizeObserver {
 
 const mockStorage = new MockStorage();
 
-function setLS(key: string, value: unknown) {
+/** Stores a JSON-serialized value in the mocked local storage. */
+function setStoredJsonValue(key: string, value: unknown): void {
   mockStorage.setItem(key, JSON.stringify(value));
 }
 
-function getLS<T>(key: string): T | null {
+/** Reads and parses a JSON-serialized value from the mocked local storage. */
+function getStoredJsonValue<Value>(key: string): Value | null {
   const raw = mockStorage.getItem(key);
-  return raw ? (JSON.parse(raw) as T) : null;
+  return raw ? (JSON.parse(raw) as Value) : null;
 }
 
-function renderSettingsPage() {
+/** Renders the settings page under the route path used in these tests. */
+function renderSettingsPage(): ReturnType<typeof render> {
   return render(
     <MemoryRouter initialEntries={["/more/settings"]}>
       <Routes>
@@ -59,6 +62,11 @@ function renderSettingsPage() {
       </Routes>
     </MemoryRouter>
   );
+}
+
+/** Returns the auto-match weight toggle rendered on the page. */
+function getAutoMatchWeightToggle(): HTMLElement {
+  return screen.getByRole("switch", { name: /auto-match weight/i });
 }
 
 describe("SettingsPage", () => {
@@ -79,31 +87,31 @@ describe("SettingsPage", () => {
   });
 
   it("loads the persisted setting and writes the updated value when toggled off", () => {
-    setLS(STORAGE_KEYS.SETTINGS, { autoMatchWeight: true } satisfies Settings);
+    setStoredJsonValue(STORAGE_KEYS.SETTINGS, { autoMatchWeight: true } satisfies Settings);
 
     renderSettingsPage();
 
-    const toggle = screen.getByRole("switch", { name: /auto-match weight/i });
+    const autoMatchWeightToggle = getAutoMatchWeightToggle();
 
-    expect(toggle.getAttribute("aria-checked")).toBe("true");
+    expect(autoMatchWeightToggle.getAttribute("aria-checked")).toBe("true");
 
-    fireEvent.click(toggle);
+    fireEvent.click(autoMatchWeightToggle);
 
-    expect(toggle.getAttribute("aria-checked")).toBe("false");
-    expect(getLS<Settings>(STORAGE_KEYS.SETTINGS)).toEqual({ autoMatchWeight: false });
+    expect(autoMatchWeightToggle.getAttribute("aria-checked")).toBe("false");
+    expect(getStoredJsonValue<Settings>(STORAGE_KEYS.SETTINGS)).toEqual({ autoMatchWeight: false });
   });
 
   it("defaults to disabled and persists the setting when toggled on", () => {
     renderSettingsPage();
 
-    const toggle = screen.getByRole("switch", { name: /auto-match weight/i });
+    const autoMatchWeightToggle = getAutoMatchWeightToggle();
 
-    expect(toggle.getAttribute("aria-checked")).toBe("false");
-    expect(getLS<Settings>(STORAGE_KEYS.SETTINGS)).toBeNull();
+    expect(autoMatchWeightToggle.getAttribute("aria-checked")).toBe("false");
+    expect(getStoredJsonValue<Settings>(STORAGE_KEYS.SETTINGS)).toBeNull();
 
-    fireEvent.click(toggle);
+    fireEvent.click(autoMatchWeightToggle);
 
-    expect(toggle.getAttribute("aria-checked")).toBe("true");
-    expect(getLS<Settings>(STORAGE_KEYS.SETTINGS)).toEqual({ autoMatchWeight: true });
+    expect(autoMatchWeightToggle.getAttribute("aria-checked")).toBe("true");
+    expect(getStoredJsonValue<Settings>(STORAGE_KEYS.SETTINGS)).toEqual({ autoMatchWeight: true });
   });
 });

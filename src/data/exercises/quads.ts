@@ -1,190 +1,94 @@
 import type { Exercise } from "../../types";
 
+type ExerciseType = Exercise["exerciseType"];
+
+/**
+ * Creates a quadriceps exercise entry with the shared default fields.
+ *
+ * @param id Stable exercise identifier.
+ * @param name Display name shown in the application.
+ * @param exerciseType Equipment or movement classification.
+ * @returns A quadriceps exercise entry.
+ */
+function createQuadricepsExercise(
+  id: string,
+  name: string,
+  exerciseType: ExerciseType,
+): Exercise {
+  return {
+    id,
+    name,
+    muscleGroup: "quads",
+    exerciseType,
+    notes: "",
+  };
+}
+
 /**
  * Default quadriceps exercises provided by the application.
  * Includes squats, lunges, leg presses, and isolation movements.
  */
 export const quadsExercises: Exercise[] = [
-  {
-    id: "default-barbell-split-squat",
-    name: "Barbell Split Squat",
-    muscleGroup: "quads",
-    exerciseType: "barbell",
-    notes: "",
-  },
-  {
-    id: "default-barbell-squat-cambered-bar",
-    name: "Barbell Squat (Cambered Bar)",
-    muscleGroup: "quads",
-    exerciseType: "barbell",
-    notes: "",
-  },
-  {
-    id: "default-barbell-squat-close-stance-feet-forward",
-    name: "Barbell Squat (Close Stance, Feet Forward)",
-    muscleGroup: "quads",
-    exerciseType: "barbell",
-    notes: "",
-  },
-  {
-    id: "default-barbell-squat-high-bar",
-    name: "Barbell Squat (High Bar)",
-    muscleGroup: "quads",
-    exerciseType: "barbell",
-    notes: "",
-  },
-  {
-    id: "default-barbell-squat-narrow-stance",
-    name: "Barbell Squat (Narrow Stance)",
-    muscleGroup: "quads",
-    exerciseType: "barbell",
-    notes: "",
-  },
-  {
-    id: "default-barbell-squat-safety-bar",
-    name: "Barbell Squat (Safety Bar)",
-    muscleGroup: "quads",
-    exerciseType: "barbell",
-    notes: "",
-  },
-  {
-    id: "default-belt-squat",
-    name: "Belt Squat",
-    muscleGroup: "quads",
-    exerciseType: "machine",
-    notes: "",
-  },
-  {
-    id: "default-bodyweight-squat",
-    name: "Bodyweight Squat",
-    muscleGroup: "quads",
-    exerciseType: "bodyweight",
-    notes: "",
-  },
-  {
-    id: "default-bulgarian-split-squat-quad-focused",
-    name: "Bulgarian Split Squat (Quad-Focused)",
-    muscleGroup: "quads",
-    exerciseType: "dumbbell",
-    notes: "",
-  },
-  {
-    id: "default-dumbbell-front-squat",
-    name: "Dumbbell Front Squat",
-    muscleGroup: "quads",
-    exerciseType: "dumbbell",
-    notes: "",
-  },
-  {
-    id: "default-front-squat",
-    name: "Front Squat",
-    muscleGroup: "quads",
-    exerciseType: "barbell",
-    notes: "",
-  },
-  {
-    id: "default-front-squat-cross-grip",
-    name: "Front Squat (Cross Grip)",
-    muscleGroup: "quads",
-    exerciseType: "barbell",
-    notes: "",
-  },
-  {
-    id: "default-goblet-squat",
-    name: "Goblet Squat",
-    muscleGroup: "quads",
-    exerciseType: "dumbbell",
-    notes: "",
-  },
-  {
-    id: "default-hack-squat",
-    name: "Hack Squat",
-    muscleGroup: "quads",
-    exerciseType: "machine",
-    notes: "",
-  },
-  {
-    id: "default-hip-adduction",
-    name: "Hip Adduction",
-    muscleGroup: "quads",
-    exerciseType: "machine",
-    notes: "",
-  },
-  {
-    id: "default-leg-extension",
-    name: "Leg Extension",
-    muscleGroup: "quads",
-    exerciseType: "machine",
-    notes: "",
-  },
-  {
-    id: "default-leg-press",
-    name: "Leg Press",
-    muscleGroup: "quads",
-    exerciseType: "machine",
-    notes: "",
-  },
-  {
-    id: "default-pendulum-squat",
-    name: "Pendulum Squat",
-    muscleGroup: "quads",
-    exerciseType: "machine",
-    notes: "",
-  },
-  {
-    id: "default-single-leg-extension",
-    name: "Single Leg Extension",
-    muscleGroup: "quads",
-    exerciseType: "machine",
-    notes: "",
-  },
-  {
-    id: "default-single-leg-press",
-    name: "Single Leg Press",
-    muscleGroup: "quads",
-    exerciseType: "machine",
-    notes: "",
-  },
-  {
-    id: "default-sissy-squat-machine",
-    name: "Sissy Squat (Machine)",
-    muscleGroup: "quads",
-    exerciseType: "bodyweight",
-    notes: "",
-  },
-  {
-    id: "default-sissy-squat-no-machine",
-    name: "Sissy Squat (No Machine)",
-    muscleGroup: "quads",
-    exerciseType: "bodyweight",
-    notes: "",
-  },
-  {
-    id: "default-smith-machine-squat-feet-forward",
-    name: "Smith Machine Squat (Feet Forward)",
-    muscleGroup: "quads",
-    exerciseType: "smith-machine",
-    notes: "",
-  },
-  {
-    id: "default-walking-lunges-quad-focused-barbell",
-    name: "Walking Lunges (Quad-Focused, Barbell)",
-    muscleGroup: "quads",
-    exerciseType: "barbell",
-    notes: "",
-  },
-  {
-    id: "default-walking-lunges-quad-focused-bodyweight",
-    name: "Walking Lunges (Quad-Focused, Bodyweight)",
-    muscleGroup: "quads",
-    exerciseType: "bodyweight",
-    notes: "",
-  },
-  {
-    id: "default-walking-lunges-quad-focused-dumbbell",
-    name: "Walking Lunges (Quad-Focused, Dumbbell)",
-    muscleGroup: "quads",
-    exerciseType: "dumbbell",
-    notes: "",
-  },
+  createQuadricepsExercise("default-barbell-split-squat", "Barbell Split Squat", "barbell"),
+  createQuadricepsExercise(
+    "default-barbell-squat-cambered-bar",
+    "Barbell Squat (Cambered Bar)",
+    "barbell",
+  ),
+  createQuadricepsExercise(
+    "default-barbell-squat-close-stance-feet-forward",
+    "Barbell Squat (Close Stance, Feet Forward)",
+    "barbell",
+  ),
+  createQuadricepsExercise("default-barbell-squat-high-bar", "Barbell Squat (High Bar)", "barbell"),
+  createQuadricepsExercise(
+    "default-barbell-squat-narrow-stance",
+    "Barbell Squat (Narrow Stance)",
+    "barbell",
+  ),
+  createQuadricepsExercise(
+    "default-barbell-squat-safety-bar",
+    "Barbell Squat (Safety Bar)",
+    "barbell",
+  ),
+  createQuadricepsExercise("default-belt-squat", "Belt Squat", "machine"),
+  createQuadricepsExercise("default-bodyweight-squat", "Bodyweight Squat", "bodyweight"),
+  createQuadricepsExercise(
+    "default-bulgarian-split-squat-quad-focused",
+    "Bulgarian Split Squat (Quad-Focused)",
+    "dumbbell",
+  ),
+  createQuadricepsExercise("default-dumbbell-front-squat", "Dumbbell Front Squat", "dumbbell"),
+  createQuadricepsExercise("default-front-squat", "Front Squat", "barbell"),
+  createQuadricepsExercise("default-front-squat-cross-grip", "Front Squat (Cross Grip)", "barbell"),
+  createQuadricepsExercise("default-goblet-squat", "Goblet Squat", "dumbbell"),
+  createQuadricepsExercise("default-hack-squat", "Hack Squat", "machine"),
+  createQuadricepsExercise("default-hip-adduction", "Hip Adduction", "machine"),
+  createQuadricepsExercise("default-leg-extension", "Leg Extension", "machine"),
+  createQuadricepsExercise("default-leg-press", "Leg Press", "machine"),
+  createQuadricepsExercise("default-pendulum-squat", "Pendulum Squat", "machine"),
+  createQuadricepsExercise("default-single-leg-extension", "Single Leg Extension", "machine"),
+  createQuadricepsExercise("default-single-leg-press", "Single Leg Press", "machine"),
+  createQuadricepsExercise("default-sissy-squat-machine", "Sissy Squat (Machine)", "bodyweight"),
+  createQuadricepsExercise("default-sissy-squat-no-machine", "Sissy Squat (No Machine)", "bodyweight"),
+  createQuadricepsExercise(
+    "default-smith-machine-squat-feet-forward",
+    "Smith Machine Squat (Feet Forward)",
+    "smith-machine",
+  ),
+  createQuadricepsExercise(
+    "default-walking-lunges-quad-focused-barbell",
+    "Walking Lunges (Quad-Focused, Barbell)",
+    "barbell",
+  ),
+  createQuadricepsExercise(
+    "default-walking-lunges-quad-focused-bodyweight",
+    "Walking Lunges (Quad-Focused, Bodyweight)",
+    "bodyweight",
+  ),
+  createQuadricepsExercise(
+    "default-walking-lunges-quad-focused-dumbbell",
+    "Walking Lunges (Quad-Focused, Dumbbell)",
+    "dumbbell",
+  ),
 ];

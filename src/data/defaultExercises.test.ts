@@ -14,38 +14,33 @@ import { shouldersExercises } from "./exercises/shoulders";
 import { trapsExercises } from "./exercises/traps";
 import { tricepsExercises } from "./exercises/triceps";
 
+/** Preserves the published built-in exercise order used by DEFAULT_EXERCISES. */
+const publishedExerciseLists = [
+  chestExercises,
+  tricepsExercises,
+  shouldersExercises,
+  backExercises,
+  bicepsExercises,
+  quadsExercises,
+  hamstringsExercises,
+  glutesExercises,
+  calvesExercises,
+  trapsExercises,
+  forearmsExercises,
+  absExercises,
+] as const;
+
 describe("DEFAULT_EXERCISES", () => {
   it("concatenates every built-in exercise list in the published order", () => {
-    expect(DEFAULT_EXERCISES).toEqual([
-      ...chestExercises,
-      ...tricepsExercises,
-      ...shouldersExercises,
-      ...backExercises,
-      ...bicepsExercises,
-      ...quadsExercises,
-      ...hamstringsExercises,
-      ...glutesExercises,
-      ...calvesExercises,
-      ...trapsExercises,
-      ...forearmsExercises,
-      ...absExercises,
-    ]);
+    expect(DEFAULT_EXERCISES).toEqual(publishedExerciseLists.flat());
   });
 
   it("matches the combined total from every built-in exercise list", () => {
-    expect(DEFAULT_EXERCISES).toHaveLength(
-      chestExercises.length +
-        tricepsExercises.length +
-        shouldersExercises.length +
-        backExercises.length +
-        bicepsExercises.length +
-        quadsExercises.length +
-        hamstringsExercises.length +
-        glutesExercises.length +
-        calvesExercises.length +
-        trapsExercises.length +
-        forearmsExercises.length +
-        absExercises.length
+    const totalBuiltInExercises = publishedExerciseLists.reduce(
+      (totalLength, exerciseList) => totalLength + exerciseList.length,
+      0
     );
+
+    expect(DEFAULT_EXERCISES).toHaveLength(totalBuiltInExercises);
   });
 });
