@@ -15,7 +15,7 @@
  * @module useLocalStorage
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 /**
  * Default deserialization function that casts the value to the expected type.
@@ -71,9 +71,12 @@ export function useLocalStorage<T>(
   /**
    * Parses a stored JSON value or falls back to the initial value.
    */
-  const readStoredValue = (serializedValue: string | null): T => {
-    return serializedValue ? deserialize(JSON.parse(serializedValue)) : initialValue;
-  };
+  const readStoredValue = useCallback(
+    (serializedValue: string | null): T => {
+      return serializedValue ? deserialize(JSON.parse(serializedValue)) : initialValue;
+    },
+    [deserialize, initialValue]
+  );
 
   /**
    * Initialize state from localStorage or use initial value.
@@ -124,7 +127,7 @@ export function useLocalStorage<T>(
 
     window.addEventListener("storage", handleStorageChange);
     return () => window.removeEventListener("storage", handleStorageChange);
-  }, [deserialize, initialValue, key]);
+  }, [deserialize, initialValue, key, readStoredValue]);
 
   return [storedValue, setValue] as const;
 }

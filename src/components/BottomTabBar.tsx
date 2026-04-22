@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { Dumbbell, LayoutTemplate, CirclePlay, History, CircleEllipsis } from "lucide-react";
 
@@ -14,7 +14,10 @@ export function BottomTabBar(): React.ReactElement {
   const lastMorePath = useRef("/more");
 
   /** Returns whether the current route belongs to a tab section. */
-  const isSectionActive = (sectionPath: string): boolean => currentPath.startsWith(sectionPath);
+  const isSectionActive = useCallback(
+    (sectionPath: string): boolean => currentPath.startsWith(sectionPath),
+    [currentPath]
+  );
 
   /** Keeps tab click behavior consistent when re-selecting the active tab. */
   const scrollToTop = (): void => {
@@ -33,7 +36,7 @@ export function BottomTabBar(): React.ReactElement {
     } else if (isSectionActive("/more")) {
       lastMorePath.current = currentPath;
     }
-  }, [currentPath]);
+  }, [currentPath, isSectionActive]);
 
   const isTemplatesActive = isSectionActive("/templates");
   const isHistoryActive = isSectionActive("/history");

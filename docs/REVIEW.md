@@ -1,4 +1,4 @@
-- [ ] High: Deleting a custom exercise leaves orphaned `exerciseId` references across active workouts, templates, and completed history, and the UI silently drops those records instead of surfacing or repairing them. See `src/pages/ExerciseFormPage.tsx:100-104`, `src/pages/TemplatesPage.tsx:106-120`, `src/pages/WorkoutPage.tsx:1002-1004`, `src/pages/WorkoutDetailPage.tsx:240-243`, and `src/pages/WeeklySetsTrackerPage.tsx:130-149`.
+- [x] High: Deleting a custom exercise leaves orphaned `exerciseId` references across active workouts, templates, and completed history, and the UI silently drops those records instead of surfacing or repairing them. See `src/pages/ExerciseFormPage.tsx:100-104`, `src/pages/TemplatesPage.tsx:106-120`, `src/pages/WorkoutPage.tsx:1002-1004`, `src/pages/WorkoutDetailPage.tsx:240-243`, and `src/pages/WeeklySetsTrackerPage.tsx:130-149`.
 
 - [ ] High: Backup import accepts malformed `zenith_exercises` and `zenith_workouts` payloads and persists them without shape validation, so one bad backup/manual storage edit can break core screens at runtime. See `src/utils/storage.ts:399-402`, `src/utils/storage.ts:721-743`, `src/utils/storage.ts:775-785`, `src/utils/storage.ts:898-909`, `src/pages/HistoryPage.tsx:25-29`, and `src/pages/WorkoutPage.tsx:90-95`.
 
@@ -6,4 +6,4 @@
 
 - [ ] Medium: Completed workout history is not immutable; editing an exercise rewrites old workout detail, exercise history metadata, and weekly muscle-group totals because workouts only store `exerciseId` and resolve current exercise metadata at render time. See `src/types/index.ts:50-65`, `src/pages/ExerciseFormPage.tsx:69-91`, `src/pages/WorkoutDetailPage.tsx:51-64`, `src/pages/HistoryPage.tsx:25-38`, and `src/pages/WeeklySetsTrackerPage.tsx:130-149`.
 
-- [ ] Medium: Automated checks are currently not green. `pnpm test` fails in `src/pages/WorkoutPage.test.tsx:873-926` on the delete-exercise/template-sync flow, and `pnpm lint` fails in `src/components/ConfirmDialog.tsx:33-37` and `src/hooks/useAutoFitText.test.tsx:88`.
+- [x] Medium: Automated checks are currently not green. `pnpm test` fails in `src/pages/WorkoutPage.test.tsx:873-926` on the delete-exercise/template-sync flow, and `pnpm lint` fails in `src/components/ConfirmDialog.tsx:33-37` and `src/hooks/useAutoFitText.test.tsx:88`.
