@@ -467,6 +467,7 @@ export function WorkoutPage(): React.ReactElement {
       weight: 0,
       reps: 0,
       completed: false,
+      skipped: false,
     }));
 
     const updatedWorkout = {
