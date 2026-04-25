@@ -1,6 +1,6 @@
 - [x] High: Deleting a custom exercise leaves orphaned `exerciseId` references across active workouts, templates, and completed history, and the UI silently drops those records instead of surfacing or repairing them. See `src/pages/ExerciseFormPage.tsx:100-104`, `src/pages/TemplatesPage.tsx:106-120`, `src/pages/WorkoutPage.tsx:1002-1004`, `src/pages/WorkoutDetailPage.tsx:240-243`, and `src/pages/WeeklySetsTrackerPage.tsx:130-149`.
 
-- [ ] High: Backup import accepts malformed `zenith_exercises` and `zenith_workouts` payloads and persists them without shape validation, so one bad backup/manual storage edit can break core screens at runtime. See `src/utils/storage.ts:399-402`, `src/utils/storage.ts:721-743`, `src/utils/storage.ts:775-785`, `src/utils/storage.ts:898-909`, `src/pages/HistoryPage.tsx:25-29`, and `src/pages/WorkoutPage.tsx:90-95`.
+- [x] High: Backup import accepts malformed `zenith_exercises` and `zenith_workouts` payloads and persists them without shape validation, so one bad backup/manual storage edit can break core screens at runtime. See `src/utils/storage.ts:399-402`, `src/utils/storage.ts:721-743`, `src/utils/storage.ts:775-785`, `src/utils/storage.ts:898-909`, `src/pages/HistoryPage.tsx:25-29`, and `src/pages/WorkoutPage.tsx:90-95`.
 
 - [ ] High: Replacing an exercise preserves prior `skipped` flags, so the replacement exercise can arrive already skipped and still count toward workout completion. See `src/pages/WorkoutPage.tsx:582-587` and `src/pages/WorkoutPage.tsx:760-764`.
 

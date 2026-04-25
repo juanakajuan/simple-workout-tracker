@@ -133,6 +133,10 @@ function normalizeArrayItems<T>(
   });
 }
 
+function normalizeExercises(value: unknown): Exercise[] {
+  return normalizeArrayItems(value, normalizeExercise);
+}
+
 function normalizeIntensityTechnique(value: unknown): TemplateExercise["intensityTechnique"] {
   return isIntensityTechnique(value) ? value : null;
 }
@@ -902,6 +906,8 @@ function normalizeStoredExportValue(key: string, value: string): string {
   }
 
   switch (key) {
+    case STORAGE_KEYS.EXERCISES:
+      return JSON.stringify(normalizeExercises(parsedValue));
     case STORAGE_KEYS.TEMPLATES:
       return JSON.stringify(normalizeTemplates(parsedValue));
     case STORAGE_KEYS.DRAFT_TEMPLATE: {
