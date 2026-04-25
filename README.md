@@ -16,8 +16,8 @@ A Progressive Web App for workout tracking. Mobile-first fitness tracker that ru
 ## Getting Started
 
 ```bash
-pnpm install
-pnpm dev
+npm install
+npm run dev
 ```
 
 Visit <http://localhost:5173>
@@ -26,13 +26,13 @@ Visit <http://localhost:5173>
 
 | Command         | Description                         |
 | --------------- | ----------------------------------- |
-| `pnpm dev`      | Start dev server                    |
-| `pnpm build`    | Type-check and build for production |
-| `pnpm preview`  | Preview production build            |
-| `pnpm test`     | Run tests (Vitest + jsdom)          |
-| `pnpm lint`     | Lint with ESLint                    |
-| `pnpm lint:fix` | Auto-fix lint issues                |
-| `pnpm format`   | Format with Prettier                |
+| `npm run dev`      | Start dev server                    |
+| `npm run build`    | Type-check and build for production |
+| `npm run preview`  | Preview production build            |
+| `npm test`         | Run tests (Vitest + jsdom)          |
+| `npm run lint`     | Lint with ESLint                    |
+| `npm run lint:fix` | Auto-fix lint issues                |
+| `npm run format`   | Format with Prettier                |
 
 ## Features
 

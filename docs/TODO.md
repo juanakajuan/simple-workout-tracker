@@ -202,3 +202,23 @@ Rationale:
 - Progress tracking and workout notes deepen the core workout loop.
 - Analytics and calendar build on the same historical data once it is richer.
 - Exercise substitution is valuable now, but it can stay lightweight until the rest of the workout experience is stronger.
+
+## Architectural Deepening
+
+Goal: turn the highest-friction shallow seams from `docs/DEEPENING_OPPORTUNITIES.md` into deeper modules with better locality, leverage, and testability.
+
+Checklist:
+
+- [ ] Deepen active workout session module around workout mutations and template-backed sync.
+- [ ] Deepen template composition module for ordering, grouping, replacements, set counts, and rebuild behavior.
+- [ ] Split storage and backup concerns into persisted data, backup import/export, and relationship repair seams.
+- [ ] Deepen exercise catalog module for merged lookup, default/custom classification, overrides, and deleted fallback.
+- [ ] Deepen exercise selection flow module to own navigation-state protocol, draft preservation, and template-update choices.
+- [ ] Deepen training history analytics module for derived workout facts and reusable analytics calculations.
+- [ ] Unify confirmation and alert behavior behind the application dialog module.
+
+Implementation notes:
+
+- Use `docs/DEEPENING_OPPORTUNITIES.md` as the source of architectural rationale and file touchpoints.
+- Start with the high-priority seams that affect active workout behavior, template behavior, storage, and exercise identity.
+- Prefer extracting plain domain behavior behind typed interfaces before moving UI state.
