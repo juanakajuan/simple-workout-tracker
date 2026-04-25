@@ -382,6 +382,10 @@ export function WorkoutPage(): React.ReactElement {
       date: completedAt,
       duration: durationInSeconds,
       completed: true,
+      exercises: activeWorkout.exercises.map((workoutExercise) => ({
+        ...workoutExercise,
+        exerciseSnapshot: exercisesById.get(workoutExercise.exerciseId) ?? workoutExercise.exerciseSnapshot,
+      })),
     };
 
     setWorkouts([completedWorkout, ...workouts]);

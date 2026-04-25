@@ -129,7 +129,7 @@ export function WeeklySetsTrackerPage(): React.ReactElement {
 
       workout.exercises.forEach((workoutExercise) => {
         const exercise =
-          exerciseById.get(workoutExercise.exerciseId) ?? workoutExercise.exerciseSnapshot;
+          workoutExercise.exerciseSnapshot ?? exerciseById.get(workoutExercise.exerciseId);
         if (!exercise) {
           return;
         }

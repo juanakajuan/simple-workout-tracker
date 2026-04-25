@@ -240,8 +240,8 @@ export function WorkoutDetailPage(): React.ReactElement | null {
 
         <div className="detail-exercises">
           {workout.exercises.map((workoutExercise) => {
+            const exercise = workoutExercise.exerciseSnapshot ?? getExerciseById(workoutExercise.exerciseId);
             const existingExercise = getExerciseById(workoutExercise.exerciseId);
-            const exercise = existingExercise ?? workoutExercise.exerciseSnapshot;
             if (!exercise) return null;
 
             return (

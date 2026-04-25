@@ -4,6 +4,6 @@
 
 - [x] High: Replacing an exercise preserves prior `skipped` flags, so the replacement exercise can arrive already skipped and still count toward workout completion. See `src/pages/WorkoutPage.tsx:582-587` and `src/pages/WorkoutPage.tsx:760-764`.
 
-- [ ] Medium: Completed workout history is not immutable; editing an exercise rewrites old workout detail, exercise history metadata, and weekly muscle-group totals because workouts only store `exerciseId` and resolve current exercise metadata at render time. See `src/types/index.ts:50-65`, `src/pages/ExerciseFormPage.tsx:69-91`, `src/pages/WorkoutDetailPage.tsx:51-64`, `src/pages/HistoryPage.tsx:25-38`, and `src/pages/WeeklySetsTrackerPage.tsx:130-149`.
+- [x] Medium: Completed workout history is not immutable; editing an exercise rewrites old workout detail, exercise history metadata, and weekly muscle-group totals because workouts only store `exerciseId` and resolve current exercise metadata at render time. See `src/types/index.ts:50-65`, `src/pages/ExerciseFormPage.tsx:69-91`, `src/pages/WorkoutDetailPage.tsx:51-64`, `src/pages/HistoryPage.tsx:25-38`, and `src/pages/WeeklySetsTrackerPage.tsx:130-149`.
 
 - [x] Medium: Automated checks are currently not green. `pnpm test` fails in `src/pages/WorkoutPage.test.tsx:873-926` on the delete-exercise/template-sync flow, and `pnpm lint` fails in `src/components/ConfirmDialog.tsx:33-37` and `src/hooks/useAutoFitText.test.tsx:88`.
