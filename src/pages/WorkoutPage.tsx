@@ -7,7 +7,6 @@ import type {
   IntensityTechnique,
   TemplateExercise,
   Workout,
-  WorkoutExercise,
   WorkoutSet,
   WorkoutTemplate,
   Settings,
@@ -48,6 +47,17 @@ import {
   type PlateCalculatorSelections,
   type WorkoutPageSelectorState,
 } from "./workout/workoutPageHelpers";
+import {
+  addExerciseToActiveWorkout,
+  addSetToWorkoutExercise,
+  completeActiveWorkout,
+  moveWorkoutExerciseInSession,
+  removeExerciseFromActiveWorkout,
+  removeWorkoutSet,
+  replaceExerciseInActiveWorkout,
+  skipRemainingWorkoutExerciseSets,
+  updateWorkoutSet,
+} from "./workout/activeWorkoutSession";
 
 import "./WorkoutPage.css";
 
@@ -114,18 +124,7 @@ export function WorkoutPage(): React.ReactElement {
   const addExerciseToWorkout = (exerciseId: string) => {
     if (!activeWorkout) return;
 
-    const workoutExercise: WorkoutExercise = {
-      id: generateId(),
-      exerciseId,
-      sets: [{ id: generateId(), weight: 0, reps: 0, completed: false }],
-      intensityTechnique: null,
-      supersetGroupId: null,
-    };
-
-    setActiveWorkout({
-      ...activeWorkout,
-      exercises: [...activeWorkout.exercises, workoutExercise],
-    });
+    setActiveWorkout(addExerciseToActiveWorkout(activeWorkout, exerciseId, generateId));
   };
 
   const updateFlattenedTemplateExercises = (
@@ -163,21 +162,13 @@ export function WorkoutPage(): React.ReactElement {
   const moveWorkoutExercise = (workoutExerciseId: string, direction: "up" | "down") => {
     if (!activeWorkout) return;
 
-    const currentIndex = activeWorkout.exercises.findIndex(
-      (exercise) => exercise.id === workoutExerciseId
-    );
-    if (currentIndex === -1) return;
+    const result = moveWorkoutExerciseInSession(activeWorkout, workoutExerciseId, direction);
+    if (!result) return;
 
-    const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
-    if (newIndex < 0 || newIndex >= activeWorkout.exercises.length) return;
-
-    setActiveWorkout({
-      ...activeWorkout,
-      exercises: swapItems(activeWorkout.exercises, currentIndex, newIndex),
-    });
+    setActiveWorkout(result.workout);
 
     if (activeWorkout.templateId) {
-      moveTemplateExercise(activeWorkout.templateId, currentIndex, newIndex);
+      moveTemplateExercise(activeWorkout.templateId, result.fromIndex, result.toIndex);
     }
 
     setOpenKebabMenu(null);
@@ -190,10 +181,7 @@ export function WorkoutPage(): React.ReactElement {
    */
   const removeExerciseFromWorkout = (workoutExerciseId: string) => {
     if (!activeWorkout) return;
-    setActiveWorkout({
-      ...activeWorkout,
-      exercises: removeExerciseWithIntensityCleanup(activeWorkout.exercises, workoutExerciseId),
-    });
+    setActiveWorkout(removeExerciseFromActiveWorkout(activeWorkout, workoutExerciseId));
   };
 
   /**
@@ -252,25 +240,7 @@ export function WorkoutPage(): React.ReactElement {
   const addSet = (workoutExerciseId: string) => {
     if (!activeWorkout) return;
 
-    const updatedWorkout = {
-      ...activeWorkout,
-      exercises: activeWorkout.exercises.map((exercise) => {
-        if (exercise.id !== workoutExerciseId) return exercise;
-        const lastSet = exercise.sets[exercise.sets.length - 1];
-        return {
-          ...exercise,
-          sets: [
-            ...exercise.sets,
-            {
-              id: generateId(),
-              weight: lastSet?.weight ?? 0,
-              reps: lastSet?.reps ?? 0,
-              completed: false,
-            },
-          ],
-        };
-      }),
-    };
+    const updatedWorkout = addSetToWorkoutExercise(activeWorkout, workoutExerciseId, generateId);
 
     setActiveWorkout(updatedWorkout);
     syncTemplateSetCountForWorkoutExercise(updatedWorkout, workoutExerciseId);
@@ -288,30 +258,9 @@ export function WorkoutPage(): React.ReactElement {
   const updateSet = (workoutExerciseId: string, setId: string, updates: Partial<WorkoutSet>) => {
     if (!activeWorkout) return;
 
-    setActiveWorkout({
-      ...activeWorkout,
-      exercises: activeWorkout.exercises.map((exercise) => {
-        if (exercise.id !== workoutExerciseId) return exercise;
-
-        // Apply auto-match weight if enabled and weight is being updated
-        if (settings.autoMatchWeight && updates.weight !== undefined) {
-          return {
-            ...exercise,
-            sets: exercise.sets.map((set) =>
-              set.id === setId
-                ? { ...set, ...updates }
-                : { ...set, weight: updates.weight as number }
-            ),
-          };
-        }
-
-        // Normal behavior: only update the specific set
-        return {
-          ...exercise,
-          sets: exercise.sets.map((set) => (set.id === setId ? { ...set, ...updates } : set)),
-        };
-      }),
-    });
+    setActiveWorkout(
+      updateWorkoutSet(activeWorkout, workoutExerciseId, setId, updates, settings.autoMatchWeight)
+    );
   };
 
   /**
@@ -324,13 +273,7 @@ export function WorkoutPage(): React.ReactElement {
   const removeSet = (workoutExerciseId: string, setId: string) => {
     if (!activeWorkout) return;
 
-    const updatedWorkout = {
-      ...activeWorkout,
-      exercises: activeWorkout.exercises.map((exercise) => {
-        if (exercise.id !== workoutExerciseId) return exercise;
-        return { ...exercise, sets: exercise.sets.filter((set) => set.id !== setId) };
-      }),
-    };
+    const updatedWorkout = removeWorkoutSet(activeWorkout, workoutExerciseId, setId);
 
     setActiveWorkout(updatedWorkout);
     syncTemplateSetCountForWorkoutExercise(updatedWorkout, workoutExerciseId);
@@ -371,22 +314,12 @@ export function WorkoutPage(): React.ReactElement {
   const finishWorkout = () => {
     if (!activeWorkout) return;
 
-    const now = new Date();
-    const startTime = new Date(activeWorkout.startTime);
-    const durationInSeconds = Math.floor((now.getTime() - startTime.getTime()) / 1000);
-    const completedAt = now.toISOString();
-
-    const completedWorkout: Workout = {
-      ...activeWorkout,
-      name: workoutName || activeWorkout.name,
-      date: completedAt,
-      duration: durationInSeconds,
-      completed: true,
-      exercises: activeWorkout.exercises.map((workoutExercise) => ({
-        ...workoutExercise,
-        exerciseSnapshot: exercisesById.get(workoutExercise.exerciseId) ?? workoutExercise.exerciseSnapshot,
-      })),
-    };
+    const completedWorkout = completeActiveWorkout(
+      activeWorkout,
+      workoutName,
+      exercisesById,
+      new Date()
+    );
 
     setWorkouts([completedWorkout, ...workouts]);
     setActiveWorkout(null);
@@ -458,35 +391,13 @@ export function WorkoutPage(): React.ReactElement {
   ) => {
     if (!activeWorkout) return;
 
-    const workoutExerciseIndex = activeWorkout.exercises.findIndex(
-      (exercise) => exercise.id === workoutExerciseId
-    );
+    const result = replaceExerciseInActiveWorkout(activeWorkout, workoutExerciseId, newExerciseId);
+    if (!result) return;
 
-    if (workoutExerciseIndex === -1) return;
-
-    const oldWorkoutExercise = activeWorkout.exercises[workoutExerciseIndex];
-
-    const newSets = oldWorkoutExercise.sets.map((set) => ({
-      ...set,
-      weight: 0,
-      reps: 0,
-      completed: false,
-      skipped: false,
-    }));
-
-    const updatedWorkout = {
-      ...activeWorkout,
-      exercises: activeWorkout.exercises.map((exercise) =>
-        exercise.id === workoutExerciseId
-          ? { ...exercise, exerciseId: newExerciseId, sets: newSets }
-          : exercise
-      ),
-    };
-
-    setActiveWorkout(updatedWorkout);
+    setActiveWorkout(result.workout);
 
     if (shouldUpdateTemplate && activeWorkout.templateId) {
-      updateTemplateExercise(activeWorkout.templateId, workoutExerciseIndex, newExerciseId);
+      updateTemplateExercise(activeWorkout.templateId, result.exerciseIndex, newExerciseId);
     }
   };
 
@@ -770,19 +681,7 @@ export function WorkoutPage(): React.ReactElement {
   const skipRemainingSets = (workoutExerciseId: string): void => {
     if (!activeWorkout) return;
 
-    setActiveWorkout({
-      ...activeWorkout,
-      exercises: activeWorkout.exercises.map((exercise) => {
-        if (exercise.id !== workoutExerciseId) return exercise;
-
-        return {
-          ...exercise,
-          sets: exercise.sets.map((set) =>
-            !set.completed && !set.skipped ? { ...set, skipped: true } : set
-          ),
-        };
-      }),
-    });
+    setActiveWorkout(skipRemainingWorkoutExerciseSets(activeWorkout, workoutExerciseId));
   };
 
   /** Closes the transient per-exercise action menus. */
@@ -811,7 +710,9 @@ export function WorkoutPage(): React.ReactElement {
 
   /** Opens or closes the intensity editor for a workout exercise. */
   const toggleIntensityEditor = (workoutExerciseId: string): void => {
-    setOpenIntensityEditorId((current) => (current === workoutExerciseId ? null : workoutExerciseId));
+    setOpenIntensityEditorId((current) =>
+      current === workoutExerciseId ? null : workoutExerciseId
+    );
     setOpenKebabMenu(null);
   };
 
@@ -824,7 +725,9 @@ export function WorkoutPage(): React.ReactElement {
       }));
     }
 
-    setOpenPlateCalculatorId((current) => (current === workoutExerciseId ? null : workoutExerciseId));
+    setOpenPlateCalculatorId((current) =>
+      current === workoutExerciseId ? null : workoutExerciseId
+    );
     closeExerciseActionMenus();
   };
 
@@ -903,7 +806,12 @@ export function WorkoutPage(): React.ReactElement {
     const currentExerciseId = selectedWorkoutExercise?.exerciseId;
 
     openExerciseSelector({
-      exercises: getReplacementExercises(activeWorkout, allExercises, exercisesById, workoutExerciseId),
+      exercises: getReplacementExercises(
+        activeWorkout,
+        allExercises,
+        exercisesById,
+        workoutExerciseId
+      ),
       isReplacement: true,
       hideFilter: true,
       currentExerciseId,
