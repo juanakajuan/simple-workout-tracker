@@ -1,66 +1,30 @@
 import type {
   Exercise,
   IntensityTechnique,
-  TemplateExercise,
   Workout,
   WorkoutExercise,
   WorkoutSet,
   WorkoutTemplate,
 } from "../../types";
+import { removeExerciseWithIntensityCleanup } from "../../utils/intensityTechniques";
 import {
-  pairExercisesAsSuperset,
-  removeExerciseWithIntensityCleanup,
-  setExerciseIntensityTechnique,
-  unpairSupersetExercise,
-} from "../../utils/intensityTechniques";
-import { buildTemplateMuscleGroups, flattenTemplateExercises } from "./workoutPageHelpers";
+  createTemplateExercise,
+  insertTemplateExerciseAtPosition,
+  moveTemplateExerciseByPosition,
+  pairTemplateExercisesWithSupersetGroup,
+  removeTemplateExercise,
+  replaceTemplateExercise,
+  setTemplateExerciseSetCountAtPosition,
+  type TemplateIdentifierGenerator,
+  unpairTemplateExerciseSuperset,
+  updateTemplateExerciseIntensity,
+  updateTemplateExercises,
+} from "./templateComposition";
 
 /** Creates stable identifiers for new active-workout entities. */
 export type ActiveWorkoutIdentifierGenerator = () => string;
 
 export type WorkoutExerciseMoveDirection = "up" | "down";
-
-type TemplateExerciseUpdater = (templateExercises: TemplateExercise[]) => TemplateExercise[];
-
-function updateFlattenedTemplateExercises(
-  templates: WorkoutTemplate[],
-  templateId: string,
-  exercisesById: ReadonlyMap<string, Exercise>,
-  updater: TemplateExerciseUpdater
-): WorkoutTemplate[] {
-  const template = templates.find((item) => item.id === templateId);
-  if (!template) return templates;
-
-  const updatedTemplateExercises = updater(flattenTemplateExercises(template));
-
-  return templates.map((item) =>
-    item.id === templateId
-      ? {
-          ...item,
-          muscleGroups: buildTemplateMuscleGroups(updatedTemplateExercises, exercisesById),
-        }
-      : item
-  );
-}
-
-function swapTemplateExercises(
-  templateExercises: TemplateExercise[],
-  fromIndex: number,
-  toIndex: number
-): TemplateExercise[] {
-  if (fromIndex < 0 || toIndex < 0) return templateExercises;
-  if (fromIndex >= templateExercises.length || toIndex >= templateExercises.length) {
-    return templateExercises;
-  }
-
-  const updatedTemplateExercises = [...templateExercises];
-  [updatedTemplateExercises[fromIndex], updatedTemplateExercises[toIndex]] = [
-    updatedTemplateExercises[toIndex],
-    updatedTemplateExercises[fromIndex],
-  ];
-
-  return updatedTemplateExercises;
-}
 
 /**
  * Creates a workout exercise with one empty set.
@@ -352,14 +316,16 @@ export function moveTemplateExerciseForActiveWorkout(
   templates: WorkoutTemplate[],
   templateId: string,
   exercisesById: ReadonlyMap<string, Exercise>,
+  generateIdentifier: TemplateIdentifierGenerator,
   fromIndex: number,
   toIndex: number
 ): WorkoutTemplate[] {
-  return updateFlattenedTemplateExercises(
+  return updateTemplateExercises(
     templates,
     templateId,
     exercisesById,
-    (templateExercises) => swapTemplateExercises(templateExercises, fromIndex, toIndex)
+    generateIdentifier,
+    (templateExercises) => moveTemplateExerciseByPosition(templateExercises, fromIndex, toIndex)
   );
 }
 
@@ -376,7 +342,8 @@ export function syncTemplateSetCountForActiveWorkoutExercise(
   templates: WorkoutTemplate[],
   workout: Workout,
   workoutExerciseId: string,
-  exercisesById: ReadonlyMap<string, Exercise>
+  exercisesById: ReadonlyMap<string, Exercise>,
+  generateIdentifier: TemplateIdentifierGenerator
 ): WorkoutTemplate[] {
   if (!workout.templateId) return templates;
 
@@ -385,15 +352,16 @@ export function syncTemplateSetCountForActiveWorkoutExercise(
   );
   if (exercisePosition === -1) return templates;
 
-  return updateFlattenedTemplateExercises(
+  return updateTemplateExercises(
     templates,
     workout.templateId,
     exercisesById,
+    generateIdentifier,
     (templateExercises) =>
-      templateExercises.map((exercise, exerciseIndex) =>
-        exerciseIndex === exercisePosition
-          ? { ...exercise, setCount: workout.exercises[exercisePosition].sets.length }
-          : exercise
+      setTemplateExerciseSetCountAtPosition(
+        templateExercises,
+        exercisePosition,
+        workout.exercises[exercisePosition].sets.length
       )
   );
 }
@@ -413,16 +381,22 @@ export function replaceTemplateExerciseForActiveWorkout(
   templateId: string,
   exercisePosition: number,
   exerciseId: string,
-  exercisesById: ReadonlyMap<string, Exercise>
+  exercisesById: ReadonlyMap<string, Exercise>,
+  generateIdentifier: TemplateIdentifierGenerator
 ): WorkoutTemplate[] {
-  return updateFlattenedTemplateExercises(
+  return updateTemplateExercises(
     templates,
     templateId,
     exercisesById,
+    generateIdentifier,
     (templateExercises) =>
-      templateExercises.map((exercise, exerciseIndex) =>
-        exerciseIndex === exercisePosition ? { ...exercise, exerciseId } : exercise
-      )
+      templateExercises[exercisePosition]
+        ? replaceTemplateExercise(
+            templateExercises,
+            templateExercises[exercisePosition].id,
+            exerciseId
+          )
+        : templateExercises
   );
 }
 
@@ -439,17 +413,19 @@ export function removeTemplateExerciseForActiveWorkout(
   templates: WorkoutTemplate[],
   templateId: string,
   exercisePosition: number,
-  exercisesById: ReadonlyMap<string, Exercise>
+  exercisesById: ReadonlyMap<string, Exercise>,
+  generateIdentifier: TemplateIdentifierGenerator
 ): WorkoutTemplate[] {
-  return updateFlattenedTemplateExercises(
+  return updateTemplateExercises(
     templates,
     templateId,
     exercisesById,
+    generateIdentifier,
     (templateExercises) => {
       const targetExercise = templateExercises[exercisePosition];
       if (!targetExercise) return templateExercises;
 
-      return removeExerciseWithIntensityCleanup(templateExercises, targetExercise.id);
+      return removeTemplateExercise(templateExercises, targetExercise.id);
     }
   );
 }
@@ -471,26 +447,21 @@ export function addTemplateExerciseForActiveWorkout(
   exercise: Exercise,
   exercisePosition: number,
   exercisesById: ReadonlyMap<string, Exercise>,
-  generateIdentifier: ActiveWorkoutIdentifierGenerator
+  generateIdentifier: TemplateIdentifierGenerator
 ): WorkoutTemplate[] {
-  return updateFlattenedTemplateExercises(
+  return updateTemplateExercises(
     templates,
     templateId,
     exercisesById,
+    generateIdentifier,
     (templateExercises) => {
-      const insertionIndex = Math.min(Math.max(exercisePosition, 0), templateExercises.length);
-      const insertedExercise: TemplateExercise = {
-        id: generateIdentifier(),
-        exerciseId: exercise.id,
-        setCount: 3,
-        intensityTechnique: null,
-        supersetGroupId: null,
-      };
-      const updatedTemplateExercises = [...templateExercises];
+      const insertedExercise = createTemplateExercise(exercise.id, generateIdentifier);
 
-      updatedTemplateExercises.splice(insertionIndex, 0, insertedExercise);
-
-      return updatedTemplateExercises;
+      return insertTemplateExerciseAtPosition(
+        templateExercises,
+        insertedExercise,
+        exercisePosition
+      );
     }
   );
 }
@@ -510,17 +481,19 @@ export function updateTemplateExerciseIntensityForActiveWorkout(
   templateId: string,
   exercisePosition: number,
   intensityTechnique: IntensityTechnique | null,
-  exercisesById: ReadonlyMap<string, Exercise>
+  exercisesById: ReadonlyMap<string, Exercise>,
+  generateIdentifier: TemplateIdentifierGenerator
 ): WorkoutTemplate[] {
-  return updateFlattenedTemplateExercises(
+  return updateTemplateExercises(
     templates,
     templateId,
     exercisesById,
+    generateIdentifier,
     (templateExercises) => {
       const targetExercise = templateExercises[exercisePosition];
       if (!targetExercise) return templateExercises;
 
-      return setExerciseIntensityTechnique(
+      return updateTemplateExerciseIntensity(
         templateExercises,
         targetExercise.id,
         intensityTechnique
@@ -546,19 +519,21 @@ export function pairTemplateSupersetForActiveWorkout(
   firstExercisePosition: number,
   secondExercisePosition: number,
   supersetGroupId: string,
-  exercisesById: ReadonlyMap<string, Exercise>
+  exercisesById: ReadonlyMap<string, Exercise>,
+  generateIdentifier: TemplateIdentifierGenerator
 ): WorkoutTemplate[] {
-  return updateFlattenedTemplateExercises(
+  return updateTemplateExercises(
     templates,
     templateId,
     exercisesById,
+    generateIdentifier,
     (templateExercises) => {
       const firstExercise = templateExercises[firstExercisePosition];
       const secondExercise = templateExercises[secondExercisePosition];
 
       if (!firstExercise || !secondExercise) return templateExercises;
 
-      return pairExercisesAsSuperset(
+      return pairTemplateExercisesWithSupersetGroup(
         templateExercises,
         firstExercise.id,
         secondExercise.id,
@@ -581,17 +556,19 @@ export function unpairTemplateSupersetForActiveWorkout(
   templates: WorkoutTemplate[],
   templateId: string,
   exercisePosition: number,
-  exercisesById: ReadonlyMap<string, Exercise>
+  exercisesById: ReadonlyMap<string, Exercise>,
+  generateIdentifier: TemplateIdentifierGenerator
 ): WorkoutTemplate[] {
-  return updateFlattenedTemplateExercises(
+  return updateTemplateExercises(
     templates,
     templateId,
     exercisesById,
+    generateIdentifier,
     (templateExercises) => {
       const targetExercise = templateExercises[exercisePosition];
       if (!targetExercise) return templateExercises;
 
-      return unpairSupersetExercise(templateExercises, targetExercise.id);
+      return unpairTemplateExerciseSuperset(templateExercises, targetExercise.id);
     }
   );
 }

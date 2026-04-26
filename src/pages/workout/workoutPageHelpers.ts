@@ -1,12 +1,4 @@
-import type {
-  Exercise,
-  IntensityTechnique,
-  TemplateExercise,
-  TemplateMuscleGroup,
-  Workout,
-  WorkoutExercise,
-  WorkoutTemplate,
-} from "../../types";
+import type { Exercise, IntensityTechnique, Workout, WorkoutExercise } from "../../types";
 import { generateId } from "../../utils/storage";
 
 /** Stores the selected plate-calculator set for each workout exercise. */
@@ -73,74 +65,6 @@ export function mergeAvailableExercises(
   const customExercises = userExercises.filter((exercise) => !exercise.id.startsWith("default-"));
 
   return [...mergedDefaultExercises, ...customExercises];
-}
-
-/**
- * Returns a new array with two positions swapped.
- *
- * @param items - Array to reorder
- * @param fromIndex - Original index
- * @param toIndex - Target index
- * @returns Reordered array copy
- */
-export function swapItems<Item>(items: Item[], fromIndex: number, toIndex: number): Item[] {
-  const reorderedItems = [...items];
-  [reorderedItems[fromIndex], reorderedItems[toIndex]] = [
-    reorderedItems[toIndex],
-    reorderedItems[fromIndex],
-  ];
-  return reorderedItems;
-}
-
-/**
- * Rebuilds template muscle groups from a flat exercise list while preserving order.
- *
- * @param templateExercises - Flat template exercises in workout order
- * @param exercisesById - Exercise lookup used to recover muscle groups
- * @returns Grouped muscle-group structure for template persistence
- */
-export function buildTemplateMuscleGroups(
-  templateExercises: TemplateExercise[],
-  exercisesById: ReadonlyMap<string, Exercise>
-): TemplateMuscleGroup[] {
-  const muscleGroups: TemplateMuscleGroup[] = [];
-
-  templateExercises.forEach((templateExercise) => {
-    if (!templateExercise.exerciseId) {
-      return;
-    }
-
-    const exercise = exercisesById.get(templateExercise.exerciseId);
-    if (!exercise) {
-      return;
-    }
-
-    const previousMuscleGroup = muscleGroups[muscleGroups.length - 1];
-    if (previousMuscleGroup?.muscleGroup === exercise.muscleGroup) {
-      previousMuscleGroup.exercises.push({ ...templateExercise });
-      return;
-    }
-
-    muscleGroups.push({
-      id: generateId(),
-      muscleGroup: exercise.muscleGroup,
-      exercises: [{ ...templateExercise }],
-    });
-  });
-
-  return muscleGroups;
-}
-
-/**
- * Flattens a template's muscle-group structure into workout order.
- *
- * @param template - Template to flatten
- * @returns Flat exercise list copied from the template
- */
-export function flattenTemplateExercises(template: WorkoutTemplate): TemplateExercise[] {
-  return template.muscleGroups.flatMap((muscleGroup) =>
-    muscleGroup.exercises.map((exercise) => ({ ...exercise }))
-  );
 }
 
 /**

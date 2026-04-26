@@ -7,7 +7,6 @@ import type {
   IntensityTechnique,
   WorkoutTemplate,
   TemplateExercise,
-  TemplateMuscleGroup,
   WorkoutTemplateDraft,
 } from "../types";
 import {
@@ -30,14 +29,21 @@ import {
   saveDraftTemplate,
   saveEditTemplateDraft,
 } from "../utils/storage";
+import { getSupersetDisplayLabels, getSupersetPartnerId } from "../utils/intensityTechniques";
 import {
-  getSupersetDisplayLabels,
-  getSupersetPartnerId,
-  pairExercisesAsSuperset,
-  removeExerciseWithIntensityCleanup,
-  setExerciseIntensityTechnique,
-  unpairSupersetExercise,
-} from "../utils/intensityTechniques";
+  appendTemplateExercise,
+  buildTemplateMuscleGroups,
+  createTemplateExercise,
+  flattenTemplateMuscleGroups,
+  getSupersetValidationError,
+  moveTemplateExercise,
+  pairTemplateExercisesAsSuperset,
+  removeTemplateExercise,
+  replaceTemplateExercise,
+  unpairTemplateExerciseSuperset,
+  updateTemplateExerciseIntensity,
+  updateTemplateExerciseSetCount,
+} from "./workout/templateComposition";
 
 import "./TemplateEditorPage.css";
 
@@ -52,42 +58,6 @@ interface TemplateEditorLocationState {
   templateSelectionTarget?: TemplateSelectionTarget;
   templateDraft?: WorkoutTemplateDraft;
   templateUpdateChecked?: boolean;
-}
-
-function flattenTemplateMuscleGroups(muscleGroups: TemplateMuscleGroup[]): TemplateExercise[] {
-  return muscleGroups.flatMap((muscleGroup) =>
-    muscleGroup.exercises.map((exercise) => ({ ...exercise }))
-  );
-}
-
-function buildTemplateMuscleGroups(
-  templateExercises: TemplateExercise[],
-  exercises: Exercise[]
-): TemplateMuscleGroup[] {
-  const exercisesById = new Map(exercises.map((exercise) => [exercise.id, exercise]));
-  const muscleGroups: TemplateMuscleGroup[] = [];
-
-  templateExercises.forEach((templateExercise) => {
-    if (!templateExercise.exerciseId) return;
-
-    const exercise = exercisesById.get(templateExercise.exerciseId);
-    if (!exercise) return;
-
-    const previousGroup = muscleGroups[muscleGroups.length - 1];
-
-    if (previousGroup && previousGroup.muscleGroup === exercise.muscleGroup) {
-      previousGroup.exercises.push({ ...templateExercise });
-      return;
-    }
-
-    muscleGroups.push({
-      id: generateId(),
-      muscleGroup: exercise.muscleGroup,
-      exercises: [{ ...templateExercise }],
-    });
-  });
-
-  return muscleGroups;
 }
 
 type TemplateExercisesAction =
@@ -129,101 +99,43 @@ type TemplateExercisesAction =
       templateExerciseId: string;
     };
 
-function getSupersetValidationError(templateExercises: TemplateExercise[]): string {
-  const supersetCounts = templateExercises.reduce((counts, exercise) => {
-    if (exercise.intensityTechnique === "super-set" && exercise.supersetGroupId) {
-      counts.set(exercise.supersetGroupId, (counts.get(exercise.supersetGroupId) ?? 0) + 1);
-    }
-
-    return counts;
-  }, new Map<string, number>());
-
-  const hasIncompleteSuperset = templateExercises.some((exercise) => {
-    if (exercise.intensityTechnique !== "super-set") {
-      return false;
-    }
-
-    if (!exercise.supersetGroupId) {
-      return true;
-    }
-
-    return supersetCounts.get(exercise.supersetGroupId) !== 2;
-  });
-
-  return hasIncompleteSuperset ? "Please pair every superset exercise before saving" : "";
-}
-
 function templateExercisesReducer(
   state: TemplateExercise[],
   action: TemplateExercisesAction
 ): TemplateExercise[] {
   switch (action.type) {
     case "replaceExercise":
-      return state.map((exercise) =>
-        exercise.id === action.templateExerciseId
-          ? { ...exercise, exerciseId: action.exerciseId }
-          : exercise
-      );
+      return replaceTemplateExercise(state, action.templateExerciseId, action.exerciseId);
 
     case "appendExercise":
-      return [...state, action.templateExercise];
+      return appendTemplateExercise(state, action.templateExercise);
 
     case "removeExercise":
-      return removeExerciseWithIntensityCleanup(state, action.templateExerciseId);
+      return removeTemplateExercise(state, action.templateExerciseId);
 
-    case "moveExercise": {
-      const currentIndex = state.findIndex((exercise) => exercise.id === action.templateExerciseId);
-      if (currentIndex === -1) return state;
-
-      const newIndex = action.direction === "up" ? currentIndex - 1 : currentIndex + 1;
-      if (newIndex < 0 || newIndex >= state.length) return state;
-
-      const reordered = [...state];
-      [reordered[currentIndex], reordered[newIndex]] = [
-        reordered[newIndex],
-        reordered[currentIndex],
-      ];
-      return reordered;
-    }
+    case "moveExercise":
+      return moveTemplateExercise(state, action.templateExerciseId, action.direction);
 
     case "updateSetCount":
-      return state.map((exercise) => {
-        if (exercise.id !== action.templateExerciseId) return exercise;
-
-        const setCount = Math.max(1, Math.min(20, exercise.setCount + action.delta));
-        return { ...exercise, setCount };
-      });
+      return updateTemplateExerciseSetCount(state, action.templateExerciseId, action.delta);
 
     case "updateIntensityTechnique":
-      return setExerciseIntensityTechnique(
+      return updateTemplateExerciseIntensity(
         state,
         action.templateExerciseId,
         action.intensityTechnique
       );
 
-    case "pairSuperset": {
-      const currentExercise = state.find((exercise) => exercise.id === action.templateExerciseId);
-      const partnerExercise = state.find(
-        (exercise) => exercise.id === action.partnerTemplateExerciseId
-      );
-
-      if (!currentExercise || !partnerExercise) {
-        return state;
-      }
-
-      const supersetGroupId =
-        currentExercise.supersetGroupId ?? partnerExercise.supersetGroupId ?? generateId();
-
-      return pairExercisesAsSuperset(
+    case "pairSuperset":
+      return pairTemplateExercisesAsSuperset(
         state,
         action.templateExerciseId,
         action.partnerTemplateExerciseId,
-        supersetGroupId
+        generateId
       );
-    }
 
     case "unpairSuperset":
-      return unpairSupersetExercise(state, action.templateExerciseId);
+      return unpairTemplateExerciseSuperset(state, action.templateExerciseId);
 
     default:
       return state;
@@ -335,11 +247,10 @@ export function TemplateEditorPage(): React.ReactElement {
     if (editorLocationState.selectedExerciseId && editorLocationState.appendTemplateExercise) {
       dispatchTemplateExercises({
         type: "appendExercise",
-        templateExercise: {
-          id: generateId(),
-          exerciseId: editorLocationState.selectedExerciseId,
-          setCount: 3,
-        },
+        templateExercise: createTemplateExercise(
+          editorLocationState.selectedExerciseId,
+          generateId
+        ),
       });
       return;
     }
@@ -405,7 +316,11 @@ export function TemplateEditorPage(): React.ReactElement {
     const savedTemplate: WorkoutTemplate = {
       id: isEditMode ? id! : generateId(),
       name: trimmedName,
-      muscleGroups: buildTemplateMuscleGroups(cleanedExercises, availableExercises),
+      muscleGroups: buildTemplateMuscleGroups(
+        cleanedExercises,
+        new Map(availableExercises.map((exercise) => [exercise.id, exercise])),
+        generateId
+      ),
     };
 
     const existingIndex = templates.findIndex((template) => template.id === savedTemplate.id);
@@ -481,7 +396,10 @@ export function TemplateEditorPage(): React.ReactElement {
     });
   };
 
-  const updateSupersetPair = (templateExerciseId: string, partnerTemplateExerciseId: string): void => {
+  const updateSupersetPair = (
+    templateExerciseId: string,
+    partnerTemplateExerciseId: string
+  ): void => {
     setError("");
 
     if (!partnerTemplateExerciseId) {

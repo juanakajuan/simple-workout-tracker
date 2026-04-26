@@ -136,6 +136,7 @@ export function WorkoutPage(): React.ReactElement {
         currentTemplates,
         templateId,
         exercisesById,
+        generateId,
         fromIndex,
         toIndex
       )
@@ -182,7 +183,8 @@ export function WorkoutPage(): React.ReactElement {
         currentTemplates,
         updatedWorkout,
         workoutExerciseId,
-        exercisesById
+        exercisesById,
+        generateId
       )
     );
   };
@@ -378,7 +380,8 @@ export function WorkoutPage(): React.ReactElement {
         templateId,
         exercisePositionInWorkout,
         newExerciseId,
-        exercisesById
+        exercisesById,
+        generateId
       )
     );
   };
@@ -397,7 +400,8 @@ export function WorkoutPage(): React.ReactElement {
         currentTemplates,
         templateId,
         exercisePositionInWorkout,
-        exercisesById
+        exercisesById,
+        generateId
       )
     );
   };
@@ -438,7 +442,8 @@ export function WorkoutPage(): React.ReactElement {
         templateId,
         exercisePositionInWorkout,
         intensityTechnique,
-        exercisesById
+        exercisesById,
+        generateId
       )
     );
   };
@@ -456,7 +461,8 @@ export function WorkoutPage(): React.ReactElement {
         firstExercisePosition,
         secondExercisePosition,
         supersetGroupId,
-        exercisesById
+        exercisesById,
+        generateId
       )
     );
   };
@@ -467,7 +473,8 @@ export function WorkoutPage(): React.ReactElement {
         currentTemplates,
         templateId,
         exercisePositionInWorkout,
-        exercisesById
+        exercisesById,
+        generateId
       )
     );
   };

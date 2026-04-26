@@ -315,14 +315,16 @@ describe("activeWorkoutSession", () => {
       [template],
       workout,
       "workout-exercise-1",
-      exercisesById
+      exercisesById,
+      generateTestIdentifier
     );
     const replacementTemplates = replaceTemplateExerciseForActiveWorkout(
       setCountTemplates,
       "template-1",
       0,
       "incline-press",
-      exercisesById
+      exercisesById,
+      generateTestIdentifier
     );
     const flattenedTemplate = flattenTemplate(replacementTemplates[0]!);
 
@@ -349,6 +351,7 @@ describe("activeWorkoutSession", () => {
       [template],
       "template-1",
       exercisesById,
+      generateTestIdentifier,
       0,
       1
     );
@@ -366,13 +369,15 @@ describe("activeWorkoutSession", () => {
       0,
       1,
       "pair-1",
-      exercisesById
+      exercisesById,
+      generateTestIdentifier
     );
     const removedTemplates = removeTemplateExerciseForActiveWorkout(
       pairedTemplates,
       "template-1",
       2,
-      exercisesById
+      exercisesById,
+      generateTestIdentifier
     );
     const flattenedTemplate = flattenTemplate(removedTemplates[0]!);
 
