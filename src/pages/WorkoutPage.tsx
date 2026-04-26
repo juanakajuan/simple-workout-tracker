@@ -5,7 +5,6 @@ import { CirclePlay, Pencil, Plus, Check, X, Play } from "lucide-react";
 import type {
   Exercise,
   IntensityTechnique,
-  TemplateExercise,
   Workout,
   WorkoutSet,
   WorkoutTemplate,
@@ -28,34 +27,38 @@ import { ConfirmDialog } from "../components/ConfirmDialog";
 import {
   getSupersetDisplayLabels,
   pairExercisesAsSuperset,
-  removeExerciseWithIntensityCleanup,
   setExerciseIntensityTechnique,
   unpairSupersetExercise,
 } from "../utils/intensityTechniques";
 import { WorkoutExerciseCard } from "./workout/WorkoutExerciseCard";
 import {
   areAllWorkoutSetsCompleted,
-  buildTemplateMuscleGroups,
   createEmptyWorkout,
-  flattenTemplateExercises,
   formatWorkoutDate,
   getLastPerformedSetsByExerciseId,
   getReplacementExercises,
   mergeAvailableExercises,
-  swapItems,
   type LastPerformedSet,
   type PlateCalculatorSelections,
   type WorkoutPageSelectorState,
 } from "./workout/workoutPageHelpers";
 import {
   addExerciseToActiveWorkout,
+  addTemplateExerciseForActiveWorkout,
   addSetToWorkoutExercise,
   completeActiveWorkout,
   moveWorkoutExerciseInSession,
+  moveTemplateExerciseForActiveWorkout,
+  pairTemplateSupersetForActiveWorkout,
   removeExerciseFromActiveWorkout,
+  removeTemplateExerciseForActiveWorkout,
   removeWorkoutSet,
   replaceExerciseInActiveWorkout,
+  replaceTemplateExerciseForActiveWorkout,
   skipRemainingWorkoutExerciseSets,
+  syncTemplateSetCountForActiveWorkoutExercise,
+  unpairTemplateSupersetForActiveWorkout,
+  updateTemplateExerciseIntensityForActiveWorkout,
   updateWorkoutSet,
 } from "./workout/activeWorkoutSession";
 
@@ -75,7 +78,7 @@ export function WorkoutPage(): React.ReactElement {
   const location = useLocation();
   const [exercises, setExercises] = useLocalStorage<Exercise[]>(STORAGE_KEYS.EXERCISES, []);
   const [workouts, setWorkouts] = useLocalStorage<Workout[]>(STORAGE_KEYS.WORKOUTS, []);
-  const [templates, setTemplates] = useLocalStorage<WorkoutTemplate[]>(STORAGE_KEYS.TEMPLATES, [], {
+  const [, setTemplates] = useLocalStorage<WorkoutTemplate[]>(STORAGE_KEYS.TEMPLATES, [], {
     deserialize: normalizeTemplates,
   });
   const [activeWorkout, setActiveWorkout] = useLocalStorage<Workout | null>(
@@ -127,36 +130,16 @@ export function WorkoutPage(): React.ReactElement {
     setActiveWorkout(addExerciseToActiveWorkout(activeWorkout, exerciseId, generateId));
   };
 
-  const updateFlattenedTemplateExercises = (
-    templateId: string,
-    updater: (templateExercises: TemplateExercise[]) => TemplateExercise[]
-  ): void => {
-    const template = templates.find((item) => item.id === templateId);
-    if (!template) return;
-
-    const updatedTemplateExercises = updater(flattenTemplateExercises(template));
-
-    setTemplates(
-      templates.map((item) =>
-        item.id === templateId
-          ? {
-              ...item,
-              muscleGroups: buildTemplateMuscleGroups(updatedTemplateExercises, exercisesById),
-            }
-          : item
+  const moveTemplateExercise = (templateId: string, fromIndex: number, toIndex: number) => {
+    setTemplates((currentTemplates) =>
+      moveTemplateExerciseForActiveWorkout(
+        currentTemplates,
+        templateId,
+        exercisesById,
+        fromIndex,
+        toIndex
       )
     );
-  };
-
-  const moveTemplateExercise = (templateId: string, fromIndex: number, toIndex: number) => {
-    updateFlattenedTemplateExercises(templateId, (templateExercises) => {
-      if (fromIndex < 0 || toIndex < 0) return templateExercises;
-      if (fromIndex >= templateExercises.length || toIndex >= templateExercises.length) {
-        return templateExercises;
-      }
-
-      return swapItems(templateExercises, fromIndex, toIndex);
-    });
   };
 
   const moveWorkoutExercise = (workoutExerciseId: string, direction: "up" | "down") => {
@@ -185,28 +168,6 @@ export function WorkoutPage(): React.ReactElement {
   };
 
   /**
-   * Updates the set count for a specific exercise in a template. Used to keep
-   * templates in sync when sets are added or removed during a workout.
-   *
-   * @param templateId - The unique identifier of the template
-   * @param exercisePositionInWorkout - The zero-based position of the exercise in the workout
-   * @param newSetCount - The new number of sets for the exercise
-   */
-  const updateTemplateSetCount = (
-    templateId: string,
-    exercisePositionInWorkout: number,
-    newSetCount: number
-  ): void => {
-    updateFlattenedTemplateExercises(templateId, (templateExercises) =>
-      templateExercises.map((exercise, exerciseIndex) =>
-        exerciseIndex === exercisePositionInWorkout
-          ? { ...exercise, setCount: newSetCount }
-          : exercise
-      )
-    );
-  };
-
-  /**
    * Keeps the template set count aligned with the current workout exercise.
    *
    * @param updatedWorkout - The workout state after the set change
@@ -216,17 +177,13 @@ export function WorkoutPage(): React.ReactElement {
     updatedWorkout: Workout,
     workoutExerciseId: string
   ): void => {
-    if (!updatedWorkout.templateId) return;
-
-    const workoutExerciseIndex = updatedWorkout.exercises.findIndex(
-      (exercise) => exercise.id === workoutExerciseId
-    );
-    if (workoutExerciseIndex === -1) return;
-
-    updateTemplateSetCount(
-      updatedWorkout.templateId,
-      workoutExerciseIndex,
-      updatedWorkout.exercises[workoutExerciseIndex].sets.length
+    setTemplates((currentTemplates) =>
+      syncTemplateSetCountForActiveWorkoutExercise(
+        currentTemplates,
+        updatedWorkout,
+        workoutExerciseId,
+        exercisesById
+      )
     );
   };
 
@@ -415,11 +372,13 @@ export function WorkoutPage(): React.ReactElement {
     exercisePositionInWorkout: number,
     newExerciseId: string
   ) => {
-    updateFlattenedTemplateExercises(templateId, (templateExercises) =>
-      templateExercises.map((exercise, exerciseIndex) =>
-        exerciseIndex === exercisePositionInWorkout
-          ? { ...exercise, exerciseId: newExerciseId }
-          : exercise
+    setTemplates((currentTemplates) =>
+      replaceTemplateExerciseForActiveWorkout(
+        currentTemplates,
+        templateId,
+        exercisePositionInWorkout,
+        newExerciseId,
+        exercisesById
       )
     );
   };
@@ -433,14 +392,14 @@ export function WorkoutPage(): React.ReactElement {
    * @param exercisePositionInWorkout - The zero-based position of the exercise in the workout
    */
   const removeExerciseFromTemplate = (templateId: string, exercisePositionInWorkout: number) => {
-    updateFlattenedTemplateExercises(templateId, (templateExercises) => {
-      const targetExercise = templateExercises[exercisePositionInWorkout];
-      if (!targetExercise) {
-        return templateExercises;
-      }
-
-      return removeExerciseWithIntensityCleanup(templateExercises, targetExercise.id);
-    });
+    setTemplates((currentTemplates) =>
+      removeTemplateExerciseForActiveWorkout(
+        currentTemplates,
+        templateId,
+        exercisePositionInWorkout,
+        exercisesById
+      )
+    );
   };
 
   /**
@@ -456,24 +415,16 @@ export function WorkoutPage(): React.ReactElement {
     exercise: Exercise,
     exercisePositionInWorkout: number
   ) => {
-    updateFlattenedTemplateExercises(templateId, (templateExercises) => {
-      const insertionIndex = Math.min(
-        Math.max(exercisePositionInWorkout, 0),
-        templateExercises.length
-      );
-      const insertedExercise = {
-        id: generateId(),
-        exerciseId: exercise.id,
-        setCount: 3,
-        intensityTechnique: null,
-        supersetGroupId: null,
-      };
-      const nextExercises = [...templateExercises];
-
-      nextExercises.splice(insertionIndex, 0, insertedExercise);
-
-      return nextExercises;
-    });
+    setTemplates((currentTemplates) =>
+      addTemplateExerciseForActiveWorkout(
+        currentTemplates,
+        templateId,
+        exercise,
+        exercisePositionInWorkout,
+        exercisesById,
+        generateId
+      )
+    );
   };
 
   const updateTemplateExerciseIntensity = (
@@ -481,18 +432,15 @@ export function WorkoutPage(): React.ReactElement {
     exercisePositionInWorkout: number,
     intensityTechnique: IntensityTechnique | null
   ) => {
-    updateFlattenedTemplateExercises(templateId, (templateExercises) => {
-      const targetExercise = templateExercises[exercisePositionInWorkout];
-      if (!targetExercise) {
-        return templateExercises;
-      }
-
-      return setExerciseIntensityTechnique(
-        templateExercises,
-        targetExercise.id,
-        intensityTechnique
-      );
-    });
+    setTemplates((currentTemplates) =>
+      updateTemplateExerciseIntensityForActiveWorkout(
+        currentTemplates,
+        templateId,
+        exercisePositionInWorkout,
+        intensityTechnique,
+        exercisesById
+      )
+    );
   };
 
   const pairTemplateSuperset = (
@@ -501,32 +449,27 @@ export function WorkoutPage(): React.ReactElement {
     secondExercisePosition: number,
     supersetGroupId: string
   ) => {
-    updateFlattenedTemplateExercises(templateId, (templateExercises) => {
-      const firstExercise = templateExercises[firstExercisePosition];
-      const secondExercise = templateExercises[secondExercisePosition];
-
-      if (!firstExercise || !secondExercise) {
-        return templateExercises;
-      }
-
-      return pairExercisesAsSuperset(
-        templateExercises,
-        firstExercise.id,
-        secondExercise.id,
-        supersetGroupId
-      );
-    });
+    setTemplates((currentTemplates) =>
+      pairTemplateSupersetForActiveWorkout(
+        currentTemplates,
+        templateId,
+        firstExercisePosition,
+        secondExercisePosition,
+        supersetGroupId,
+        exercisesById
+      )
+    );
   };
 
   const unpairTemplateSuperset = (templateId: string, exercisePositionInWorkout: number) => {
-    updateFlattenedTemplateExercises(templateId, (templateExercises) => {
-      const targetExercise = templateExercises[exercisePositionInWorkout];
-      if (!targetExercise) {
-        return templateExercises;
-      }
-
-      return unpairSupersetExercise(templateExercises, targetExercise.id);
-    });
+    setTemplates((currentTemplates) =>
+      unpairTemplateSupersetForActiveWorkout(
+        currentTemplates,
+        templateId,
+        exercisePositionInWorkout,
+        exercisesById
+      )
+    );
   };
 
   const applyWorkoutIntensityChange = (

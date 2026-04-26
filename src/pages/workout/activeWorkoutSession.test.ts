@@ -1,14 +1,27 @@
 import { describe, expect, it } from "vitest";
 
-import type { Exercise, Workout, WorkoutExercise, WorkoutSet } from "../../types";
+import type {
+  Exercise,
+  TemplateExercise,
+  Workout,
+  WorkoutExercise,
+  WorkoutSet,
+  WorkoutTemplate,
+} from "../../types";
 import {
   addExerciseToActiveWorkout,
+  addTemplateExerciseForActiveWorkout,
   addSetToWorkoutExercise,
   completeActiveWorkout,
   moveWorkoutExerciseInSession,
+  moveTemplateExerciseForActiveWorkout,
+  pairTemplateSupersetForActiveWorkout,
   removeExerciseFromActiveWorkout,
+  removeTemplateExerciseForActiveWorkout,
   replaceExerciseInActiveWorkout,
+  replaceTemplateExerciseForActiveWorkout,
   skipRemainingWorkoutExerciseSets,
+  syncTemplateSetCountForActiveWorkoutExercise,
   updateWorkoutSet,
 } from "./activeWorkoutSession";
 
@@ -51,6 +64,44 @@ function createWorkout(overrides: Partial<Workout> = {}): Workout {
     duration: overrides.duration,
     templateId: overrides.templateId,
   };
+}
+
+function createCatalogExercise(id: string, muscleGroup: Exercise["muscleGroup"]): Exercise {
+  return {
+    id,
+    name: id,
+    muscleGroup,
+    exerciseType: "machine",
+    notes: "",
+  };
+}
+
+function createTemplateExercise(overrides: Partial<TemplateExercise> = {}): TemplateExercise {
+  return {
+    id: overrides.id ?? generateTestIdentifier(),
+    exerciseId: overrides.exerciseId ?? "exercise-1",
+    setCount: overrides.setCount ?? 3,
+    intensityTechnique: overrides.intensityTechnique ?? null,
+    supersetGroupId: overrides.supersetGroupId ?? null,
+  };
+}
+
+function createTemplate(templateExercises: TemplateExercise[]): WorkoutTemplate {
+  return {
+    id: "template-1",
+    name: "Template",
+    muscleGroups: [
+      {
+        id: "group-1",
+        muscleGroup: "chest",
+        exercises: templateExercises,
+      },
+    ],
+  };
+}
+
+function flattenTemplate(template: WorkoutTemplate): TemplateExercise[] {
+  return template.muscleGroups.flatMap((muscleGroup) => muscleGroup.exercises);
 }
 
 describe("activeWorkoutSession", () => {
@@ -233,5 +284,102 @@ describe("activeWorkoutSession", () => {
       completed: true,
     });
     expect(completedWorkout.exercises[0]?.exerciseSnapshot).toEqual(exercise);
+  });
+
+  it("syncs template set counts and replacements from active workout positions", () => {
+    const chestExercise = createCatalogExercise("chest-press", "chest");
+    const backExercise = createCatalogExercise("row", "back");
+    const replacementExercise = createCatalogExercise("incline-press", "chest");
+    const exercisesById = new Map([
+      [chestExercise.id, chestExercise],
+      [backExercise.id, backExercise],
+      [replacementExercise.id, replacementExercise],
+    ]);
+    const template = createTemplate([
+      createTemplateExercise({ id: "template-exercise-1", exerciseId: "chest-press", setCount: 3 }),
+      createTemplateExercise({ id: "template-exercise-2", exerciseId: "row", setCount: 4 }),
+    ]);
+    const workout = createWorkout({
+      templateId: "template-1",
+      exercises: [
+        createExercise({
+          id: "workout-exercise-1",
+          exerciseId: "chest-press",
+          sets: [createSet(), createSet(), createSet(), createSet()],
+        }),
+        createExercise({ id: "workout-exercise-2", exerciseId: "row" }),
+      ],
+    });
+
+    const setCountTemplates = syncTemplateSetCountForActiveWorkoutExercise(
+      [template],
+      workout,
+      "workout-exercise-1",
+      exercisesById
+    );
+    const replacementTemplates = replaceTemplateExerciseForActiveWorkout(
+      setCountTemplates,
+      "template-1",
+      0,
+      "incline-press",
+      exercisesById
+    );
+    const flattenedTemplate = flattenTemplate(replacementTemplates[0]!);
+
+    expect(flattenedTemplate[0]).toMatchObject({ exerciseId: "incline-press", setCount: 4 });
+    expect(flattenedTemplate[1]).toMatchObject({ exerciseId: "row", setCount: 4 });
+  });
+
+  it("moves, adds, removes, and pairs template exercises by active workout position", () => {
+    identifierCounter = 0;
+    const chestExercise = createCatalogExercise("chest-press", "chest");
+    const rowExercise = createCatalogExercise("row", "back");
+    const curlExercise = createCatalogExercise("curl", "biceps");
+    const exercisesById = new Map([
+      [chestExercise.id, chestExercise],
+      [rowExercise.id, rowExercise],
+      [curlExercise.id, curlExercise],
+    ]);
+    const template = createTemplate([
+      createTemplateExercise({ id: "template-exercise-1", exerciseId: "chest-press" }),
+      createTemplateExercise({ id: "template-exercise-2", exerciseId: "row" }),
+    ]);
+
+    const movedTemplates = moveTemplateExerciseForActiveWorkout(
+      [template],
+      "template-1",
+      exercisesById,
+      0,
+      1
+    );
+    const addedTemplates = addTemplateExerciseForActiveWorkout(
+      movedTemplates,
+      "template-1",
+      curlExercise,
+      1,
+      exercisesById,
+      generateTestIdentifier
+    );
+    const pairedTemplates = pairTemplateSupersetForActiveWorkout(
+      addedTemplates,
+      "template-1",
+      0,
+      1,
+      "pair-1",
+      exercisesById
+    );
+    const removedTemplates = removeTemplateExerciseForActiveWorkout(
+      pairedTemplates,
+      "template-1",
+      2,
+      exercisesById
+    );
+    const flattenedTemplate = flattenTemplate(removedTemplates[0]!);
+
+    expect(flattenedTemplate.map((exercise) => exercise.exerciseId)).toEqual(["row", "curl"]);
+    expect(flattenedTemplate).toMatchObject([
+      { intensityTechnique: "super-set", supersetGroupId: "pair-1" },
+      { intensityTechnique: "super-set", supersetGroupId: "pair-1" },
+    ]);
   });
 });

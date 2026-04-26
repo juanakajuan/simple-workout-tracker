@@ -1,10 +1,66 @@
-import type { Exercise, Workout, WorkoutExercise, WorkoutSet } from "../../types";
-import { removeExerciseWithIntensityCleanup } from "../../utils/intensityTechniques";
+import type {
+  Exercise,
+  IntensityTechnique,
+  TemplateExercise,
+  Workout,
+  WorkoutExercise,
+  WorkoutSet,
+  WorkoutTemplate,
+} from "../../types";
+import {
+  pairExercisesAsSuperset,
+  removeExerciseWithIntensityCleanup,
+  setExerciseIntensityTechnique,
+  unpairSupersetExercise,
+} from "../../utils/intensityTechniques";
+import { buildTemplateMuscleGroups, flattenTemplateExercises } from "./workoutPageHelpers";
 
 /** Creates stable identifiers for new active-workout entities. */
 export type ActiveWorkoutIdentifierGenerator = () => string;
 
 export type WorkoutExerciseMoveDirection = "up" | "down";
+
+type TemplateExerciseUpdater = (templateExercises: TemplateExercise[]) => TemplateExercise[];
+
+function updateFlattenedTemplateExercises(
+  templates: WorkoutTemplate[],
+  templateId: string,
+  exercisesById: ReadonlyMap<string, Exercise>,
+  updater: TemplateExerciseUpdater
+): WorkoutTemplate[] {
+  const template = templates.find((item) => item.id === templateId);
+  if (!template) return templates;
+
+  const updatedTemplateExercises = updater(flattenTemplateExercises(template));
+
+  return templates.map((item) =>
+    item.id === templateId
+      ? {
+          ...item,
+          muscleGroups: buildTemplateMuscleGroups(updatedTemplateExercises, exercisesById),
+        }
+      : item
+  );
+}
+
+function swapTemplateExercises(
+  templateExercises: TemplateExercise[],
+  fromIndex: number,
+  toIndex: number
+): TemplateExercise[] {
+  if (fromIndex < 0 || toIndex < 0) return templateExercises;
+  if (fromIndex >= templateExercises.length || toIndex >= templateExercises.length) {
+    return templateExercises;
+  }
+
+  const updatedTemplateExercises = [...templateExercises];
+  [updatedTemplateExercises[fromIndex], updatedTemplateExercises[toIndex]] = [
+    updatedTemplateExercises[toIndex],
+    updatedTemplateExercises[fromIndex],
+  ];
+
+  return updatedTemplateExercises;
+}
 
 /**
  * Creates a workout exercise with one empty set.
@@ -280,4 +336,262 @@ export function completeActiveWorkout(
         exercisesById.get(workoutExercise.exerciseId) ?? workoutExercise.exerciseSnapshot,
     })),
   };
+}
+
+/**
+ * Moves a template exercise by the same flat position used by the active workout.
+ *
+ * @param templates - Current workout templates
+ * @param templateId - Template to update
+ * @param exercisesById - Exercise lookup used to rebuild muscle groups
+ * @param fromIndex - Current flat exercise position
+ * @param toIndex - Target flat exercise position
+ * @returns Updated template list
+ */
+export function moveTemplateExerciseForActiveWorkout(
+  templates: WorkoutTemplate[],
+  templateId: string,
+  exercisesById: ReadonlyMap<string, Exercise>,
+  fromIndex: number,
+  toIndex: number
+): WorkoutTemplate[] {
+  return updateFlattenedTemplateExercises(
+    templates,
+    templateId,
+    exercisesById,
+    (templateExercises) => swapTemplateExercises(templateExercises, fromIndex, toIndex)
+  );
+}
+
+/**
+ * Aligns a template exercise set count with its matching active workout position.
+ *
+ * @param templates - Current workout templates
+ * @param workout - Active workout after the set-count change
+ * @param workoutExerciseId - Workout exercise whose set count changed
+ * @param exercisesById - Exercise lookup used to rebuild muscle groups
+ * @returns Updated template list
+ */
+export function syncTemplateSetCountForActiveWorkoutExercise(
+  templates: WorkoutTemplate[],
+  workout: Workout,
+  workoutExerciseId: string,
+  exercisesById: ReadonlyMap<string, Exercise>
+): WorkoutTemplate[] {
+  if (!workout.templateId) return templates;
+
+  const exercisePosition = workout.exercises.findIndex(
+    (exercise) => exercise.id === workoutExerciseId
+  );
+  if (exercisePosition === -1) return templates;
+
+  return updateFlattenedTemplateExercises(
+    templates,
+    workout.templateId,
+    exercisesById,
+    (templateExercises) =>
+      templateExercises.map((exercise, exerciseIndex) =>
+        exerciseIndex === exercisePosition
+          ? { ...exercise, setCount: workout.exercises[exercisePosition].sets.length }
+          : exercise
+      )
+  );
+}
+
+/**
+ * Replaces the template exercise at an active workout position.
+ *
+ * @param templates - Current workout templates
+ * @param templateId - Template to update
+ * @param exercisePosition - Flat exercise position from the active workout
+ * @param exerciseId - Replacement exercise catalog identifier
+ * @param exercisesById - Exercise lookup used to rebuild muscle groups
+ * @returns Updated template list
+ */
+export function replaceTemplateExerciseForActiveWorkout(
+  templates: WorkoutTemplate[],
+  templateId: string,
+  exercisePosition: number,
+  exerciseId: string,
+  exercisesById: ReadonlyMap<string, Exercise>
+): WorkoutTemplate[] {
+  return updateFlattenedTemplateExercises(
+    templates,
+    templateId,
+    exercisesById,
+    (templateExercises) =>
+      templateExercises.map((exercise, exerciseIndex) =>
+        exerciseIndex === exercisePosition ? { ...exercise, exerciseId } : exercise
+      )
+  );
+}
+
+/**
+ * Removes the template exercise at an active workout position.
+ *
+ * @param templates - Current workout templates
+ * @param templateId - Template to update
+ * @param exercisePosition - Flat exercise position from the active workout
+ * @param exercisesById - Exercise lookup used to rebuild muscle groups
+ * @returns Updated template list
+ */
+export function removeTemplateExerciseForActiveWorkout(
+  templates: WorkoutTemplate[],
+  templateId: string,
+  exercisePosition: number,
+  exercisesById: ReadonlyMap<string, Exercise>
+): WorkoutTemplate[] {
+  return updateFlattenedTemplateExercises(
+    templates,
+    templateId,
+    exercisesById,
+    (templateExercises) => {
+      const targetExercise = templateExercises[exercisePosition];
+      if (!targetExercise) return templateExercises;
+
+      return removeExerciseWithIntensityCleanup(templateExercises, targetExercise.id);
+    }
+  );
+}
+
+/**
+ * Inserts a template exercise at the active workout insertion position.
+ *
+ * @param templates - Current workout templates
+ * @param templateId - Template to update
+ * @param exercise - Exercise to add to the template
+ * @param exercisePosition - Flat active-workout insertion position
+ * @param exercisesById - Exercise lookup used to rebuild muscle groups
+ * @param generateIdentifier - Identifier generator for the template exercise
+ * @returns Updated template list
+ */
+export function addTemplateExerciseForActiveWorkout(
+  templates: WorkoutTemplate[],
+  templateId: string,
+  exercise: Exercise,
+  exercisePosition: number,
+  exercisesById: ReadonlyMap<string, Exercise>,
+  generateIdentifier: ActiveWorkoutIdentifierGenerator
+): WorkoutTemplate[] {
+  return updateFlattenedTemplateExercises(
+    templates,
+    templateId,
+    exercisesById,
+    (templateExercises) => {
+      const insertionIndex = Math.min(Math.max(exercisePosition, 0), templateExercises.length);
+      const insertedExercise: TemplateExercise = {
+        id: generateIdentifier(),
+        exerciseId: exercise.id,
+        setCount: 3,
+        intensityTechnique: null,
+        supersetGroupId: null,
+      };
+      const updatedTemplateExercises = [...templateExercises];
+
+      updatedTemplateExercises.splice(insertionIndex, 0, insertedExercise);
+
+      return updatedTemplateExercises;
+    }
+  );
+}
+
+/**
+ * Updates template intensity at the active workout exercise position.
+ *
+ * @param templates - Current workout templates
+ * @param templateId - Template to update
+ * @param exercisePosition - Flat exercise position from the active workout
+ * @param intensityTechnique - Intensity technique to apply
+ * @param exercisesById - Exercise lookup used to rebuild muscle groups
+ * @returns Updated template list
+ */
+export function updateTemplateExerciseIntensityForActiveWorkout(
+  templates: WorkoutTemplate[],
+  templateId: string,
+  exercisePosition: number,
+  intensityTechnique: IntensityTechnique | null,
+  exercisesById: ReadonlyMap<string, Exercise>
+): WorkoutTemplate[] {
+  return updateFlattenedTemplateExercises(
+    templates,
+    templateId,
+    exercisesById,
+    (templateExercises) => {
+      const targetExercise = templateExercises[exercisePosition];
+      if (!targetExercise) return templateExercises;
+
+      return setExerciseIntensityTechnique(
+        templateExercises,
+        targetExercise.id,
+        intensityTechnique
+      );
+    }
+  );
+}
+
+/**
+ * Pairs two template exercises as a superset using active workout positions.
+ *
+ * @param templates - Current workout templates
+ * @param templateId - Template to update
+ * @param firstExercisePosition - First flat exercise position from the active workout
+ * @param secondExercisePosition - Second flat exercise position from the active workout
+ * @param supersetGroupId - Shared superset identifier
+ * @param exercisesById - Exercise lookup used to rebuild muscle groups
+ * @returns Updated template list
+ */
+export function pairTemplateSupersetForActiveWorkout(
+  templates: WorkoutTemplate[],
+  templateId: string,
+  firstExercisePosition: number,
+  secondExercisePosition: number,
+  supersetGroupId: string,
+  exercisesById: ReadonlyMap<string, Exercise>
+): WorkoutTemplate[] {
+  return updateFlattenedTemplateExercises(
+    templates,
+    templateId,
+    exercisesById,
+    (templateExercises) => {
+      const firstExercise = templateExercises[firstExercisePosition];
+      const secondExercise = templateExercises[secondExercisePosition];
+
+      if (!firstExercise || !secondExercise) return templateExercises;
+
+      return pairExercisesAsSuperset(
+        templateExercises,
+        firstExercise.id,
+        secondExercise.id,
+        supersetGroupId
+      );
+    }
+  );
+}
+
+/**
+ * Unpairs a template superset using the active workout exercise position.
+ *
+ * @param templates - Current workout templates
+ * @param templateId - Template to update
+ * @param exercisePosition - Flat exercise position from the active workout
+ * @param exercisesById - Exercise lookup used to rebuild muscle groups
+ * @returns Updated template list
+ */
+export function unpairTemplateSupersetForActiveWorkout(
+  templates: WorkoutTemplate[],
+  templateId: string,
+  exercisePosition: number,
+  exercisesById: ReadonlyMap<string, Exercise>
+): WorkoutTemplate[] {
+  return updateFlattenedTemplateExercises(
+    templates,
+    templateId,
+    exercisesById,
+    (templateExercises) => {
+      const targetExercise = templateExercises[exercisePosition];
+      if (!targetExercise) return templateExercises;
+
+      return unpairSupersetExercise(templateExercises, targetExercise.id);
+    }
+  );
 }

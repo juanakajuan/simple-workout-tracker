@@ -209,7 +209,7 @@ Goal: turn the highest-friction shallow seams from `docs/DEEPENING_OPPORTUNITIES
 
 Checklist:
 
-- [ ] Deepen active workout session module around workout mutations and template-backed sync.
+- [x] Deepen active workout session module around workout mutations and template-backed sync.
 - [ ] Deepen template composition module for ordering, grouping, replacements, set counts, and rebuild behavior.
 - [ ] Split storage and backup concerns into persisted data, backup import/export, and relationship repair seams.
 - [ ] Deepen exercise catalog module for merged lookup, default/custom classification, overrides, and deleted fallback.
