@@ -591,7 +591,7 @@ describe("storage utilities", () => {
     expect(formatRelativeDate("2025-02-28T12:00:00.000Z")).toBe("1 year ago");
   });
 
-  it("exports only Zenith storage keys and canonicalizes migrated values", () => {
+  it("exports only Simple Workout Tracker storage keys and canonicalizes migrated values", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-04-04T12:00:00.000Z"));
 
@@ -643,7 +643,7 @@ describe("storage utilities", () => {
       ])
     );
     localStorage.setItem(STORAGE_KEYS.ACTIVE_WORKOUT, JSON.stringify(createWorkout()));
-    localStorage.setItem("not_zenith", JSON.stringify({ ignore: true }));
+    localStorage.setItem("not_simple_workout_tracker", JSON.stringify({ ignore: true }));
 
     const exported = JSON.parse(exportAllData()) as {
       version: string;
@@ -653,7 +653,7 @@ describe("storage utilities", () => {
     };
 
     expect(exported.version).toBe("1.0");
-    expect(exported.appName).toBe("Zenith");
+    expect(exported.appName).toBe("Simple Workout Tracker");
     expect(exported.exportDate).toBe("2026-04-04T12:00:00.000Z");
     expect(Object.keys(exported.data)).toEqual(
       expect.arrayContaining([
@@ -663,7 +663,7 @@ describe("storage utilities", () => {
         STORAGE_KEYS.WORKOUTS,
       ])
     );
-    expect(exported.data.not_zenith).toBeUndefined();
+    expect(exported.data.not_simple_workout_tracker).toBeUndefined();
     expect(JSON.parse(exported.data[STORAGE_KEYS.TEMPLATES])).toEqual([
       {
         id: "template-1",
@@ -706,7 +706,7 @@ describe("storage utilities", () => {
     importAllData(
       JSON.stringify({
         version: "1.0",
-        appName: "Zenith",
+        appName: "Simple Workout Tracker",
         exportDate: "2026-04-04T12:00:00.000Z",
         data: {
           [STORAGE_KEYS.TEMPLATES]: JSON.stringify([
@@ -866,7 +866,7 @@ describe("storage utilities", () => {
     importAllData(
       JSON.stringify({
         version: "1.0",
-        appName: "Zenith",
+        appName: "Simple Workout Tracker",
         exportDate: "2026-04-04T12:00:00.000Z",
         data: {
           [STORAGE_KEYS.TEMPLATES]: JSON.stringify([
@@ -904,7 +904,7 @@ describe("storage utilities", () => {
     importAllData(
       JSON.stringify({
         version: "1.0",
-        appName: "Zenith",
+        appName: "Simple Workout Tracker",
         data: {
           [STORAGE_KEYS.ACTIVE_WORKOUT]: JSON.stringify({
             id: "broken-workout",
@@ -929,13 +929,15 @@ describe("storage utilities", () => {
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify({ autoMatchWeight: false }));
 
     expect(() => importAllData("not json")).toThrow(
-      "Invalid JSON file. Please select a valid Zenith backup file."
+      "Invalid JSON file. Please select a valid Simple Workout Tracker backup file."
     );
     expect(() =>
       importAllData(JSON.stringify({ version: "1.0", appName: "Other", data: {} }))
-    ).toThrow("This file is not a valid Zenith backup.");
+    ).toThrow("This file is not a valid Simple Workout Tracker backup.");
     expect(() =>
-      importAllData(JSON.stringify({ version: "1.0", appName: "Zenith", data: { bad: 123 } }))
+      importAllData(
+        JSON.stringify({ version: "1.0", appName: "Simple Workout Tracker", data: { bad: 123 } })
+      )
     ).toThrow("Invalid backup file format. Backup entries must be strings.");
 
     expect(readStoredJsonValue(STORAGE_KEYS.SETTINGS)).toEqual({
@@ -974,7 +976,7 @@ describe("storage utilities", () => {
       importAllData(
         JSON.stringify({
           version: "1.0",
-          appName: "Zenith",
+          appName: "Simple Workout Tracker",
           data: {
             [STORAGE_KEYS.TEMPLATES]: JSON.stringify([
               { id: "incoming", name: "Incoming", muscleGroups: [] },

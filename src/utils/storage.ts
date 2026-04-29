@@ -21,7 +21,7 @@ function isIntensityTechnique(value: unknown): value is IntensityTechnique {
 
 /**
  * localStorage keys used throughout the application.
- * All keys are prefixed with "zenith_" to avoid conflicts with other applications.
+ * All keys are prefixed with "simple_workout_tracker_" to avoid conflicts with other applications.
  */
 export const STORAGE_KEYS: Readonly<{
   EXERCISES: string;
@@ -32,14 +32,47 @@ export const STORAGE_KEYS: Readonly<{
   EDIT_TEMPLATE_DRAFTS: string;
   SETTINGS: string;
 }> = {
-  EXERCISES: "zenith_exercises",
-  WORKOUTS: "zenith_workouts",
-  ACTIVE_WORKOUT: "zenith_active_workout",
-  TEMPLATES: "zenith_templates",
-  DRAFT_TEMPLATE: "zenith_draft_template",
-  EDIT_TEMPLATE_DRAFTS: "zenith_edit_template_drafts",
-  SETTINGS: "zenith_settings",
+  EXERCISES: "simple_workout_tracker_exercises",
+  WORKOUTS: "simple_workout_tracker_workouts",
+  ACTIVE_WORKOUT: "simple_workout_tracker_active_workout",
+  TEMPLATES: "simple_workout_tracker_templates",
+  DRAFT_TEMPLATE: "simple_workout_tracker_draft_template",
+  EDIT_TEMPLATE_DRAFTS: "simple_workout_tracker_edit_template_drafts",
+  SETTINGS: "simple_workout_tracker_settings",
 } as const;
+
+const STORAGE_KEY_PREFIX = "simple_workout_tracker_";
+const LEGACY_STORAGE_KEY_PREFIX = "zenith_";
+const APP_NAME = "Simple Workout Tracker";
+const LEGACY_APP_NAME = "Zenith";
+
+const LEGACY_STORAGE_KEYS: Readonly<Record<string, string>> = Object.fromEntries(
+  Object.values(STORAGE_KEYS).map((key) => [key, key.replace(STORAGE_KEY_PREFIX, LEGACY_STORAGE_KEY_PREFIX)])
+);
+
+/**
+ * Reads a value from current storage, migrating a matching legacy key when needed.
+ *
+ * @param key - Current localStorage key to read
+ * @returns Stored string value, or null when missing
+ */
+function getStoredItem(key: string): string | null {
+  const currentValue = localStorage.getItem(key);
+
+  if (currentValue !== null) {
+    return currentValue;
+  }
+
+  const legacyKey = LEGACY_STORAGE_KEYS[key];
+  const legacyValue = legacyKey ? localStorage.getItem(legacyKey) : null;
+
+  if (legacyKey && legacyValue !== null) {
+    localStorage.setItem(key, legacyValue);
+    localStorage.removeItem(legacyKey);
+  }
+
+  return legacyValue;
+}
 
 /**
  * Pre-populated default exercises provided by the application.
@@ -93,7 +126,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  */
 function parseStoredValue(key: string): unknown {
   try {
-    const data = localStorage.getItem(key);
+    const data = getStoredItem(key);
     return data ? JSON.parse(data) : null;
   } catch {
     return null;
@@ -439,7 +472,7 @@ export function normalizeActiveWorkout(value: unknown): Workout | null {
  */
 export function getExercises(): Exercise[] {
   try {
-    const data = localStorage.getItem(STORAGE_KEYS.EXERCISES);
+    const data = getStoredItem(STORAGE_KEYS.EXERCISES);
     return data ? JSON.parse(data) : [];
   } catch {
     return [];
@@ -515,7 +548,7 @@ export function deleteExerciseAndRepairReferences(exercise: Exercise): void {
  */
 export function getWorkouts(): Workout[] {
   try {
-    const data = localStorage.getItem(STORAGE_KEYS.WORKOUTS);
+    const data = getStoredItem(STORAGE_KEYS.WORKOUTS);
     return data ? normalizeWorkouts(JSON.parse(data)) : [];
   } catch {
     return [];
@@ -640,7 +673,7 @@ function getMostRecentCompletedExerciseEntry(
  */
 export function getActiveWorkout(): Workout | null {
   try {
-    const data = localStorage.getItem(STORAGE_KEYS.ACTIVE_WORKOUT);
+    const data = getStoredItem(STORAGE_KEYS.ACTIVE_WORKOUT);
     return data ? normalizeActiveWorkout(JSON.parse(data)) : null;
   } catch {
     return null;
@@ -668,6 +701,7 @@ export function saveActiveWorkout(workout: Workout | null): void {
     );
   } else {
     localStorage.removeItem(STORAGE_KEYS.ACTIVE_WORKOUT);
+    localStorage.removeItem(LEGACY_STORAGE_KEYS[STORAGE_KEYS.ACTIVE_WORKOUT]);
   }
 }
 
@@ -721,6 +755,7 @@ export function saveDraftTemplate(draft: WorkoutTemplateDraft | null): void {
     );
   } else {
     localStorage.removeItem(STORAGE_KEYS.DRAFT_TEMPLATE);
+    localStorage.removeItem(LEGACY_STORAGE_KEYS[STORAGE_KEYS.DRAFT_TEMPLATE]);
   }
 }
 
@@ -755,6 +790,7 @@ export function saveEditTemplateDraft(
 
   if (Object.keys(drafts).length === 0) {
     localStorage.removeItem(STORAGE_KEYS.EDIT_TEMPLATE_DRAFTS);
+    localStorage.removeItem(LEGACY_STORAGE_KEYS[STORAGE_KEYS.EDIT_TEMPLATE_DRAFTS]);
     return;
   }
 
@@ -870,7 +906,7 @@ export function getLastPerformedSets(
  */
 export function getSettings(): Settings {
   try {
-    const data = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+    const data = getStoredItem(STORAGE_KEYS.SETTINGS);
     return data ? JSON.parse(data) : { autoMatchWeight: false };
   } catch {
     return { autoMatchWeight: false };
@@ -970,23 +1006,23 @@ function normalizeStoredImportValue(key: string, value: string): string | null {
 }
 
 /**
- * Reads the current Zenith-specific localStorage snapshot.
+ * Reads the current Simple Workout Tracker-specific localStorage snapshot.
  *
- * @returns Map of persisted zenith_* keys to their raw stored values
+ * @returns Map of persisted app storage keys to their raw stored values
  */
-function getZenithStorageSnapshot(): Record<string, string> {
+function getApplicationStorageSnapshot(): Record<string, string> {
   const snapshot: Record<string, string> = {};
 
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
 
-    if (!key || !key.startsWith("zenith_")) {
+    if (!key || (!key.startsWith(STORAGE_KEY_PREFIX) && !key.startsWith(LEGACY_STORAGE_KEY_PREFIX))) {
       continue;
     }
 
     const value = localStorage.getItem(key);
     if (value !== null) {
-      snapshot[key] = value;
+      snapshot[key.replace(LEGACY_STORAGE_KEY_PREFIX, STORAGE_KEY_PREFIX)] = value;
     }
   }
 
@@ -994,8 +1030,8 @@ function getZenithStorageSnapshot(): Record<string, string> {
 }
 
 /**
- * Exports all Zenith application data from localStorage.
- * Automatically discovers and exports all keys prefixed with "zenith_".
+ * Exports all Simple Workout Tracker application data from localStorage.
+ * Automatically discovers and exports all keys prefixed with the application storage prefix.
  * Includes metadata for version compatibility and future-proofing.
  *
  * @returns JSON string containing all application data with metadata
@@ -1006,20 +1042,15 @@ function getZenithStorageSnapshot(): Record<string, string> {
  */
 export function exportAllData(): string {
   const data: Record<string, string> = {};
+  const snapshot = getApplicationStorageSnapshot();
 
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key && key.startsWith("zenith_")) {
-      const value = localStorage.getItem(key);
-      if (value !== null) {
-        data[key] = normalizeStoredExportValue(key, value);
-      }
-    }
+  for (const [key, value] of Object.entries(snapshot)) {
+    data[key] = normalizeStoredExportValue(key, value);
   }
 
   const exportObject = {
     version: "1.0",
-    appName: "Zenith",
+    appName: APP_NAME,
     exportDate: new Date().toISOString(),
     data: data,
   };
@@ -1046,7 +1077,7 @@ export function importAllData(jsonString: string): void {
     parsedImportObject = JSON.parse(jsonString);
   } catch (error) {
     console.error("Error parsing import file:", error);
-    throw new Error("Invalid JSON file. Please select a valid Zenith backup file.");
+    throw new Error("Invalid JSON file. Please select a valid Simple Workout Tracker backup file.");
   }
 
   if (
@@ -1071,21 +1102,30 @@ export function importAllData(jsonString: string): void {
     data: Object.fromEntries(importedEntries) as Record<string, string>,
   };
 
-  if (importObject.appName !== "Zenith") {
-    throw new Error("This file is not a valid Zenith backup.");
+  if (importObject.appName !== APP_NAME && importObject.appName !== LEGACY_APP_NAME) {
+    throw new Error("This file is not a valid Simple Workout Tracker backup.");
   }
 
   if (importObject.version !== "1.0") {
     console.warn(`Importing data from version ${importObject.version}`);
   }
 
-  const previousSnapshot = getZenithStorageSnapshot();
-  const importPlan = getImportStorageOrder(importObject.data).map(
-    (key) => [key, normalizeStoredImportValue(key, importObject.data[key])] as const
+  const previousSnapshot = getApplicationStorageSnapshot();
+  const importedData: Record<string, string> = Object.fromEntries(
+    Object.entries(importObject.data).map(([key, value]) => [
+      key.replace(LEGACY_STORAGE_KEY_PREFIX, STORAGE_KEY_PREFIX),
+      value,
+    ])
+  );
+  const importPlan = getImportStorageOrder(importedData).map(
+    (key) => [key, normalizeStoredImportValue(key, importedData[key])] as const
   );
 
   try {
-    Object.keys(previousSnapshot).forEach((key) => localStorage.removeItem(key));
+    Object.keys(previousSnapshot).forEach((key) => {
+      localStorage.removeItem(key);
+      localStorage.removeItem(key.replace(STORAGE_KEY_PREFIX, LEGACY_STORAGE_KEY_PREFIX));
+    });
 
     importPlan.forEach(([key, normalizedValue]) => {
       if (normalizedValue !== null) {
@@ -1096,11 +1136,10 @@ export function importAllData(jsonString: string): void {
     console.error("Error writing imported data to localStorage:", error);
 
     try {
-      new Set([...Object.keys(previousSnapshot), ...importPlan.map(([key]) => key)]).forEach(
-        (key) => {
-          localStorage.removeItem(key);
-        }
-      );
+      new Set([...Object.keys(previousSnapshot), ...importPlan.map(([key]) => key)]).forEach((key) => {
+        localStorage.removeItem(key);
+        localStorage.removeItem(key.replace(STORAGE_KEY_PREFIX, LEGACY_STORAGE_KEY_PREFIX));
+      });
 
       getImportStorageOrder(previousSnapshot).forEach((key) => {
         localStorage.setItem(key, previousSnapshot[key]);
@@ -1117,7 +1156,7 @@ export function importAllData(jsonString: string): void {
 
 /**
  * Triggers a browser download of the provided data as a JSON file.
- * Filename format: zenith-backup-YYYY-MM-DD.json
+ * Filename format: simple-workout-tracker-backup-YYYY-MM-DD.json
  *
  * @param jsonString - JSON string to download
  *
@@ -1131,7 +1170,7 @@ export function downloadDataFile(jsonString: string): void {
   const link = document.createElement("a");
 
   const today = new Date().toISOString().split("T")[0];
-  link.download = `zenith-backup-${today}.json`;
+  link.download = `simple-workout-tracker-backup-${today}.json`;
   link.href = url;
 
   document.body.appendChild(link);

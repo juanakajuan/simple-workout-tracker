@@ -16,7 +16,8 @@
 /**
  * LocalStorage key for tracking the last seen build ID.
  */
-const APP_BUILD_SEEN_KEY = "zenith_seen_build_id";
+const APP_BUILD_SEEN_KEY = "simple_workout_tracker_seen_build_id";
+const LEGACY_APP_BUILD_SEEN_KEY = "zenith_seen_build_id";
 
 /**
  * Application release information injected at build time by Vite.
@@ -77,7 +78,9 @@ export function hasUnseenAppUpdate(): boolean {
   }
 
   try {
-    const seenBuildId = window.localStorage.getItem(APP_BUILD_SEEN_KEY);
+    const seenBuildId =
+      window.localStorage.getItem(APP_BUILD_SEEN_KEY) ??
+      window.localStorage.getItem(LEGACY_APP_BUILD_SEEN_KEY);
     return seenBuildId !== null && seenBuildId !== APP_RELEASE.buildId;
   } catch {
     return false;
@@ -95,6 +98,7 @@ export function markCurrentBuildAsSeen(): void {
 
   try {
     window.localStorage.setItem(APP_BUILD_SEEN_KEY, APP_RELEASE.buildId);
+    window.localStorage.removeItem(LEGACY_APP_BUILD_SEEN_KEY);
   } catch {
     return;
   }

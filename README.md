@@ -1,4 +1,4 @@
-# Zenith
+# Simple Workout Tracker
 
 A Progressive Web App for workout tracking. Mobile-first fitness tracker that runs entirely in the browser with offline support.
 
@@ -47,4 +47,4 @@ Visit <http://localhost:5173>
 
 ## Data Storage
 
-All data is stored locally in the browser using localStorage with `zenith_` prefixed keys. Data is automatically validated and normalized on read to handle schema migrations gracefully.
+All data is stored locally in the browser using localStorage with `simple_workout_tracker_` prefixed keys. Data is automatically validated and normalized on read to handle schema migrations gracefully.

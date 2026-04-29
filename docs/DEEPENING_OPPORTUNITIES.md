@@ -1,6 +1,6 @@
 # Deepening Opportunities
 
-This document captures architectural friction in the Zenith codebase and proposes deepening opportunities: refactors that turn shallow Modules into deeper Modules for better testability and AI-navigability.
+This document captures architectural friction in the Simple Workout Tracker codebase and proposes deepening opportunities: refactors that turn shallow Modules into deeper Modules for better testability and AI-navigability.
 
 ## Candidates
 
@@ -30,7 +30,7 @@ This document captures architectural friction in the Zenith codebase and propose
 
 **Problem**: `storage.ts` is a 1182-line Module handling localStorage keys, normalization, import/export, backup download, deletion repair, history queries, settings, active workout persistence, templates, and ID generation. Its Interface is broad enough that callers must understand persistence details and domain repair behavior together.
 
-**Solution**: Deepen storage around narrower seams: persisted Zenith data, backup import/export, and relationship repair. Keep localStorage as an Adapter behind the storage seam.
+**Solution**: Deepen storage around narrower seams: persisted Simple Workout Tracker data, backup import/export, and relationship repair. Keep localStorage as an Adapter behind the storage seam.
 
 **Benefits**: More Locality for malformed data, import rollback, and exercise deletion repair. More Leverage for tests because backup and repair behavior can be tested through focused Interfaces instead of one large storage test surface.
 

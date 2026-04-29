@@ -44,8 +44,8 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["favicon.svg", "icons/*.png"],
       manifest: {
-        name: "Zenith",
-        short_name: "Zenith",
+        name: "Simple Workout Tracker",
+        short_name: "Workout Tracker",
         description: "Personal workout tracking PWA",
         theme_color: "#09090b",
         background_color: "#09090b",

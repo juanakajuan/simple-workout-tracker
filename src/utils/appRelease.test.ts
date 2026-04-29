@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const seenBuildIdentifierStorageKey = "zenith_seen_build_id";
+const seenBuildIdentifierStorageKey = "simple_workout_tracker_seen_build_id";
 
 /** In-memory `Storage` implementation for app release tests. */
 class MockStorage implements Storage {

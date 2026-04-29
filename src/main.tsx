@@ -1,5 +1,5 @@
 /**
- * Application entry point for Zenith.
+ * Application entry point for Simple Workout Tracker.
  *
  * This module initializes the React application by:
  * - Setting up StrictMode for development checks

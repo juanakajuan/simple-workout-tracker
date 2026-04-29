@@ -1,5 +1,5 @@
 /**
- * Root application component for Zenith.
+ * Root application component for Simple Workout Tracker.
  *
  * Sets up the main application structure including:
  * - BrowserRouter for client-side routing
