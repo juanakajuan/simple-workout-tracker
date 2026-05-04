@@ -43,24 +43,24 @@ import {
   type WorkoutPageSelectorState,
 } from "./workout/workoutPageHelpers";
 import {
-  addExerciseToActiveWorkout,
-  addTemplateExerciseForActiveWorkout,
-  addSetToWorkoutExercise,
   completeActiveWorkout,
-  moveWorkoutExerciseInSession,
-  moveTemplateExerciseForActiveWorkout,
   pairTemplateSupersetForActiveWorkout,
-  removeExerciseFromActiveWorkout,
-  removeTemplateExerciseForActiveWorkout,
-  removeWorkoutSet,
-  replaceExerciseInActiveWorkout,
-  replaceTemplateExerciseForActiveWorkout,
   skipRemainingWorkoutExerciseSets,
-  syncTemplateSetCountForActiveWorkoutExercise,
   unpairTemplateSupersetForActiveWorkout,
   updateTemplateExerciseIntensityForActiveWorkout,
   updateWorkoutSet,
 } from "./workout/activeWorkoutSession";
+import {
+  addExerciseToActiveWorkoutEditingState,
+  addSetToActiveWorkoutEditingState,
+  moveExerciseInActiveWorkoutEditingState,
+  removeExerciseFromActiveWorkoutEditingState,
+  removeSetFromActiveWorkoutEditingState,
+  replaceExerciseInActiveWorkoutEditingState,
+  type ActiveWorkoutEditingResult,
+  type ActiveWorkoutEditingState,
+  type TemplateSynchronizationDecision,
+} from "./workout/activeWorkoutEditing";
 
 import "./WorkoutPage.css";
 
@@ -78,7 +78,7 @@ export function WorkoutPage(): React.ReactElement {
   const location = useLocation();
   const [exercises, setExercises] = useLocalStorage<Exercise[]>(STORAGE_KEYS.EXERCISES, []);
   const [workouts, setWorkouts] = useLocalStorage<Workout[]>(STORAGE_KEYS.WORKOUTS, []);
-  const [, setTemplates] = useLocalStorage<WorkoutTemplate[]>(STORAGE_KEYS.TEMPLATES, [], {
+  const [templates, setTemplates] = useLocalStorage<WorkoutTemplate[]>(STORAGE_KEYS.TEMPLATES, [], {
     deserialize: normalizeTemplates,
   });
   const [activeWorkout, setActiveWorkout] = useLocalStorage<Workout | null>(
@@ -110,6 +110,30 @@ export function WorkoutPage(): React.ReactElement {
     [allExercises]
   );
 
+  const createActiveWorkoutEditingState = (workout: Workout): ActiveWorkoutEditingState => ({
+    workout,
+    templates,
+    exercisesByIdentifier: exercisesById,
+    generateIdentifier: generateId,
+  });
+
+  const applyActiveWorkoutEditingResult = (result: ActiveWorkoutEditingResult | null): boolean => {
+    if (!result) return false;
+
+    setActiveWorkout(result.workout);
+
+    if (result.templates !== templates) {
+      setTemplates(result.templates);
+    }
+
+    return true;
+  };
+
+  const getTemplateSynchronizationDecision = (
+    shouldSynchronizeTemplate: boolean
+  ): TemplateSynchronizationDecision =>
+    shouldSynchronizeTemplate ? "synchronizeTemplate" : "leaveTemplateUnchanged";
+
   /**
    * Creates and initializes a new empty workout using the shared default naming logic.
    */
@@ -122,69 +146,57 @@ export function WorkoutPage(): React.ReactElement {
   /**
    * Adds an exercise to the active workout with one initial empty set.
    *
-   * @param exerciseId - The unique identifier of the exercise to add
+   * @param exerciseIdentifier - The unique identifier of the exercise to add
+   * @param templateSynchronizationDecision - Whether the source template should be updated
    */
-  const addExerciseToWorkout = (exerciseId: string) => {
+  const addExerciseToWorkout = (
+    exerciseIdentifier: string,
+    templateSynchronizationDecision: TemplateSynchronizationDecision
+  ): void => {
     if (!activeWorkout) return;
 
-    setActiveWorkout(addExerciseToActiveWorkout(activeWorkout, exerciseId, generateId));
-  };
-
-  const moveTemplateExercise = (templateId: string, fromIndex: number, toIndex: number) => {
-    setTemplates((currentTemplates) =>
-      moveTemplateExerciseForActiveWorkout(
-        currentTemplates,
-        templateId,
-        exercisesById,
-        generateId,
-        fromIndex,
-        toIndex
+    applyActiveWorkoutEditingResult(
+      addExerciseToActiveWorkoutEditingState(
+        createActiveWorkoutEditingState(activeWorkout),
+        exerciseIdentifier,
+        templateSynchronizationDecision
       )
     );
   };
 
-  const moveWorkoutExercise = (workoutExerciseId: string, direction: "up" | "down") => {
+  const moveWorkoutExercise = (workoutExerciseIdentifier: string, direction: "up" | "down") => {
     if (!activeWorkout) return;
 
-    const result = moveWorkoutExerciseInSession(activeWorkout, workoutExerciseId, direction);
-    if (!result) return;
+    const didMoveExercise = applyActiveWorkoutEditingResult(
+      moveExerciseInActiveWorkoutEditingState(
+        createActiveWorkoutEditingState(activeWorkout),
+        workoutExerciseIdentifier,
+        direction
+      )
+    );
 
-    setActiveWorkout(result.workout);
-
-    if (activeWorkout.templateId) {
-      moveTemplateExercise(activeWorkout.templateId, result.fromIndex, result.toIndex);
+    if (didMoveExercise) {
+      setOpenKebabMenu(null);
     }
-
-    setOpenKebabMenu(null);
   };
 
   /**
    * Removes an exercise from the active workout.
    *
-   * @param workoutExerciseId - The unique identifier of the workout exercise to remove
+   * @param workoutExerciseIdentifier - The unique identifier of the workout exercise to remove
+   * @param templateSynchronizationDecision - Whether the source template should be updated
    */
-  const removeExerciseFromWorkout = (workoutExerciseId: string) => {
-    if (!activeWorkout) return;
-    setActiveWorkout(removeExerciseFromActiveWorkout(activeWorkout, workoutExerciseId));
-  };
-
-  /**
-   * Keeps the template set count aligned with the current workout exercise.
-   *
-   * @param updatedWorkout - The workout state after the set change
-   * @param workoutExerciseId - The unique identifier of the updated workout exercise
-   */
-  const syncTemplateSetCountForWorkoutExercise = (
-    updatedWorkout: Workout,
-    workoutExerciseId: string
+  const removeExerciseFromWorkout = (
+    workoutExerciseIdentifier: string,
+    templateSynchronizationDecision: TemplateSynchronizationDecision
   ): void => {
-    setTemplates((currentTemplates) =>
-      syncTemplateSetCountForActiveWorkoutExercise(
-        currentTemplates,
-        updatedWorkout,
-        workoutExerciseId,
-        exercisesById,
-        generateId
+    if (!activeWorkout) return;
+
+    applyActiveWorkoutEditingResult(
+      removeExerciseFromActiveWorkoutEditingState(
+        createActiveWorkoutEditingState(activeWorkout),
+        workoutExerciseIdentifier,
+        templateSynchronizationDecision
       )
     );
   };
@@ -194,15 +206,17 @@ export function WorkoutPage(): React.ReactElement {
    * weight and reps from the last set. If the workout is from a template, updates
    * the template set count as well.
    *
-   * @param workoutExerciseId - The unique identifier of the workout exercise
+   * @param workoutExerciseIdentifier - The unique identifier of the workout exercise
    */
-  const addSet = (workoutExerciseId: string) => {
+  const addSet = (workoutExerciseIdentifier: string) => {
     if (!activeWorkout) return;
 
-    const updatedWorkout = addSetToWorkoutExercise(activeWorkout, workoutExerciseId, generateId);
-
-    setActiveWorkout(updatedWorkout);
-    syncTemplateSetCountForWorkoutExercise(updatedWorkout, workoutExerciseId);
+    applyActiveWorkoutEditingResult(
+      addSetToActiveWorkoutEditingState(
+        createActiveWorkoutEditingState(activeWorkout),
+        workoutExerciseIdentifier
+      )
+    );
   };
 
   /**
@@ -226,16 +240,19 @@ export function WorkoutPage(): React.ReactElement {
    * Removes a set from a workout exercise. If the workout is from a template,
    * updates the template set count as well.
    *
-   * @param workoutExerciseId - The unique identifier of the workout exercise
-   * @param setId - The unique identifier of the set to remove
+   * @param workoutExerciseIdentifier - The unique identifier of the workout exercise
+   * @param setIdentifier - The unique identifier of the set to remove
    */
-  const removeSet = (workoutExerciseId: string, setId: string) => {
+  const removeSet = (workoutExerciseIdentifier: string, setIdentifier: string) => {
     if (!activeWorkout) return;
 
-    const updatedWorkout = removeWorkoutSet(activeWorkout, workoutExerciseId, setId);
-
-    setActiveWorkout(updatedWorkout);
-    syncTemplateSetCountForWorkoutExercise(updatedWorkout, workoutExerciseId);
+    applyActiveWorkoutEditingResult(
+      removeSetFromActiveWorkoutEditingState(
+        createActiveWorkoutEditingState(activeWorkout),
+        workoutExerciseIdentifier,
+        setIdentifier
+      )
+    );
   };
 
   const startEditingWorkoutName = () => {
@@ -341,92 +358,23 @@ export function WorkoutPage(): React.ReactElement {
    * of sets but resets weight, reps, and completion status. Optionally updates
    * the template if the workout is from a template.
    *
-   * @param newExerciseId - The unique identifier of the replacement exercise
+   * @param workoutExerciseIdentifier - The unique identifier of the workout exercise to replace
+   * @param exerciseIdentifier - The unique identifier of the replacement exercise
+   * @param templateSynchronizationDecision - Whether the source template should be updated
    */
   const replaceExerciseInWorkout = (
-    workoutExerciseId: string,
-    newExerciseId: string,
-    shouldUpdateTemplate: boolean
-  ) => {
+    workoutExerciseIdentifier: string,
+    exerciseIdentifier: string,
+    templateSynchronizationDecision: TemplateSynchronizationDecision
+  ): void => {
     if (!activeWorkout) return;
 
-    const result = replaceExerciseInActiveWorkout(activeWorkout, workoutExerciseId, newExerciseId);
-    if (!result) return;
-
-    setActiveWorkout(result.workout);
-
-    if (shouldUpdateTemplate && activeWorkout.templateId) {
-      updateTemplateExercise(activeWorkout.templateId, result.exerciseIndex, newExerciseId);
-    }
-  };
-
-  /**
-   * Updates a specific exercise in a template to use a different exercise.
-   * Used when replacing an exercise during a workout and the user opts to
-   * update the template as well.
-   *
-   * @param templateId - The unique identifier of the template
-   * @param exercisePositionInWorkout - The zero-based position of the exercise in the workout
-   * @param newExerciseId - The unique identifier of the new exercise
-   */
-  const updateTemplateExercise = (
-    templateId: string,
-    exercisePositionInWorkout: number,
-    newExerciseId: string
-  ) => {
-    setTemplates((currentTemplates) =>
-      replaceTemplateExerciseForActiveWorkout(
-        currentTemplates,
-        templateId,
-        exercisePositionInWorkout,
-        newExerciseId,
-        exercisesById,
-        generateId
-      )
-    );
-  };
-
-  /**
-   * Removes a specific exercise from a template. Used when deleting an exercise
-   * from a workout and the user opts to update the template as well. If the
-   * muscle group becomes empty after removal, the entire muscle group is removed.
-   *
-   * @param templateId - The unique identifier of the template
-   * @param exercisePositionInWorkout - The zero-based position of the exercise in the workout
-   */
-  const removeExerciseFromTemplate = (templateId: string, exercisePositionInWorkout: number) => {
-    setTemplates((currentTemplates) =>
-      removeTemplateExerciseForActiveWorkout(
-        currentTemplates,
-        templateId,
-        exercisePositionInWorkout,
-        exercisesById,
-        generateId
-      )
-    );
-  };
-
-  /**
-   * Adds a new exercise to a template at the same flat position used in the
-   * active workout so grouped muscle sections stay in the same order.
-   *
-   * @param templateId - The unique identifier of the template
-   * @param exercise - The exercise to add to the template
-   * @param exercisePositionInWorkout - The zero-based workout insertion position
-   */
-  const addExerciseToTemplate = (
-    templateId: string,
-    exercise: Exercise,
-    exercisePositionInWorkout: number
-  ) => {
-    setTemplates((currentTemplates) =>
-      addTemplateExerciseForActiveWorkout(
-        currentTemplates,
-        templateId,
-        exercise,
-        exercisePositionInWorkout,
-        exercisesById,
-        generateId
+    applyActiveWorkoutEditingResult(
+      replaceExerciseInActiveWorkoutEditingState(
+        createActiveWorkoutEditingState(activeWorkout),
+        workoutExerciseIdentifier,
+        exerciseIdentifier,
+        templateSynchronizationDecision
       )
     );
   };
@@ -714,14 +662,10 @@ export function WorkoutPage(): React.ReactElement {
   /** Removes a workout exercise and optionally updates its template source. */
   const deleteWorkoutExercise = (workoutExerciseId: string): void => {
     if (!activeWorkout?.templateId) {
-      removeExerciseFromWorkout(workoutExerciseId);
+      removeExerciseFromWorkout(workoutExerciseId, "leaveTemplateUnchanged");
       setOpenKebabMenu(null);
       return;
     }
-
-    const exercisePositionInWorkout = activeWorkout.exercises.findIndex(
-      (exercise) => exercise.id === workoutExerciseId
-    );
 
     showConfirm({
       title: "Delete Exercise?",
@@ -731,11 +675,10 @@ export function WorkoutPage(): React.ReactElement {
       checkboxLabel: "Update template",
       checkboxDefaultChecked: true,
       onConfirm: (shouldUpdateTemplate) => {
-        if (shouldUpdateTemplate && exercisePositionInWorkout !== -1) {
-          removeExerciseFromTemplate(activeWorkout.templateId!, exercisePositionInWorkout);
-        }
-
-        removeExerciseFromWorkout(workoutExerciseId);
+        removeExerciseFromWorkout(
+          workoutExerciseId,
+          getTemplateSynchronizationDecision(shouldUpdateTemplate === true)
+        );
       },
     });
 
@@ -789,25 +732,19 @@ export function WorkoutPage(): React.ReactElement {
 
     if (state.selectedExerciseId) {
       if (state.replacementWorkoutExerciseId) {
-        setUpdateTemplateOnReplace(state.updateTemplate ?? updateTemplateOnReplace);
+        const shouldSynchronizeTemplate = state.updateTemplate ?? updateTemplateOnReplace;
+        setUpdateTemplateOnReplace(shouldSynchronizeTemplate);
         replaceExerciseInWorkout(
           state.replacementWorkoutExerciseId,
           state.selectedExerciseId,
-          state.updateTemplate ?? updateTemplateOnReplace
+          getTemplateSynchronizationDecision(shouldSynchronizeTemplate)
         );
       } else {
-        const exercisePositionInWorkout = activeWorkout?.exercises.length;
-        addExerciseToWorkout(state.selectedExerciseId);
-        if (
-          activeWorkout?.templateId &&
-          exercisePositionInWorkout !== undefined &&
-          (state.updateTemplate ?? updateTemplateOnAdd)
-        ) {
-          const exercise = exercisesById.get(state.selectedExerciseId);
-          if (exercise) {
-            addExerciseToTemplate(activeWorkout.templateId, exercise, exercisePositionInWorkout);
-          }
-        }
+        const shouldSynchronizeTemplate = state.updateTemplate ?? updateTemplateOnAdd;
+        addExerciseToWorkout(
+          state.selectedExerciseId,
+          getTemplateSynchronizationDecision(shouldSynchronizeTemplate)
+        );
         setUpdateTemplateOnAdd(true);
       }
 
